@@ -1,0 +1,35 @@
+%% TEAF — Arquitectura por capas (vista lógica de 7 capas)
+%% Mapeada sobre la estructura física ya definida en docs/architecture/ARCHITECTURE.md.
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 3.
+flowchart TD
+    P["1. Presentation\nfrontend/ — UI, portales TORUS"]
+    A["2. API\nbackend/api/ — routers versionados, middleware/"]
+    AP["3. Application\nbackend/services/ — casos de uso, orquestación"]
+    D["4. Domain\nbackend/models/ + reglas de negocio en services/\n(candidato a backend/domain/ propio — ver ADR sugerido)"]
+    I["5. Infrastructure\ncore/ · config/ · security/ · monitoring/ · shared/ · scheduler/"]
+    PE["6. Persistence\nbackend/database/ + backend/repository/ + database/migrations/"]
+    E["7. External Services\nwebhooks/ · conectores SAP/Salesforce/Control-M · proveedores ai/ · Azure"]
+
+    P --> A --> AP --> D --> I --> PE --> E
+
+    subgraph RULES["Regla de dirección"]
+        direction LR
+        R1["Una capa solo puede invocar\nla capa inmediatamente inferior"]
+        R2["Ninguna capa inferior conoce\nni importa una capa superior"]
+    end
+
+    classDef presentation fill:#e0e7ff,stroke:#4338ca
+    classDef api fill:#dbeafe,stroke:#1d4ed8
+    classDef app fill:#dcfce7,stroke:#15803d
+    classDef domain fill:#fef9c3,stroke:#a16207
+    classDef infra fill:#fae8ff,stroke:#a21caf
+    classDef persist fill:#ffe4e6,stroke:#be123c
+    classDef ext fill:#f1f5f9,stroke:#334155
+
+    class P presentation
+    class A api
+    class AP app
+    class D domain
+    class I infra
+    class PE persist
+    class E ext

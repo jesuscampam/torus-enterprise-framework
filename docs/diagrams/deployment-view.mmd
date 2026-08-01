@@ -1,0 +1,37 @@
+%% TEAF — Vista lógica de despliegue
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 2 y docs/architecture/STACK.md.
+flowchart TB
+    CLIENT(["Cliente\n(navegador / integración externa)"])
+    REACT["React\n(frontend, servido como estático)"]
+    FASTAPI["FastAPI\n(backend, contenedor Docker)"]
+    POSTGRES[("PostgreSQL\n(Azure Database for PostgreSQL)")]
+    OTEL["OpenTelemetry\n(colector de trazas/métricas/logs)"]
+    AZURE["Azure App Service\n(orquestación de contenedores)"]
+    STORAGE["Azure Blob Storage\n(archivos, V4 — módulo Storage)"]
+    EXTAPI["External APIs\n(SAP · Salesforce · Control-M · proveedores IA)"]
+
+    CLIENT --> REACT
+    REACT -->|"HTTPS /api/v1"| FASTAPI
+    FASTAPI --> POSTGRES
+    FASTAPI --> OTEL
+    FASTAPI -.-> STORAGE
+    FASTAPI -.-> EXTAPI
+
+    subgraph AZURE_ENV["Azure (producción)"]
+        AZURE
+        POSTGRES
+        STORAGE
+        OTEL
+    end
+
+    REACT --> AZURE
+    FASTAPI --> AZURE
+
+    subgraph POC["Render (POC)"]
+        direction LR
+        RENDER_APP["Backend + Frontend"]
+        RENDER_DB[("PostgreSQL")]
+    end
+
+    FASTAPI -.->|"entorno POC"| RENDER_APP
+    RENDER_APP -.-> RENDER_DB

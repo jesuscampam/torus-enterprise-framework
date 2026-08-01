@@ -1,0 +1,42 @@
+%% TEAF — Vista general del framework
+%% Referenciado desde docs/architecture/FRAMEWORK-BLUEPRINT.md, sección 2.
+flowchart TB
+    CLIENT["Cliente\n(Portales TORUS / integraciones externas)"]
+
+    subgraph FRONTEND["Frontend — React + TypeScript + MUI"]
+        FE["frontend/src\n(pages, components, services)"]
+    end
+
+    subgraph BACKEND["Backend — FastAPI (TEAF)"]
+        direction TB
+        EDGE["api/ + middleware/\n(borde HTTP)"]
+        APP["services/\n(casos de uso)"]
+        DOM["models/ + schemas/\n(dominio y contratos)"]
+        INFRA["core/ · config/ · security/\nmonitoring/ · shared/ · scheduler/"]
+        PERSIST["repository/ + database/\n(persistencia)"]
+    end
+
+    subgraph EXT["Servicios externos"]
+        DB[("PostgreSQL")]
+        OTEL["OpenTelemetry\n(colector)"]
+        AZURE["Azure App Service\n(producción)"]
+        CONN["SAP · Salesforce · Control-M\n(conectores, V4)"]
+        LLM["Proveedor de IA\n(vía ai/, V4)"]
+    end
+
+    CLIENT --> FE
+    FE -->|"HTTPS /api/v1"| EDGE
+    EDGE --> APP
+    APP --> DOM
+    APP --> PERSIST
+    PERSIST --> DB
+    INFRA -.->|"transversal a todas las capas"| EDGE
+    INFRA -.-> APP
+    INFRA -.-> PERSIST
+    BACKEND -->|"trazas/métricas/logs"| OTEL
+    BACKEND -->|"despliegue Docker"| AZURE
+    APP -.->|"V4"| CONN
+    APP -.->|"V4"| LLM
+
+    classDef future stroke-dasharray: 4 3
+    class CONN,LLM future

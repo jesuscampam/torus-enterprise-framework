@@ -1,0 +1,46 @@
+%% TEAF — Mapa oficial de dependencias entre módulos
+%% Fuente de verdad: docs/architecture/MODULE-CATALOG.md (columna "Dependencias").
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 5.
+flowchart BT
+    subgraph CORE["Core — capa fundacional (sin dependencias externas)"]
+        direction TB
+        CFG["Configuration"]
+        LOG["Logging"]
+        ENV["Environment"]
+        UTIL["Utilities"]
+        CONST["Constants"]
+        EXC["Exceptions"]
+        HEALTH["Health"]
+        VER["Version"]
+        DI["Dependency Injection"]
+    end
+
+    SECURITY["Security"] --> CORE
+    DATABASE["Database"] --> CORE
+    MONITORING["Monitoring"] --> CORE
+    SCHEDULER["Scheduler"] --> CORE
+    AI["AI"] --> CORE
+    AI --> SECURITY
+    MCP["MCP"] --> AI
+    MCP --> CORE
+    WEBHOOKS["Webhooks"] --> SECURITY
+    NOTIF["Notifications"] --> CORE
+    STORAGE["Storage"] --> CORE
+    AUDIT["Audit"] --> SECURITY
+    AUDIT --> MONITORING
+    SAP["SAP Connector"] --> WEBHOOKS
+    SF["Salesforce Connector"] --> WEBHOOKS
+    CTM["Control-M Connector"] --> WEBHOOKS
+    CTM --> SCHEDULER
+
+    STARTER["Starter Applications"] --> CORE
+    STARTER --> SECURITY
+    STARTER --> DATABASE
+    STARTER --> MONITORING
+    STARTER --> SCHEDULER
+    STARTER --> AI
+    STARTER --> MCP
+    STARTER --> WEBHOOKS
+
+    %% Regla no negociable: ninguna flecha entra a CORE.
+    %% AI nunca depende de Database (ver sección 6 y 11 del blueprint).

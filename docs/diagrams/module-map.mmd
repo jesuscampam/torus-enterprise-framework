@@ -1,0 +1,50 @@
+%% TEAF — Mapa completo de módulos del framework
+%% Fuente de verdad: docs/architecture/MODULE-CATALOG.md.
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 4.
+flowchart TB
+    FW["Framework TEAF"]
+
+    subgraph FOUNDATION["Fundación (V1)"]
+        CORE["Core"]
+        CONFIGURATION["Configuration"]
+        DATABASE["Database"]
+        LOGGING["Logging"]
+    end
+
+    subgraph PLATFORM["Plataforma (V2)"]
+        SECURITY["Security"]
+        MONITORING["Monitoring / OpenTelemetry"]
+        OBSERVABILITY["Observability"]
+        TELEMETRY["Telemetry"]
+        AUDIT["Audit"]
+    end
+
+    subgraph EXPERIENCE["Experiencia (V3)"]
+        FRONTEND["Frontend Shell"]
+    end
+
+    subgraph EXTENSION["Extensión e IA (V4)"]
+        SCHEDULER["Scheduler"]
+        NOTIFICATIONS["Notifications"]
+        STORAGE["Storage"]
+        AI["AI"]
+        MCP["MCP"]
+        CONNECTORS["Connectors\n(SAP · Salesforce · Control-M)"]
+    end
+
+    subgraph HARDENING["Hardening y DX (V5)"]
+        GRAPHQL["GraphQL"]
+        STARTER["Starter Applications"]
+    end
+
+    FW --> FOUNDATION
+    FW --> PLATFORM
+    FW --> EXPERIENCE
+    FW --> EXTENSION
+    FW --> HARDENING
+
+    classDef done fill:#dcfce7,stroke:#15803d
+    classDef planned fill:#f1f5f9,stroke:#64748b,stroke-dasharray: 4 3
+
+    class CORE,CONFIGURATION,DATABASE,LOGGING,SECURITY,MONITORING,FRONTEND,SCHEDULER,AI done
+    class OBSERVABILITY,TELEMETRY,AUDIT,NOTIFICATIONS,STORAGE,MCP,CONNECTORS,GRAPHQL,STARTER planned
