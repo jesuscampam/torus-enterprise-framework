@@ -1,0 +1,19 @@
+# CODEOWNERS — TEAF
+# Ver: https://docs.github.com/articles/about-code-owners
+#
+# Cada línea define un patrón y el/los propietario(s) responsables de
+# revisar y aprobar los Pull Requests que lo modifiquen.
+# La última coincidencia dentro del archivo tiene prioridad.
+
+# Propietario por defecto de todo el repositorio
+*   @jesuscampam
+
+# Documentación de arquitectura y decisiones (ADR): requiere revisión
+# explícita del arquitecto principal antes de fusionar.
+/docs/architecture/   @jesuscampam
+
+# Estándares del framework: cambios de alto impacto transversal.
+/docs/standards/       @jesuscampam
+
+# Gobernanza del repositorio
+/.github/              @jesuscampam

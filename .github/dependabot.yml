@@ -1,0 +1,57 @@
+# Configuración de Dependabot — TEAF
+#
+# Preparada de forma anticipada para los ecosistemas del stack oficial
+# (ver docs/architecture/STACK.md). Hasta que existan los manifiestos de
+# dependencias (backend/requirements.txt o pyproject.toml, frontend/package.json,
+# Dockerfiles en docker/) — previstos en la Versión 1 del roadmap — Dependabot
+# no tendrá nada que actualizar en estos directorios; la configuración queda
+# lista para activarse sin cambios adicionales cuando esos archivos existan.
+
+version: 2
+updates:
+  # Backend — Python (FastAPI, SQLAlchemy, Alembic)
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "backend"
+    open-pull-requests-limit: 10
+
+  # Frontend — Node (React, TypeScript, Material UI)
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "frontend"
+    open-pull-requests-limit: 10
+
+  # Imagen Docker del backend
+  - package-ecosystem: "docker"
+    directory: "/docker/backend"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # Imagen Docker del frontend
+  - package-ecosystem: "docker"
+    directory: "/docker/frontend"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # Workflows de GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci"
