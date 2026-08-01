@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dudas de arquitectura o estándares
+    url: https://github.com/jesuscampam/torus-enterprise-framework/discussions
+    about: Para preguntas generales sobre el framework, usa las Discussions en lugar de un Issue.
