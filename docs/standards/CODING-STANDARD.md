@@ -37,7 +37,7 @@ Se usa [Conventional Commits](https://www.conventionalcommits.org/): `tipo(alcan
 
 ## 6. Estrategia de branching
 
-Trunk-based development: `main` protegida y siempre desplegable; ramas de trabajo de corta duración (`feature/*`, `fix/*`, `docs/*`) que se integran vía Pull Request revisado.
+La estrategia oficial de ramas (Git Flow simplificado: `main`/`develop`/`feature`/`release`/`hotfix`), naming convention, estrategia de merge y versionado semántico está documentada en **[GIT-STANDARD.md](GIT-STANDARD.md)**.
 
 ## 7. Testing
 

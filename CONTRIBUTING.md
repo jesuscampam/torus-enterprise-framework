@@ -12,14 +12,11 @@ Gracias por contribuir al TORUS Enterprise Application Framework. Este documento
 
 ## Flujo de trabajo (branching)
 
-TEAF utiliza **trunk-based development** simplificado:
-
-- `main`: rama estable, siempre desplegable. Protegida — solo se actualiza vía Pull Request.
-- `claude/*`, `feature/*`, `fix/*`, `docs/*`: ramas de trabajo, con nombre descriptivo del cambio (`feature/repository-pattern-base`, `fix/jwt-refresh-expiry`, `docs/logging-standard`).
+La estrategia oficial de ramas, naming convention, estrategia de merge y versionado semántico está documentada en **[docs/standards/GIT-STANDARD.md](docs/standards/GIT-STANDARD.md)** — es la fuente canónica, este documento no la duplica.
 
 Pasos:
 
-1. Crea una rama a partir de `main`.
+1. Crea una rama siguiendo la convención de [GIT-STANDARD.md](docs/standards/GIT-STANDARD.md).
 2. Realiza tus cambios siguiendo `docs/standards/CODING-STANDARD.md`.
 3. Asegúrate de que tu cambio incluye o actualiza documentación y pruebas cuando aplique.
 4. Abre un Pull Request usando la plantilla del repositorio.
