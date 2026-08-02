@@ -113,7 +113,7 @@ Detalle completo en **[docs/roadmap/ROADMAP.md](docs/roadmap/ROADMAP.md)**.
 
 ## Cómo iniciar el proyecto
 
-> **Estado actual: v0.2.0-alpha — bootstrap + infraestructura base (Sprint 2.2).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks) y ya expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA — sin ninguna implementación ni conexión real todavía. Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
+> **Estado actual: v0.3.0-alpha — bootstrap + infraestructura + Runtime (Sprint 2.3).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, y ya tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias — sin ninguna implementación de negocio ni conexión externa todavía. Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
 
 ```bash
 git clone https://github.com/jesuscampam/torus-enterprise-framework.git
@@ -135,10 +135,11 @@ Para profundizar:
 
 1. **[docs/core/CORE.md](docs/core/CORE.md)** explica la arquitectura del Core implementado, cómo extenderlo y por qué el entry point es `backend.main:app`.
 2. **[docs/infrastructure/INFRASTRUCTURE.md](docs/infrastructure/INFRASTRUCTURE.md)** explica los contratos, providers, el registro de módulos y cómo se conectará una implementación real en el futuro.
-3. **[docs/architecture/FRAMEWORK-BLUEPRINT.md](docs/architecture/FRAMEWORK-BLUEPRINT.md)** es la arquitectura técnica oficial completa, con diagramas.
-4. **[docs/standards/](docs/standards/)** contiene las convenciones obligatorias de API, base de datos, código, seguridad y logging.
-5. Los **[ADR](docs/architecture/adr/)** explican el porqué de cada decisión estructural.
-6. Recorre `backend/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
+3. **[docs/runtime/RUNTIME.md](docs/runtime/RUNTIME.md)** explica el ciclo de vida, el contenedor de servicios, los pipelines, el grafo de dependencias, el event bus y el plugin loader.
+4. **[docs/architecture/FRAMEWORK-BLUEPRINT.md](docs/architecture/FRAMEWORK-BLUEPRINT.md)** es la arquitectura técnica oficial completa, con diagramas.
+5. **[docs/standards/](docs/standards/)** contiene las convenciones obligatorias de API, base de datos, código, seguridad y logging.
+6. Los **[ADR](docs/architecture/adr/)** explican el porqué de cada decisión estructural.
+7. Recorre `backend/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
 
 ## Contribuir
 

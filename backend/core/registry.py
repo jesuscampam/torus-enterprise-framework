@@ -35,11 +35,19 @@ class ModuleStatus(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class ModuleDescriptor:
-    """Identidad de un módulo registrado en el ``ModuleRegistry``."""
+    """Identidad de un módulo registrado en el ``ModuleRegistry``.
+
+    ``dependencies`` es aditivo desde Sprint 2.3 (Runtime): nombres de otros
+    módulos registrados de los que este depende, consumidos por
+    ``backend/runtime/dependency_graph.py`` para detectar ciclos antes del
+    arranque. Vacío por defecto — no rompe a quien ya construía
+    ``ModuleDescriptor`` sin este argumento (Sprint 2.2).
+    """
 
     name: str
     version: str
     status: ModuleStatus
+    dependencies: tuple[str, ...] = ()
 
 
 class ModuleRegistry:

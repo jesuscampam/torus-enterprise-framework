@@ -7,7 +7,36 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.2.0-alpha](#020-alpha---2026-08-02).
+Sin cambios todavía sobre [0.3.0-alpha](#030-alpha---2026-08-02).
+
+## [0.3.0-alpha] - 2026-08-02
+
+### Added
+
+- **Framework Runtime** (Sprint 2.3): paquete `backend/runtime/`, independiente de `contracts/`/`providers/` (solo depende de `backend/core/`):
+  - `ServiceContainer` (`container.py`): resolución por contrato con ciclos de vida Singleton/Scoped/Transient, resolución perezosa (`resolve_lazy`/`Lazy[T]`), factories que resuelven otras dependencias, y detección de dependencias circulares (`CircularDependencyException`).
+  - `LifecycleManager` (`lifecycle.py`): cinco etapas (Bootstrap → Startup → Running → Shutdown → Stopped) con hooks síncronos o asíncronos por etapa.
+  - `StartupPipeline`/`ShutdownPipeline` (`pipeline.py`): pasos nombrados, FIFO en el arranque y LIFO en el apagado.
+  - `ModuleDiscovery` (`discovery.py`): lectura del `ModuleRegistry` con filtro opcional por estado.
+  - `DependencyGraph` (`dependency_graph.py`): grafo de dependencias entre módulos con detección de ciclos y orden topológico, verificado antes de correr el `StartupPipeline`.
+  - `EventBus` (`event_bus.py`): publicación/suscripción síncrona interna, sin mensajería distribuida.
+  - `PluginLoader` (`plugin_loader.py`): contrato `Plugin` mínimo y mecanismo de carga/validación, sin plugins reales.
+  - `ConfigurationPipeline` (`configuration_pipeline.py`): validadores de configuración por módulo, ejecutados antes de verificar el grafo de dependencias.
+  - `Runtime` (`runtime.py`): orquestador que compone todo lo anterior; conectado al ciclo de vida de FastAPI vía `lifespan` en `backend/core/application.py`.
+- `ModuleDescriptor` (`backend/core/registry.py`) gana el campo aditivo `dependencies: tuple[str, ...]` — el módulo `ai` ya declara `("security",)`, reflejando la regla ya fijada en FRAMEWORK-BLUEPRINT.md.
+- `GET /info` ampliado con `state`, `lifecycleStage`, `loadedModules` y `registeredCapabilities` del Runtime, leídos en cada petición (no una fotografía capturada al arrancar).
+- 60 pruebas nuevas (116 en total): Service Container, Lifecycle, Pipelines, Event Bus, Module Discovery, Dependency Graph, Plugin Loader, Configuration Pipeline y el `Runtime` orquestador — sin integraciones con servicios reales.
+- `docs/runtime/RUNTIME.md` documenta la arquitectura del Runtime, el ciclo de vida, el registro de módulos, el contenedor de servicios, el event bus, el plugin loader y las buenas prácticas de extensión.
+
+### Changed
+
+- Versión del framework: `0.2.0-alpha` → `0.3.0-alpha`.
+- `backend/core/application.py`: ahora usa `lifespan` de FastAPI para arrancar/apagar el `Runtime`; `/info` recibe un `Callable` que lee el estado del Runtime en vivo en vez del registro estático anterior.
+
+### Notes
+
+- Sprint 2.3 es exclusivamente infraestructura de ejecución: Service Container, ciclo de vida, pipelines, descubrimiento, grafo de dependencias, event bus y plugin loader — sin ninguna implementación ni conexión real (sin PostgreSQL, SQLAlchemy funcional, JWT/OAuth, IA, MCP, scheduler, notificaciones ni storage reales, sin Docker ni Azure).
+- Verificado sin dependencias circulares a nivel de archivo y que `backend/core/` (salvo `application.py`, el composition root ya documentado) sigue sin depender de ningún otro módulo del framework.
 
 ## [0.2.0-alpha] - 2026-08-02
 
@@ -36,5 +65,6 @@ Sin cambios todavía sobre [0.2.0-alpha](#020-alpha---2026-08-02).
 - El backend ya es ejecutable end-to-end (`uvicorn backend.main:app --reload` responde en `/`, `/health`, `/live`, `/ready`, `/info`). Sigue sin haber base de datos, autenticación, frontend ejecutable, Docker ni CI/CD reales — llegan en Sprints posteriores (ver `docs/roadmap/ROADMAP.md`, Versión 1 en adelante).
 - Sprint 2.2 es exclusivamente infraestructura abstracta: contratos y clases base, sin ninguna implementación ni conexión real (sin PostgreSQL, SQLAlchemy funcional, JWT/OAuth, IA, MCP, storage ni scheduler reales).
 
-[Unreleased]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.2.0-alpha...HEAD
+[Unreleased]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.3.0-alpha...HEAD
+[0.3.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.2.0-alpha...v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/main...v0.2.0-alpha
