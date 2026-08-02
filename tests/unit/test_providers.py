@@ -1,0 +1,74 @@
+"""Pruebas unitarias de backend/providers/ — factories y clases base."""
+
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+from backend.contracts.database import DatabaseProvider
+from backend.providers.database.connection_manager import ConnectionManager
+from backend.providers.database.factory import DatabaseFactory
+from backend.providers.security.factory import SecurityFactory
+from backend.providers.security.rbac import Role
+from backend.providers.security.security_context import (
+    ANONYMOUS,
+    SecurityContext,
+    get_security_context,
+)
+from backend.providers.telemetry.telemetry_context import get_telemetry_context
+
+
+def test_database_factory_is_abstract() -> None:
+    with pytest.raises(TypeError):
+        DatabaseFactory()  # type: ignore[abstract]
+
+
+def test_security_factory_is_abstract() -> None:
+    with pytest.raises(TypeError):
+        SecurityFactory()  # type: ignore[abstract]
+
+
+def test_connection_manager_tracks_connection_state() -> None:
+    class FakeConnectionManager(ConnectionManager):
+        async def connect(self) -> None:
+            self._mark_connected()
+
+        async def disconnect(self) -> None:
+            self._mark_disconnected()
+
+        def get_session(self) -> object:
+            raise NotImplementedError
+
+        async def health_check(self) -> bool:
+            return self.is_connected
+
+    manager = FakeConnectionManager()
+    assert isinstance(manager, DatabaseProvider)
+    assert manager.is_connected is False
+
+    asyncio.run(manager.connect())
+    assert manager.is_connected is True
+
+    asyncio.run(manager.disconnect())
+    assert manager.is_connected is False
+
+
+def test_security_context_default_is_anonymous() -> None:
+    context = get_security_context()
+    assert context == ANONYMOUS
+    assert context.is_authenticated is False
+
+
+def test_security_context_has_permission() -> None:
+    role = Role(name="editor", permissions=frozenset({"incidents:write"}))
+    context = SecurityContext(principal_id="user-1", roles=frozenset({role}))
+
+    assert context.is_authenticated is True
+    assert context.has_permission("incidents:write") is True
+    assert context.has_permission("incidents:delete") is False
+
+
+def test_telemetry_context_default_has_no_active_trace() -> None:
+    context = get_telemetry_context()
+    assert context.trace_id is None
+    assert context.span_id is None

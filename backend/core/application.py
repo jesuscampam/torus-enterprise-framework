@@ -10,11 +10,12 @@ Nota arquitectónica — excepción explícita a la regla de dependencias:
 este módulo es el *composition root* del framework (equivalente al
 componente "Main" de Clean Architecture: es el único lugar autorizado a
 conocer y conectar todas las capas para ensamblar la aplicación). Por eso,
-y solo aquí, se permite importar ``backend/config/``, ``backend/middleware/``
-y ``backend/monitoring/`` desde dentro de ``backend/core/`` — el resto de
-los archivos de ``core/`` (``exceptions.py``, ``context.py``, ``logging.py``,
-``version.py``, ``dependencies.py``) permanecen, como exige la regla 1 de la
-sección 11 del blueprint, sin ninguna dependencia de otro módulo.
+y solo aquí, se permite importar ``backend/config/``, ``backend/middleware/``,
+``backend/monitoring/`` y ``backend/providers/`` desde dentro de
+``backend/core/`` — el resto de los archivos de ``core/`` (``exceptions.py``,
+``context.py``, ``logging.py``, ``version.py``, ``dependencies.py``,
+``registry.py``) permanecen, como exige la regla 1 de la sección 11 del
+blueprint, sin ninguna dependencia de otro módulo.
 """
 
 from __future__ import annotations
@@ -23,17 +24,33 @@ from fastapi import FastAPI
 
 from backend.config.settings import Settings, get_settings
 from backend.core.logging import configure_logging, get_logger
+from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
 from backend.core.version import get_version_info
 from backend.middleware.exception_handler import register_exception_handlers
 from backend.middleware.logging import RequestLoggingMiddleware
 from backend.middleware.request_id import RequestIdMiddleware
 from backend.monitoring.health import create_health_router
+from backend.monitoring.info import create_info_router
 from backend.shared.constants import DEFAULT_SERVICE_NAME
 
 #: Versión del propio framework TEAF (no de una aplicación construida sobre
 #: él). Se actualiza junto con CHANGELOG.md en cada release (ver
 #: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
-FRAMEWORK_VERSION = "0.1.0"
+FRAMEWORK_VERSION = "0.2.0-alpha"
+
+#: Subsistemas de infraestructura que en Sprint 2.2 solo tienen contratos y
+#: clases base (``backend/contracts/`` + ``backend/providers/``) — sin
+#: implementación ni conexión real. Se registran en el ``ModuleRegistry``
+#: al arrancar para que ``/info`` refleje el estado real del framework.
+_INFRASTRUCTURE_MODULES = (
+    "database",
+    "security",
+    "telemetry",
+    "storage",
+    "ai",
+    "scheduler",
+    "notification",
+)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -82,6 +99,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         environment=settings.environment.value,
     )
     app.include_router(create_health_router(version_info))
+
+    registry = ModuleRegistry()
+    for module_name in _INFRASTRUCTURE_MODULES:
+        registry.register(
+            ModuleDescriptor(
+                name=module_name,
+                version=FRAMEWORK_VERSION,
+                status=ModuleStatus.CONTRACTS_ONLY,
+            )
+        )
+    # Expuesto vía app.state (no como singleton de proceso) para que cada
+    # instancia de aplicación tenga su propio registro aislado — ver la nota
+    # de diseño en backend/core/registry.py. Los routers lo consumen vía
+    # Depends(get_module_registry) (backend/providers/dependencies.py).
+    app.state.module_registry = registry
+    app.include_router(create_info_router(version_info, registry))
 
     logger.info("application_bootstrap_completed")
     return app
