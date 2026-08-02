@@ -1,0 +1,39 @@
+%% TEAF — Arquitectura de seguridad
+%% Solo arquitectura: no implementa nada, describe el recorrido de seguridad
+%% que ya exige docs/standards/SECURITY-STANDARD.md.
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 3/11.
+flowchart TD
+    CLIENT(["Cliente"])
+    HTTPS["HTTPS / TLS\n(obligatorio en tránsito)"]
+    PROXY["Reverse Proxy\n(Azure Front Door / Render Proxy — CORS, WAF)"]
+    CORS["CORS\n(orígenes permitidos por entorno, config/)"]
+    RATE["Rate Limiting\n(middleware/, headers X-RateLimit-*)"]
+    CORR["Correlation ID\n(middleware/, propagado a logs y trazas)"]
+    JWT["JWT\n(access + refresh token)"]
+    AUTHN["Authentication\n(security/ — verifica firma y expiración)"]
+    AUTHZ["Authorization\n(security/ — RBAC)"]
+    RBAC["RBAC\n(roles → permisos)"]
+    API["API\n(backend/api/)"]
+    BUSINESS["Business\n(backend/services/ — reglas de negocio)"]
+    DB[("Database\n(backend/repository/ + backend/database/)")]
+    AUDIT["Auditoría\n(módulo Audit — registro inmutable de acciones sensibles)"]
+    KV["Azure Key Vault\n(secretos: claves JWT, credenciales de BD/integraciones)"]
+    SECRETS["Secrets\n(config/ los resuelve, nunca hardcodeados)"]
+
+    CLIENT --> HTTPS --> PROXY --> CORS --> RATE --> CORR --> JWT
+    JWT --> AUTHN --> AUTHZ --> RBAC --> API --> BUSINESS --> DB
+
+    KV --> SECRETS --> JWT
+    SECRETS --> DB
+
+    AUTHN -.->|"acción sensible"| AUDIT
+    AUTHZ -.->|"cambio de permisos"| AUDIT
+    BUSINESS -.->|"baja lógica / dato sensible"| AUDIT
+
+    AUTHN -.->|"401 no autenticado"| DENY["HTTP Error\n(RFC 7807)"]
+    AUTHZ -.->|"403 sin permiso"| DENY
+    RATE -.->|"429 límite excedido"| DENY
+
+    %% Todo secreto se resuelve vía config/ desde Key Vault — nunca en el código
+    %% (ver SECURITY-STANDARD.md, sección 3). El correlation-id generado aquí es
+    %% el mismo que documenta LOGGING-STANDARD.md.

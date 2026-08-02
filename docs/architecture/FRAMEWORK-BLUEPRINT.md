@@ -4,7 +4,24 @@ Documento maestro de la arquitectura técnica oficial de TEAF. Es el nivel de de
 
 Este blueprint **complementa** — no reemplaza — [ARCHITECTURE.md](ARCHITECTURE.md), que sigue siendo la referencia de la arquitectura física por carpetas ya aceptada. El blueprint añade una vista lógica de capas al estilo Clean Architecture/DDD, el mapa formal de dependencias entre módulos, los flujos de inicialización/petición/excepción, y el checklist de revisión arquitectónica para Pull Requests. Ningún contenido se duplica: cuando algo ya está documentado en otro archivo, este documento enlaza en vez de repetirlo.
 
-Los 8 diagramas Mermaid que acompañan este documento viven en [`docs/diagrams/`](../diagrams/) como archivos `.mmd` independientes, editables y renderizables nativamente por GitHub.
+Los diagramas Mermaid que acompañan este documento viven en [`docs/diagrams/`](../diagrams/) como archivos `.mmd` independientes, editables y renderizables nativamente por GitHub.
+
+> **Sprint 2.0.1 — revisión de enriquecimiento**: esta revisión no modifica ninguna decisión ya aceptada en Sprint 2.0 (capas, módulos, dependencias, reglas). Añade documentos y diagramas complementarios de forma incremental. Ver el detalle de qué se añadió y por qué en el resumen ejecutivo de cierre de esta iteración.
+
+## Documentos y diagramas complementarios
+
+| Documento | Contenido |
+|---|---|
+| [`NFR.md`](NFR.md) | Requisitos no funcionales: disponibilidad, latencia, cobertura, escalabilidad, seguridad, observabilidad, compatibilidad Azure/Docker/IA. |
+| [`DECISION-TREE.md`](DECISION-TREE.md) | Árboles de decisión (qué módulo usar, cuándo crear uno nuevo, cuándo crear un ADR). |
+| [`EXTENSIBILITY.md`](EXTENSIBILITY.md) | Cómo crear, extender, registrar, versionar y reemplazar implementaciones de módulos, proveedores y conectores. |
+
+| Diagrama | Contenido |
+|---|---|
+| [`deployment-physical.mmd`](../diagrams/deployment-physical.mmd) | Arquitectura física de despliegue en Azure, con equivalencia directa a Render para desarrollo/POC. |
+| [`security-architecture.mmd`](../diagrams/security-architecture.mmd) | Recorrido de seguridad completo: HTTPS, CORS, rate limiting, correlation ID, JWT, RBAC, Key Vault, auditoría. |
+| [`ai-provider-architecture.mmd`](../diagrams/ai-provider-architecture.mmd) | Detalle interno del módulo `AI`: interfaz de cliente LLM y proveedores intercambiables (OpenAI, Azure OpenAI, Anthropic, Gemini, Ollama). |
+| [`mcp-architecture.mmd`](../diagrams/mcp-architecture.mmd) | Detalle interno del módulo `MCP`: Servers, Clients, Tools, Resources, Prompts y Agent Runtime. |
 
 ---
 
@@ -22,7 +39,11 @@ Los 8 diagramas Mermaid que acompañan este documento viven en [`docs/diagrams/`
 
 **Escalabilidad y Cloud Ready**: ningún módulo asume estado local ni instancia única (ver [ADR-005](adr/ADR-005-cloud-ready.md)); `Scheduler` y `Webhooks` en particular se diseñan para coordinación segura multi-instancia.
 
-**AI Ready**: la IA es un módulo (`AI`) con dependencias mínimas y controladas (`Core`, `Security`) que **nunca** accede a `Database` directamente — ver la regla explícita en la sección 6 y 11.
+**AI Ready**: la IA es un módulo (`AI`) con dependencias mínimas y controladas (`Core`, `Security`) que **nunca** accede a `Database` directamente — ver la regla explícita en la sección 6 y 11. El módulo desacopla completamente al framework de cualquier proveedor concreto (OpenAI, Azure OpenAI, Anthropic, Gemini, Ollama), y deja preparado el camino hacia capacidades agénticas (`MCP`) sin romper esa interfaz — ver [`ai-provider-architecture.mmd`](../diagrams/ai-provider-architecture.mmd) y [`mcp-architecture.mmd`](../diagrams/mcp-architecture.mmd).
+
+**Security by Design**: autenticación, autorización, gestión de secretos (Azure Key Vault), CORS, rate limiting y auditoría son transversales desde el diseño, no opcionales por endpoint — ver [`security-architecture.mmd`](../diagrams/security-architecture.mmd) y [SECURITY-STANDARD.md](../standards/SECURITY-STANDARD.md).
+
+**Requisitos no funcionales**: las métricas mínimas de disponibilidad, latencia, cobertura, escalabilidad y observabilidad que todo componente debe cumplir están formalizadas en [NFR.md](NFR.md).
 
 ## 2. Arquitectura General
 
@@ -38,7 +59,7 @@ flowchart TB
     BE -.-> EXT["Servicios externos\n(IA, SAP, Salesforce, Control-M)"]
 ```
 
-Diagrama completo y editable: [`docs/diagrams/framework-overview.mmd`](../diagrams/framework-overview.mmd).
+Diagrama completo y editable: [`docs/diagrams/framework-overview.mmd`](../diagrams/framework-overview.mmd). La vista física de despliegue en Azure (y su equivalencia en Render para desarrollo/POC) está en [`docs/diagrams/deployment-physical.mmd`](../diagrams/deployment-physical.mmd), que detalla a nivel de infraestructura lo que [`deployment-view.mmd`](../diagrams/deployment-view.mmd) ya mostraba a nivel lógico.
 
 ## 3. Arquitectura por Capas
 
@@ -66,7 +87,7 @@ Diagrama completo: [`docs/diagrams/layer-architecture.mmd`](../diagrams/layer-ar
 
 El inventario completo y versionado de módulos —con objetivo, estado, dependencias, versión objetivo, nivel de reutilización y prioridad— vive en [MODULE-CATALOG.md](MODULE-CATALOG.md). El mapa visual, agrupado por la versión del roadmap en que se incorpora cada módulo (Fundación V1, Plataforma V2, Experiencia V3, Extensión e IA V4, Hardening y DX V5):
 
-Diagrama completo: [`docs/diagrams/module-map.mmd`](../diagrams/module-map.mmd).
+Diagrama completo: [`docs/diagrams/module-map.mmd`](../diagrams/module-map.mmd). El detalle interno de `AI` y `MCP` —sin alterar sus dependencias de módulo— vive en [`ai-provider-architecture.mmd`](../diagrams/ai-provider-architecture.mmd) y [`mcp-architecture.mmd`](../diagrams/mcp-architecture.mmd) respectivamente.
 
 ## 5. Mapa de Dependencias
 
@@ -100,6 +121,8 @@ Diagrama completo: [`docs/diagrams/dependency-map.mmd`](../diagrams/dependency-m
 - **Cómo evitar dependencias circulares**: antes de añadir una dependencia nueva a un módulo, verificar en la tabla de la sección 5 que el módulo destino no dependa (directa o transitivamente) del módulo origen. Si se detecta un ciclo, la solución es extraer la responsabilidad compartida a un módulo de nivel inferior (habitualmente `Core` o `Shared`), nunca añadir la dependencia inversa.
 - **Cómo agregar un módulo nuevo**: seguir [`/templates/module-template.md`](../../templates/module-template.md) — se declara primero en `MODULE-CATALOG.md` (con su fila de dependencias) y en el `dependency-map.mmd`, y solo después se crea la carpeta.
 - **Cómo desacoplar un módulo existente**: si un módulo acumula más de una responsabilidad o más dependencias de las que su fila declara, se divide en dos módulos nuevos, cada uno con su propia fila en `MODULE-CATALOG.md`; no se "silencia" la violación ampliando la tabla para que encaje con el código.
+
+Para un flujo de decisión rápido (qué módulo usar, cuándo crear uno nuevo, cuándo se necesita un ADR), ver [DECISION-TREE.md](DECISION-TREE.md).
 
 ## 7. Flujo de Inicialización
 
@@ -183,6 +206,8 @@ Reglas obligatorias, verificables en revisión de código:
 
 ## 12. Evolución del Framework
 
+El detalle operativo completo de cada camino de extensión —incluyendo cómo registrar, versionar y reemplazar implementaciones— está en [EXTENSIBILITY.md](EXTENSIBILITY.md). Resumen:
+
 | Para agregar... | Camino oficial |
 |---|---|
 | Un módulo nuevo | [`/templates/module-template.md`](../../templates/module-template.md) → alta en [MODULE-CATALOG.md](MODULE-CATALOG.md) → actualizar `dependency-map.mmd` y `module-map.mmd`. |
@@ -212,7 +237,7 @@ Checklist específico de arquitectura para Pull Requests — complementa (no dup
 
 - [ ] ¿Rompe la dirección de dependencias declarada en la sección 5 / `dependency-map.mmd`?
 - [ ] ¿Duplica lógica ya existente en otro módulo?
-- [ ] ¿Requiere un ADR nuevo (nueva tecnología, patrón, o cambio de una regla de la sección 11)?
+- [ ] ¿Requiere un ADR nuevo (nueva tecnología, patrón, o cambio de una regla de la sección 11)? — ver [DECISION-TREE.md](DECISION-TREE.md), sección 7.
 - [ ] ¿Cumple SOLID?
 - [ ] ¿Cumple Clean Architecture (la capa no invoca una capa superior, ver sección 3)?
 - [ ] ¿Documentación actualizada (`README.md` de la capa, `MODULE-CATALOG.md`, diagramas `.mmd` si el cambio los afecta)?
@@ -222,3 +247,5 @@ Checklist específico de arquitectura para Pull Requests — complementa (no dup
 - [ ] ¿Compatible con Azure App Service (sin asumir sistema de archivos local persistente, sin estado en proceso)?
 - [ ] ¿Compatible con Docker (arranca y responde `/health` en contenedor)?
 - [ ] ¿Compatible con IA (si el módulo es candidato a integrarse con `AI`/`MCP`, respeta la interfaz desacoplada de proveedor)?
+- [ ] ¿Cumple las métricas mínimas aplicables de [NFR.md](NFR.md) (disponibilidad, latencia, cobertura, logging, tracing)?
+- [ ] ¿Mantiene compatibilidad hacia atrás según [EXTENSIBILITY.md](EXTENSIBILITY.md), sección 8, o declara explícitamente el cambio `MAJOR` correspondiente?

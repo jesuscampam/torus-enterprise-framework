@@ -1,0 +1,35 @@
+%% TEAF — Arquitectura de proveedores de IA (AI Providers)
+%% Enriquece el módulo AI ya definido en MODULE-CATALOG.md sin cambiar sus
+%% dependencias (Core, Security) ni su regla de no acceder a Database.
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 4.
+flowchart TB
+    SERVICES["backend/services/\n(consume la interfaz, nunca un SDK concreto)"]
+
+    subgraph AI["AI — backend/ai/"]
+        direction TB
+        IFACE["Interfaz de cliente LLM\n(generación, chat, function/tool calling)"]
+        EMB["Interfaz de embeddings"]
+        VSTORE["Interfaz de vector store\n(implementada vía repository/, nunca accede a Database directo)"]
+        PROMPTS["Gestión de prompts\n(versionados como artefactos del framework)"]
+
+        subgraph PROVIDERS["Providers — implementaciones intercambiables de IFACE"]
+            direction LR
+            OPENAI["OpenAI"]
+            AZUREOPENAI["Azure OpenAI"]
+            ANTHROPIC["Anthropic"]
+            GEMINI["Gemini"]
+            OLLAMA["Ollama\n(on-prem / self-hosted)"]
+        end
+
+        IFACE --> PROVIDERS
+    end
+
+    SERVICES --> IFACE
+    SERVICES --> EMB
+    SERVICES --> PROMPTS
+    EMB --> VSTORE
+    VSTORE -.->|"vía repository/"| REPO["backend/repository/"]
+
+    %% Añadir un proveedor nuevo = una nueva implementación de IFACE dentro de
+    %% PROVIDERS; no requiere cambios en services/ ni en la interfaz pública
+    %% (ver docs/architecture/EXTENSIBILITY.md).

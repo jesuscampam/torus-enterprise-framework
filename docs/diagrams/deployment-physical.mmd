@@ -1,0 +1,43 @@
+%% TEAF — Arquitectura física de despliegue (producción Azure)
+%% Complementa docs/diagrams/deployment-view.mmd (vista lógica) con el detalle físico
+%% de red y servicios gestionados. Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 2.
+%% Equivalencia para desarrollo/POC en Render: ver subgraph RENDER al final.
+flowchart TB
+    USER(["Usuario"])
+    INTERNET["Internet"]
+
+    subgraph AZURE["Azure (producción)"]
+        direction TB
+        AFD["Azure Front Door\n(CDN + WAF + balanceo global)"]
+        APPSVC["Azure App Service\n(contenedores Docker, autoescalado)"]
+        FASTAPI["FastAPI\n(backend/, dentro del contenedor)"]
+        PG[("Azure Database for PostgreSQL")]
+        STORAGE["Azure Storage\n(blobs — módulo Storage, V4)"]
+        KV["Azure Key Vault\n(secretos y certificados)"]
+        OTELCOL["OpenTelemetry Collector"]
+        APPINS["Application Insights"]
+        MONITOR["Azure Monitor\n(dashboards y alertas)"]
+    end
+
+    EXTAPI["External APIs\n(SAP · Salesforce · Control-M · proveedores de IA)"]
+
+    USER --> INTERNET --> AFD --> APPSVC --> FASTAPI
+    FASTAPI --> PG
+    FASTAPI --> STORAGE
+    FASTAPI -->|"lee secretos en el arranque"| KV
+    FASTAPI --> OTELCOL --> APPINS --> MONITOR
+    FASTAPI -.->|"integraciones salientes, V4"| EXTAPI
+
+    subgraph RENDER["Render (desarrollo / POC) — mismo contenedor Docker"]
+        direction TB
+        RRP["Render Reverse Proxy\n(equivalente a Azure Front Door)"]
+        RAPP["Render Web Service\n(equivalente a Azure App Service)"]
+        RPG[("Render PostgreSQL\n(equivalente a Azure Database for PostgreSQL)")]
+        RENV["Render Environment Groups\n(equivalente a Azure Key Vault)"]
+    end
+
+    INTERNET -.->|"entorno de desarrollo/POC"| RRP --> RAPP --> RPG
+    RAPP -.-> RENV
+
+    %% La imagen Docker (docker/backend, docker/frontend) es idéntica entre Azure y Render;
+    %% solo cambian los servicios gestionados detrás (ver ADR-003 Docker, ADR-005 Cloud Ready).
