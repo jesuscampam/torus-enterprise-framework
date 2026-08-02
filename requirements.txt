@@ -1,0 +1,7 @@
+# TEAF - Dependencias de runtime del backend (ver docs/architecture/STACK.md)
+# Fijar siempre versiones exactas o con límite superior — nunca dependencias sin acotar.
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0

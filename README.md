@@ -113,19 +113,31 @@ Detalle completo en **[docs/roadmap/ROADMAP.md](docs/roadmap/ROADMAP.md)**.
 
 ## Cómo iniciar el proyecto
 
-> **Estado actual: iteración de fundación (estructura + documentación).** Este repositorio contiene, por ahora, la estructura de carpetas y la documentación base del framework. Todavía **no existe código ejecutable** (sin manifiestos de dependencias, sin Dockerfiles, sin endpoints). El bootstrap ejecutable llega en la **Versión 1** del roadmap.
-
-Mientras tanto, para explorar el framework:
+> **Estado actual: bootstrap del backend ejecutable (Sprint 2.1).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks). Todavía **no hay** base de datos, autenticación, frontend ejecutable, Docker ni CI/CD reales — ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
 
 ```bash
 git clone https://github.com/jesuscampam/torus-enterprise-framework.git
 cd torus-enterprise-framework
+
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+
+cp .env.example .env
+uvicorn backend.main:app --reload
 ```
 
-1. Empieza por **[docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)** para entender la arquitectura completa.
-2. Revisa **[docs/standards/](docs/standards/)** para conocer las convenciones obligatorias de API, base de datos, código, seguridad y logging.
-3. Consulta los **[ADR](docs/architecture/adr/)** para entender el porqué de cada decisión estructural.
-4. Recorre `backend/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, la responsabilidad que tendrá dentro de la arquitectura.
+Verifica que responde: `curl http://localhost:8000/health`. Documentación interactiva (Swagger) en `http://localhost:8000/docs`.
+
+Ejecutar la suite de pruebas: `python -m pytest`.
+
+Para profundizar:
+
+1. **[docs/core/CORE.md](docs/core/CORE.md)** explica la arquitectura del Core implementado, cómo extenderlo y por qué el entry point es `backend.main:app`.
+2. **[docs/architecture/FRAMEWORK-BLUEPRINT.md](docs/architecture/FRAMEWORK-BLUEPRINT.md)** es la arquitectura técnica oficial completa, con diagramas.
+3. **[docs/standards/](docs/standards/)** contiene las convenciones obligatorias de API, base de datos, código, seguridad y logging.
+4. Los **[ADR](docs/architecture/adr/)** explican el porqué de cada decisión estructural.
+5. Recorre `backend/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
 
 ## Contribuir
 

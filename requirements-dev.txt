@@ -1,0 +1,11 @@
+# TEAF - Dependencias de desarrollo (lint, tipado, tests)
+# No se instalan en producción — ver docker/backend/README.md (build multi-stage).
+
+-r requirements.txt
+
+pytest==8.3.4
+pytest-cov==6.0.0
+httpx==0.28.1
+ruff==0.8.4
+black==24.10.0
+mypy==1.14.1
