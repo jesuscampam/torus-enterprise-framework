@@ -7,7 +7,56 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.5.0-alpha](#050-alpha---2026-08-03).
+Sin cambios todavía sobre [0.6.1-alpha](#061-alpha---2026-08-03).
+
+## [0.6.1-alpha] - 2026-08-03
+
+### Added
+
+- **API Pública `teaf/`** (Sprint 2.5.1, Public SDK & Packaging): TEAF se instala como un paquete Python profesional (`pip install -e .`) y se consume exclusivamente vía `from teaf import ...` — sin conocer `backend/` por dentro. Sin capacidades nuevas del Runtime, sin módulos nuevos: exclusivamente empaquetado y experiencia de desarrollador sobre lo construido en los Sprints 2.1-2.6.
+  - **Catorce símbolos principales** (`teaf/__init__.py`, `__all__` explícito): `Application`, `Runtime`, `Module` (alias de `ModuleBase`), `ModuleBase`, `ModuleBuilder`, `ModuleContext`, `ModuleManifest`, `ServiceContainer`, `EventBus`, `CapabilityRegistry`, `ModuleRegistry`, `Health` (alias de `CapabilityHealth`), `Configuration` (alias de `Settings`), `Version` — más cinco símbolos compañero imprescindibles para usarlos sin recurrir a `backend.*` (`Lifetime`, `Event`, `CapabilityCategory`, `ModuleCategory`, `get_configuration`).
+  - **Nueve fachadas** bajo `teaf/` (`application.py`, `runtime.py`, `modules.py`, `services.py`, `events.py`, `configuration.py`, `capabilities.py`, `health.py`, `version.py`), cada una con su propio `__all__`, ninguna importa a otra — todas importan directamente de `backend/` (dirección de dependencias siempre `teaf/ → backend/`, nunca al revés, para evitar un ciclo real con `backend.core.application`).
+  - **`Application`**: fachada de aplicación, callable ASGI (`Application()` se sirve directamente con `uvicorn app:app`), con `.runtime`, `.version`, `.asgi` (vía de escape al `FastAPI` subyacente).
+  - **`teaf.version`**: único punto de verdad de cinco números de versión independientes — `FRAMEWORK_VERSION`, `SDK_VERSION`, `RUNTIME_VERSION` (nuevo — `backend/runtime/__init__.py`), `MODULE_SPEC_VERSION`, `PUBLIC_API_VERSION` (nuevo, nace en este Sprint) —, la clase `Version` (instancia ya construida, `teaf.Version`) y `is_compatible(actual, constraint)`, una utilidad de comparación de versiones independiente del ciclo de vida de un módulo.
+  - **`scripts/check_public_api_boundary.py`**: verificador estático (basado en `ast`, nunca ejecuta el código analizado) de que un árbol de archivos solo importa `teaf`, nunca `backend.*` — sienta la base para una futura verificación en CI, sin estar cableado a ningún pipeline todavía.
+  - **`examples/`** (3 ejemplos ejecutables, cada uno con su propio `README.md`): `hello-world/` (ciclo de vida mínimo), `basic-module/` (autoría de un módulo propio), `application-bootstrap/` (una `Application` completa con un módulo registrado) — los tres importan exclusivamente `from teaf import ...`, verificado por el checker de límites y por pruebas dedicadas.
+  - **`docs/public-api/`** (5 documentos): `PUBLIC-API.md`, `PACKAGE-STRUCTURE.md`, `IMPORT-GUIDE.md`, `VERSIONING.md`, `MIGRATION-GUIDE.md`.
+  - **`pyproject.toml`**: sección `[project]` completa (`name = "teaf"`, versión, clasificadores, `requires-python = ">=3.11"`, dependencias sincronizadas con `requirements.txt`), `[build-system]` (`setuptools`), descubrimiento de paquetes (`teaf*` + `backend*`), `teaf/py.typed` (PEP 561). Sin `[project.scripts]` — sin CLI todavía (ver "NO IMPLEMENTAR").
+- 68 pruebas nuevas (494 en total): superficie pública completa (`__all__`, identidad de alias, sin fugas de `backend.*`), cada fachada por separado, un flujo completo de autoría de módulo usando solo `teaf.*` contra un `Runtime` real, el verificador de límites (unitarias + contra `examples/` real), ejecución real de los tres ejemplos como subprocesos, `Application` como ASGI real (`httpx.ASGITransport`), y metadata de empaquetado (`pyproject.toml` ⇄ `requirements.txt` ⇄ distribución instalada). Cobertura del código nuevo de Sprint 2.5.1: 100% (`teaf/`), 98% (`scripts/check_public_api_boundary.py`, solo sin cubrir el bloque `if __name__ == "__main__":`).
+
+### Changed
+
+- Versión del framework: `0.6.0-alpha` → `0.6.1-alpha`. Nota de numeración: este Sprint se planificó como "2.5.1" (una continuación directa de Sprint 2.5/v0.5.0-alpha), pero se implementó después de que Sprint 2.6 ya hubiera publicado v0.6.0-alpha — se usa v0.6.1-alpha (PATCH sobre la versión real vigente) en vez de v0.5.1-alpha para no retroceder el historial de versiones.
+- `docs/architecture/MODULE-CATALOG.md`: sin cambios — este Sprint no introduce ni modifica ningún módulo del catálogo.
+
+### Notes
+
+- Sin capacidades nuevas del Runtime, sin módulos nuevos, sin cambios funcionales en `backend/runtime/` ni `backend/sdk/` (la única adición en esas rutas es la constante `RUNTIME_VERSION` en `backend/runtime/__init__.py`, puramente declarativa). `DatabaseModule` (Sprint 2.6) sigue sin cablearse en `create_app()` y sin exponerse desde `teaf/` — sigue siendo opt-in.
+- Verificado: `pip install -e .` instala correctamente (`teaf==0.6.1a0` normalizado PEP 440); `import teaf` y cada `from teaf import ...` funcionan; sin dependencias circulares (`teaf/ → backend/` en un solo sentido); el Runtime y el arranque real (`uvicorn`) siguen funcionando sin cambios de comportamiento; los tres ejemplos de `examples/` corren de extremo a extremo importando solo `teaf`.
+
+## [0.6.0-alpha] - 2026-08-03
+
+### Added
+
+- **Database Module** (Sprint 2.6, Enterprise Persistence Foundation): el primer módulo oficial de TEAF construido enteramente sobre el [Module SDK](docs/sdk/SDK.md) (Sprint 2.5) — sin una sola llamada directa a `ServiceContainer`/`CapabilityRegistry`, todo pasa por `ModuleBase.bootstrap()`.
+  - **`backend/providers/database/`** (extiende el andamiaje de Sprint 2.2 con implementación real): `engine.py` (`DatabaseDialect` SQLite/PostgreSQL/SQL Server, `create_engine()` async sobre SQLAlchemy 2.x — SQLite con `StaticPool` para bases de datos en memoria), `base_model.py` (`Base` declarativa + `AuditMixin`: `id` UUID, `created_at`/`updated_at`/`deleted_at`), `sqlalchemy_session.py`/`sqlalchemy_provider.py`/`sqlalchemy_factory.py` (implementaciones reales de `DatabaseSession`/`ConnectionManager`/`DatabaseFactory`), `sqlalchemy_repository.py` (`SQLAlchemyRepository`: CRUD genérico, paginación, filtros de igualdad, soft delete — nunca `commit()`, solo `flush()`), `sqlalchemy_unit_of_work.py` (`SQLAlchemyUnitOfWork`/`Factory`: sin commit implícito, rollback automático en excepción).
+  - **`backend/modules/database/`** (el módulo SDK): `configuration.py` (`DatabaseConfiguration`, con `from_mapping()`), `health.py` (`DatabaseHealth`: caché síncrona + `refresh()` asíncrono, resuelve el desajuste entre el `ModuleHealth.check` síncrono del SDK y `health_check()` asíncrono del proveedor), `installer.py` (`DatabaseInstaller`: orquesta Alembic vía su API programática, deliberadamente síncrono y nunca invocado desde los hooks async de `DatabaseModule`), `manifest.py` (`build_database_manifest`: 6 capacidades, 3 servicios, 6 claves de configuración, 1 healthcheck, 2 eventos), `module.py` (`DatabaseModule(ModuleBase)`: motor/proveedor/health construidos en `__init__`, antes de que `bootstrap()` llame a `get_manifest()` por primera vez).
+  - **Alembic**: `alembic.ini` + `database/migrations/` (entorno async, plantilla, una revisión baseline sin tablas de negocio) — migraciones de infraestructura, sin lógica de negocio.
+  - `DatabaseModule` no está cableado en `create_app()` — opt-in, igual que el resto del SDK en Sprint 2.5.
+- 73 pruebas nuevas (415 en total): motor/dialectos, modelo base, sesión/proveedor/fábrica, repositorio (incluye la prueba central de que nunca hace `commit()`), Unit of Work (incluye la prueba central de que nunca hace commit implícito), configuración, health, installer (Alembic real sobre `tmp_path`), manifiesto, y una prueba de integración end-to-end que arranca `DatabaseModule` contra un `Runtime` real. Cobertura del código nuevo de Sprint 2.6: 100%.
+- `docs/modules/database/` (4 documentos): `DATABASE.md`, `REPOSITORY.md`, `UNIT-OF-WORK.md`, `MIGRATIONS.md`.
+
+### Changed
+
+- Versión del framework: `0.5.0-alpha` → `0.6.0-alpha`.
+- `docs/architecture/MODULE-CATALOG.md`: la fila "Database" pasa de `Documentado` a `Implementado` (primer módulo del catálogo con código ejecutable, ver nota introducida en Sprint 2.0) y enlaza a `docs/modules/database/DATABASE.md`.
+- `requirements.txt`: se añaden `sqlalchemy[asyncio]==2.0.36`, `alembic==1.14.0`, `aiosqlite==0.20.0`, `asyncpg==0.30.0`.
+- `pyproject.toml`: `extend-exclude` de `ruff` incorpora `database/migrations/versions` (revisiones autogeneradas por Alembic, no se ajustan a las reglas de lint del proyecto).
+
+### Notes
+
+- Sin entidades ni tablas de negocio, sin autenticación/autorización, sin Azure, sin IA, sin MCP, sin Scheduler, sin driver SQL Server real (`aioodbc` no instalado, solo la estructura del dialecto), sin Oracle.
+- Verificado sin dependencias circulares; `backend/modules/database/` importa de `backend/providers/database/` en un solo sentido; `backend/runtime/`, `backend/sdk/` y `backend/core/application.py::create_app()` no se modificaron en este Sprint — el módulo consume exclusivamente capacidades ya existentes del SDK y del Runtime.
 
 ## [0.5.0-alpha] - 2026-08-03
 

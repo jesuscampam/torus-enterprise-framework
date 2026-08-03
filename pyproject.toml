@@ -1,7 +1,65 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "teaf"
+version = "0.6.1-alpha"
+description = "TORUS Enterprise Application Framework — a modular, API-first, Cloud-ready and AI-ready Python framework."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "TORUS" }]
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Framework :: FastAPI",
+    "Typing :: Typed",
+]
+# Debe permanecer sincronizado con requirements.txt (fuente usada por
+# desarrollo local/CI vía `pip install -r requirements.txt`) — ambos fijan
+# las mismas versiones exactas, ver docs/architecture/STACK.md.
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "pydantic==2.10.4",
+    "pydantic-settings==2.7.0",
+    "sqlalchemy[asyncio]==2.0.36",
+    "alembic==1.14.0",
+    "aiosqlite==0.20.0",
+    "asyncpg==0.30.0",
+]
+
+# Sin [project.scripts]: TEAF no ofrece una CLI en este Sprint (ver
+# Sprint 2.5.1, "NO IMPLEMENTAR" — sección 13).
+
+[project.urls]
+Homepage = "https://github.com/jesuscampam/torus-enterprise-framework"
+Documentation = "https://github.com/jesuscampam/torus-enterprise-framework/tree/main/docs"
+Changelog = "https://github.com/jesuscampam/torus-enterprise-framework/blob/main/CHANGELOG.md"
+
+# `teaf/` es la única API pública (ver docs/public-api/PUBLIC-API.md);
+# `backend/` viaja en la misma distribución porque `teaf/` lo envuelve
+# internamente — no es un paquete independiente ni se instala por separado.
+[tool.setuptools.packages.find]
+include = ["teaf*", "backend*"]
+exclude = ["tests*", "examples*"]
+
+[tool.setuptools.package-data]
+teaf = ["py.typed"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["backend", "tests"]
+src = ["teaf", "backend", "tests", "examples", "scripts"]
+# Revisiones de Alembic generadas por plantilla (script.py.mako) — no se
+# reescriben a mano en cada `alembic revision`, así que no se fuerzan a las
+# reglas de lint del proyecto (ver docs/modules/database/MIGRATIONS.md).
+extend-exclude = ["database/migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
@@ -12,7 +70,7 @@ target-version = ["py311"]
 
 [tool.mypy]
 python_version = "3.11"
-packages = ["backend"]
+packages = ["teaf", "backend"]
 strict = true
 ignore_missing_imports = true
 

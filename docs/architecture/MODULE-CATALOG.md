@@ -2,7 +2,7 @@
 
 Inventario de todos los módulos previstos del framework, tanto los ya estructurados (con carpeta y `README.md` propios) como los planeados para versiones futuras. Complementa [ARCHITECTURE.md](ARCHITECTURE.md) y [STACK.md](STACK.md). Toda alta o baja de un módulo debe reflejarse aquí (ver [CLAUDE.md](../../CLAUDE.md), sección 14).
 
-**Estado** usa una de estas etiquetas: `Documentado` (tiene carpeta + README, sin código aún), `Planeado — sin carpeta aún` (solo existe en este catálogo y en el roadmap/backlog).
+**Estado** usa una de estas etiquetas: `Implementado` (tiene código ejecutable y pruebas), `Documentado` (tiene carpeta + README, sin código aún), `Planeado — sin carpeta aún` (solo existe en este catálogo y en el roadmap/backlog).
 
 Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Medio (la mayoría) · 🔵 Bajo (solo aplicaciones específicas).
 
@@ -14,7 +14,7 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 |---|---|---|---|---|---|---|
 | [Core](../../backend/core/README.md) | Kernel del framework: bootstrap, DI, excepciones base | Documentado | — | V1 | 🟢 Alto | 🔴 Alta |
 | [Configuration](../../backend/config/README.md) | Configuración tipada por entorno, carga de secretos | Documentado | Core | V1 | 🟢 Alto | 🔴 Alta |
-| [Database](../../backend/database/README.md) | Motor/sesión SQLAlchemy sobre PostgreSQL | Documentado | Core | V1 | 🟢 Alto | 🔴 Alta |
+| [Database](../modules/database/DATABASE.md) | Persistencia empresarial: SQLAlchemy 2.x, Unit of Work, Repository Pattern, migraciones Alembic — primer módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`backend/modules/database/` + `backend/providers/database/`) | Core | V1 | 🟢 Alto | 🔴 Alta |
 | API | Capa de routers/controladores versionados | Documentado (`backend/api/`) | Core, Security | V1 | 🟢 Alto | 🔴 Alta |
 | Services | Casos de uso / Service Layer | Documentado (`backend/services/`) | Repository | V1 | 🟢 Alto | 🔴 Alta |
 | Repository | Repository Pattern sobre `models/` | Documentado (`backend/repository/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
@@ -56,4 +56,4 @@ La columna "Dependencias" refleja el **grafo estático oficial de dependencias e
 
 1. Todo módulo nuevo se agrega primero aquí (con su ficha completa) antes de crear la carpeta correspondiente — sigue [`/templates/module-template.md`](../../templates/module-template.md).
 2. Al pasar de "Planeado" a "Documentado", enlaza el `README.md` real de la carpeta creada.
-3. Cuando exista código ejecutable (a partir de V1), este catálogo introducirá el estado `Implementado` — no se usa todavía porque esta iteración es exclusivamente de estructura y documentación.
+3. Cuando exista código ejecutable, el estado pasa a `Implementado` — usado por primera vez en Sprint 2.6 para el módulo Database.
