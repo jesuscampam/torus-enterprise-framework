@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from collections.abc import Awaitable, Callable
-from typing import TypeVar
+from collections.abc import Callable, Coroutine
+from typing import Any, TypeVar
 
 from backend.providers.database.base_model import AuditMixin, Base
 from backend.providers.database.engine import ConnectionParameters, DatabaseDialect, create_engine
@@ -30,7 +30,7 @@ async def _prepared_engine() -> AsyncEngine:
     return engine
 
 
-def _run(coro: Callable[[], Awaitable[R]]) -> R:
+def _run(coro: Callable[[], Coroutine[Any, Any, R]]) -> R:
     return asyncio.run(coro())
 
 

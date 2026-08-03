@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import cast
 
 from backend.providers.database.engine import (
     ConnectionParameters,
@@ -12,6 +13,7 @@ from backend.providers.database.engine import (
     is_in_memory_sqlite,
 )
 from sqlalchemy import text
+from sqlalchemy.pool import QueuePool
 
 
 def test_build_url_sqlite_memory() -> None:
@@ -76,4 +78,4 @@ def test_create_engine_postgresql_uses_pool_kwargs() -> None:
         pool_size=7,
         max_overflow=3,
     )
-    assert engine.pool.size() == 7
+    assert cast(QueuePool, engine.pool).size() == 7
