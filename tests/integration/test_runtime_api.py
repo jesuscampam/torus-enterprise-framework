@@ -9,7 +9,7 @@ def test_runtime_info_returns_diagnostics(client: TestClient) -> None:
     response = client.get("/runtime/info")
     assert response.status_code == 200
     body = response.json()
-    assert body["frameworkVersion"] == "0.5.0-alpha"
+    assert body["frameworkVersion"] == "0.6.0-alpha"
     assert body["pythonVersion"]
     assert body["configurationSummary"]["environment"] == "testing"
 
@@ -81,6 +81,6 @@ def test_runtime_self_describes_the_framework(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["framework"] == "TEAF"
-    assert body["version"] == "0.5.0-alpha"
+    assert body["version"] == "0.6.0-alpha"
     assert body["runtimeState"] == "running"
     assert body["supports"]["ai"] is True

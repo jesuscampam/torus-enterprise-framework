@@ -2,6 +2,10 @@
 line-length = 100
 target-version = "py311"
 src = ["backend", "tests"]
+# Revisiones de Alembic generadas por plantilla (script.py.mako) — no se
+# reescriben a mano en cada `alembic revision`, así que no se fuerzan a las
+# reglas de lint del proyecto (ver docs/modules/database/MIGRATIONS.md).
+extend-exclude = ["database/migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

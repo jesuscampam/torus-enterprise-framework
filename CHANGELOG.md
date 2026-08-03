@@ -7,7 +7,31 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.5.0-alpha](#050-alpha---2026-08-03).
+Sin cambios todavía sobre [0.6.0-alpha](#060-alpha---2026-08-03).
+
+## [0.6.0-alpha] - 2026-08-03
+
+### Added
+
+- **Database Module** (Sprint 2.6, Enterprise Persistence Foundation): el primer módulo oficial de TEAF construido enteramente sobre el [Module SDK](docs/sdk/SDK.md) (Sprint 2.5) — sin una sola llamada directa a `ServiceContainer`/`CapabilityRegistry`, todo pasa por `ModuleBase.bootstrap()`.
+  - **`backend/providers/database/`** (extiende el andamiaje de Sprint 2.2 con implementación real): `engine.py` (`DatabaseDialect` SQLite/PostgreSQL/SQL Server, `create_engine()` async sobre SQLAlchemy 2.x — SQLite con `StaticPool` para bases de datos en memoria), `base_model.py` (`Base` declarativa + `AuditMixin`: `id` UUID, `created_at`/`updated_at`/`deleted_at`), `sqlalchemy_session.py`/`sqlalchemy_provider.py`/`sqlalchemy_factory.py` (implementaciones reales de `DatabaseSession`/`ConnectionManager`/`DatabaseFactory`), `sqlalchemy_repository.py` (`SQLAlchemyRepository`: CRUD genérico, paginación, filtros de igualdad, soft delete — nunca `commit()`, solo `flush()`), `sqlalchemy_unit_of_work.py` (`SQLAlchemyUnitOfWork`/`Factory`: sin commit implícito, rollback automático en excepción).
+  - **`backend/modules/database/`** (el módulo SDK): `configuration.py` (`DatabaseConfiguration`, con `from_mapping()`), `health.py` (`DatabaseHealth`: caché síncrona + `refresh()` asíncrono, resuelve el desajuste entre el `ModuleHealth.check` síncrono del SDK y `health_check()` asíncrono del proveedor), `installer.py` (`DatabaseInstaller`: orquesta Alembic vía su API programática, deliberadamente síncrono y nunca invocado desde los hooks async de `DatabaseModule`), `manifest.py` (`build_database_manifest`: 6 capacidades, 3 servicios, 6 claves de configuración, 1 healthcheck, 2 eventos), `module.py` (`DatabaseModule(ModuleBase)`: motor/proveedor/health construidos en `__init__`, antes de que `bootstrap()` llame a `get_manifest()` por primera vez).
+  - **Alembic**: `alembic.ini` + `database/migrations/` (entorno async, plantilla, una revisión baseline sin tablas de negocio) — migraciones de infraestructura, sin lógica de negocio.
+  - `DatabaseModule` no está cableado en `create_app()` — opt-in, igual que el resto del SDK en Sprint 2.5.
+- 73 pruebas nuevas (415 en total): motor/dialectos, modelo base, sesión/proveedor/fábrica, repositorio (incluye la prueba central de que nunca hace `commit()`), Unit of Work (incluye la prueba central de que nunca hace commit implícito), configuración, health, installer (Alembic real sobre `tmp_path`), manifiesto, y una prueba de integración end-to-end que arranca `DatabaseModule` contra un `Runtime` real. Cobertura del código nuevo de Sprint 2.6: 100%.
+- `docs/modules/database/` (4 documentos): `DATABASE.md`, `REPOSITORY.md`, `UNIT-OF-WORK.md`, `MIGRATIONS.md`.
+
+### Changed
+
+- Versión del framework: `0.5.0-alpha` → `0.6.0-alpha`.
+- `docs/architecture/MODULE-CATALOG.md`: la fila "Database" pasa de `Documentado` a `Implementado` (primer módulo del catálogo con código ejecutable, ver nota introducida en Sprint 2.0) y enlaza a `docs/modules/database/DATABASE.md`.
+- `requirements.txt`: se añaden `sqlalchemy[asyncio]==2.0.36`, `alembic==1.14.0`, `aiosqlite==0.20.0`, `asyncpg==0.30.0`.
+- `pyproject.toml`: `extend-exclude` de `ruff` incorpora `database/migrations/versions` (revisiones autogeneradas por Alembic, no se ajustan a las reglas de lint del proyecto).
+
+### Notes
+
+- Sin entidades ni tablas de negocio, sin autenticación/autorización, sin Azure, sin IA, sin MCP, sin Scheduler, sin driver SQL Server real (`aioodbc` no instalado, solo la estructura del dialecto), sin Oracle.
+- Verificado sin dependencias circulares; `backend/modules/database/` importa de `backend/providers/database/` en un solo sentido; `backend/runtime/`, `backend/sdk/` y `backend/core/application.py::create_app()` no se modificaron en este Sprint — el módulo consume exclusivamente capacidades ya existentes del SDK y del Runtime.
 
 ## [0.5.0-alpha] - 2026-08-03
 
