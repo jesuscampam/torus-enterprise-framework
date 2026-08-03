@@ -1,0 +1,32 @@
+%% TEAF — Crecimiento futuro del framework
+%% Alineado con docs/roadmap/ROADMAP.md (versiones V1-V5).
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 12.
+flowchart LR
+    V1["V1 — Foundation\nbootstrap ejecutable"]
+    V2["V2 — Core Services\nseguridad + observabilidad"]
+    V3["V3 — Frontend Foundation\nshell React + MUI"]
+    V4["V4 — Integration & AI Ready\nIA · Agentes · MCP · Scheduler · Conectores"]
+    V5["V5 — Enterprise Hardening & Cloud\nmarketplace de módulos · microservicios"]
+
+    V1 --> V2 --> V3 --> V4 --> V5
+
+    subgraph V4_DETAIL["Detalle V4"]
+        direction TB
+        IA["Motores de IA\n(cliente LLM desacoplado)"]
+        AGENTS["Agentes\n(orquestación sobre ai/)"]
+        MCPX["MCP\n(herramientas para agentes)"]
+        SCHED["Scheduler\n(jobs multi-instancia)"]
+        CONN["Conectores\n(SAP · Salesforce · Control-M)"]
+    end
+    V4 --> V4_DETAIL
+
+    subgraph V5_DETAIL["Detalle V5"]
+        direction TB
+        MARKET["Marketplace de módulos\n(catálogo instalable de MODULE-CATALOG.md)"]
+        MICRO["Camino a microservicios\n(extracción selectiva de módulos de alto volumen)"]
+        CLI["CLI teaf new app\n(Starter Applications)"]
+    end
+    V5 --> V5_DETAIL
+
+    classDef future stroke-dasharray: 4 3, fill:#f8fafc, stroke:#94a3b8
+    class V4,V5,V4_DETAIL,V5_DETAIL future

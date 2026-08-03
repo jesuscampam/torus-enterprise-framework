@@ -1,0 +1,29 @@
+%% TEAF — Recorrido completo de una petición HTTP
+%% Complementa docs/architecture/ARCHITECTURE.md, sección 5, con más granularidad.
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 8.
+flowchart TD
+    CLIENT(["Cliente"])
+    MW["Middleware\n(correlation-id, logging, rate limit)"]
+    AUTHN["Authentication\n(security/ — verifica JWT)"]
+    AUTHZ["Authorization\n(security/ — RBAC sobre el recurso)"]
+    API["API\n(api/ — valida payload con schemas/)"]
+    SVC["Service\n(services/ — caso de uso, reglas de negocio)"]
+    REPO["Repository\n(repository/ — traduce a operaciones de datos)"]
+    DB[("Database\n(PostgreSQL vía database/)")]
+    RESP(["Response\n(schema de salida + status code)"])
+    ERR["Error Handler\n(middleware/ — RFC 7807)"]
+
+    CLIENT --> MW --> AUTHN
+    AUTHN -->|"token válido"| AUTHZ
+    AUTHN -.->|"401"| ERR
+    AUTHZ -->|"permiso concedido"| API
+    AUTHZ -.->|"403"| ERR
+    API -->|"payload válido"| SVC
+    API -.->|"422"| ERR
+    SVC --> REPO --> DB
+    DB --> REPO --> SVC
+    SVC -.->|"excepción de dominio"| ERR
+    SVC --> API
+    API --> RESP
+    ERR --> RESP
+    RESP --> CLIENT

@@ -1,0 +1,34 @@
+%% TEAF — Arquitectura del módulo MCP (Model Context Protocol)
+%% MCP depende de AI y Core (ver dependency-map.mmd); este diagrama detalla
+%% su estructura interna sin alterar esa dependencia ya aceptada.
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 4.
+flowchart TB
+    AI["AI — backend/ai/\n(interfaz de cliente LLM, embeddings, prompts)"]
+    CORE["Core — backend/core/"]
+
+    subgraph MCP["MCP — módulo planeado (V4), sin carpeta aún"]
+        direction TB
+        SERVERS["MCP Servers\n(exponen herramientas/recursos propios de TEAF)"]
+        CLIENTS["MCP Clients\n(consumen servidores MCP externos)"]
+        TOOLS["Tools\n(funciones invocables por un agente)"]
+        RESOURCES["Resources\n(datos/contexto expuestos a un agente)"]
+        PROMPTS_MCP["Prompts\n(plantillas reutilizables expuestas vía MCP)"]
+        RUNTIME["Agent Runtime\n(orquestación de llamadas Tool/Resource/Prompt)"]
+
+        SERVERS --> TOOLS
+        SERVERS --> RESOURCES
+        SERVERS --> PROMPTS_MCP
+        CLIENTS --> RUNTIME
+        TOOLS --> RUNTIME
+        RESOURCES --> RUNTIME
+        PROMPTS_MCP --> RUNTIME
+    end
+
+    MCP --> AI
+    MCP --> CORE
+    RUNTIME -.->|"invoca modelos vía la interfaz de AI"| AI
+
+    %% Preparación explícita para capacidades agénticas futuras: Agent Runtime
+    %% es el único punto de entrada hacia AI/Core, todo lo demás es interno a MCP.
+    classDef planned stroke-dasharray: 4 3, fill:#f8fafc, stroke:#94a3b8
+    class MCP,SERVERS,CLIENTS,TOOLS,RESOURCES,PROMPTS_MCP,RUNTIME planned

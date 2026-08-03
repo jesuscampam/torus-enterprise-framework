@@ -1,0 +1,21 @@
+%% TEAF — Flujo de inicialización del framework
+%% Secuencia de arranque en runtime (distinta del grafo estático de dependency-map.mmd).
+%% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 7.
+flowchart TD
+    START(["Application Start"])
+    ENV["Load Environment\n(variables de entorno del proceso)"]
+    CFG["Load Configuration\n(config/ — settings tipadas por entorno)"]
+    LOGI["Initialize Logging\n(logger base de core/)"]
+    CONST["Initialize Constants\n(valores y enums compartidos)"]
+    SVC["Initialize Services\n(instanciación de services/ y repository/)"]
+    DI["Register Dependency Injection\n(contenedor de core/)"]
+    MON["Initialize Monitoring\n(OpenTelemetry — trazas/métricas/health)"]
+    API["Initialize API\n(registro de routers de api/ + middleware/)"]
+    READY(["Ready\n(/health responde 200 OK)"])
+
+    START --> ENV --> CFG --> LOGI --> CONST --> SVC --> DI --> MON --> API --> READY
+
+    FAIL(["Startup Error\n(aborta el proceso, log crítico)"])
+    ENV -.->|"variable requerida ausente"| FAIL
+    CFG -.->|"configuración inválida"| FAIL
+    DI -.->|"dependencia no registrada"| FAIL

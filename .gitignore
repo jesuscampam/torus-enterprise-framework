@@ -70,3 +70,8 @@ Thumbs.db
 *.tfstate
 *.tfstate.backup
 .terraform/
+
+# ---------- Runtime (Sprint 2.4 — Platform Intelligence) ----------
+# Generado automáticamente en cada arranque por backend/runtime/manifest.py
+# (ver backend/core/application.py, _lifespan) — nunca se edita a mano ni se versiona.
+runtime.manifest.json

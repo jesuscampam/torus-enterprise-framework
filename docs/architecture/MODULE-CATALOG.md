@@ -14,7 +14,7 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 |---|---|---|---|---|---|---|
 | [Core](../../backend/core/README.md) | Kernel del framework: bootstrap, DI, excepciones base | Documentado | — | V1 | 🟢 Alto | 🔴 Alta |
 | [Configuration](../../backend/config/README.md) | Configuración tipada por entorno, carga de secretos | Documentado | Core | V1 | 🟢 Alto | 🔴 Alta |
-| [Database](../../backend/database/README.md) | Motor/sesión SQLAlchemy sobre PostgreSQL | Documentado | Configuration | V1 | 🟢 Alto | 🔴 Alta |
+| [Database](../../backend/database/README.md) | Motor/sesión SQLAlchemy sobre PostgreSQL | Documentado | Core | V1 | 🟢 Alto | 🔴 Alta |
 | API | Capa de routers/controladores versionados | Documentado (`backend/api/`) | Core, Security | V1 | 🟢 Alto | 🔴 Alta |
 | Services | Casos de uso / Service Layer | Documentado (`backend/services/`) | Repository | V1 | 🟢 Alto | 🔴 Alta |
 | Repository | Repository Pattern sobre `models/` | Documentado (`backend/repository/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
@@ -24,9 +24,9 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 | Middleware | Correlation-id, rate limiting, manejo de errores | Documentado (`backend/middleware/`) | Security, Monitoring | V2 | 🟢 Alto | 🔴 Alta |
 | [Monitoring](../../backend/monitoring/README.md) (OpenTelemetry) | Trazas, métricas, health checks | Documentado | Core | V2 | 🟢 Alto | 🔴 Alta |
 | Shared | Utilidades y tipos genéricos | Documentado (`backend/shared/`) | — | V1 | 🟡 Medio | 🟡 Media |
-| [AI](../../backend/ai/README.md) | Abstracciones de cliente LLM, embeddings, vector store | Documentado | Database (pgvector) | V4 | 🟡 Medio | 🟡 Media |
+| [AI](../../backend/ai/README.md) | Abstracciones de cliente LLM, embeddings, vector store | Documentado | Core, Security | V4 | 🟡 Medio | 🟡 Media |
 | [Webhooks](../../backend/webhooks/README.md) | Framework de eventos entrantes/salientes | Documentado | Security | V4 | 🟡 Medio | 🟡 Media |
-| [Scheduler](../../backend/scheduler/README.md) | Tareas programadas coordinadas multi-instancia | Documentado | Monitoring | V4 | 🟡 Medio | 🟡 Media |
+| [Scheduler](../../backend/scheduler/README.md) | Tareas programadas coordinadas multi-instancia | Documentado | Core | V4 | 🟡 Medio | 🟡 Media |
 
 ## Módulos planeados (sin carpeta aún)
 
@@ -35,13 +35,22 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 | Notifications | Envío de notificaciones (email, push, chat) desacoplado de proveedor | Planeado — sin carpeta aún | Core, Configuration | V4 | 🟡 Medio | 🟡 Media |
 | Storage | Abstracción de almacenamiento de archivos/blobs (local, Azure Blob Storage) | Planeado — sin carpeta aún | Core, Configuration | V4 | 🟡 Medio | 🟡 Media |
 | Audit | Registro de auditoría inmutable de acciones sensibles | Planeado — sin carpeta aún | Security, Monitoring | V2 | 🟢 Alto | 🔴 Alta |
-| MCP (Model Context Protocol) | Exposición/consumo de herramientas vía MCP para agentes de IA | Planeado — sin carpeta aún | AI | V4 | 🔵 Bajo | 🟢 Baja |
+| MCP (Model Context Protocol) | Exposición/consumo de herramientas vía MCP para agentes de IA | Planeado — sin carpeta aún | AI, Core | V4 | 🔵 Bajo | 🟢 Baja |
 | SAP Connector | Contrato e integración con sistemas SAP | Planeado — sin carpeta aún | Webhooks, Security | V4 | 🔵 Bajo | 🟡 Media |
 | Salesforce Connector | Contrato e integración con Salesforce | Planeado — sin carpeta aún | Webhooks, Security | V4 | 🔵 Bajo | 🟡 Media |
 | Control-M Connector | Contrato e integración con Control-M | Planeado — sin carpeta aún | Webhooks, Scheduler | V4 | 🔵 Bajo | 🟡 Media |
 | GraphQL | Capa de API alternativa a REST para consultas complejas/agregadas | Planeado — sin carpeta aún | API, Services | V5 | 🔵 Bajo | 🟢 Baja |
+| Starter Applications | Aplicaciones de referencia mínimas que validan el framework de extremo a extremo y sirven de punto de partida a nuevos proyectos TORUS | Planeado — sin carpeta aún | Todos los módulos anteriores | V5 | 🟢 Alto | 🟢 Baja |
 
 ---
+
+## Nota sobre las dependencias declaradas
+
+La columna "Dependencias" refleja el **grafo estático oficial de dependencias entre módulos**, formalizado en [`docs/architecture/FRAMEWORK-BLUEPRINT.md`](FRAMEWORK-BLUEPRINT.md) (sección 5) y en [`docs/diagrams/dependency-map.mmd`](../diagrams/dependency-map.mmd). No siempre coincide con qué módulos se consultan en tiempo de ejecución:
+
+- **AI** depende únicamente de `Core` y `Security`; nunca accede a `Database` en directo (regla explícita del blueprint). La persistencia de embeddings sobre `pgvector` se realiza exclusivamente a través de `repository/`, igual que cualquier otro dato de dominio.
+- **Database** depende de `Core`; en runtime lee su cadena de conexión desde `Configuration`, pero esa relación es de configuración, no una dependencia de módulo.
+- **Scheduler** depende de `Core`; se integra con `Monitoring` en runtime para registrar la ejecución de cada job, sin que eso constituya una dependencia dura de módulo.
 
 ## Cómo actualizar este catálogo
 
