@@ -69,3 +69,35 @@ def test_subscriber_count_reflects_subscriptions() -> None:
     bus.subscribe("evt", lambda _e: None)
 
     assert bus.subscriber_count("evt") == 2
+
+
+def test_history_records_events_in_chronological_order() -> None:
+    bus = EventBus()
+    bus.publish(Event(name="a"))
+    bus.publish(Event(name="b"))
+
+    assert [e.name for e in bus.history()] == ["a", "b"]
+
+
+def test_history_records_events_even_without_subscribers() -> None:
+    bus = EventBus()
+    bus.publish(Event(name="no.subscribers"))
+
+    assert bus.subscriber_count("no.subscribers") == 0
+    assert [e.name for e in bus.history()] == ["no.subscribers"]
+
+
+def test_history_limit_parameter_returns_only_the_most_recent() -> None:
+    bus = EventBus()
+    for name in ("a", "b", "c"):
+        bus.publish(Event(name=name))
+
+    assert [e.name for e in bus.history(limit=2)] == ["b", "c"]
+
+
+def test_history_is_bounded_by_constructor_history_limit() -> None:
+    bus = EventBus(history_limit=2)
+    for name in ("a", "b", "c"):
+        bus.publish(Event(name=name))
+
+    assert [e.name for e in bus.history()] == ["b", "c"]

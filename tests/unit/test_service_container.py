@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from backend.runtime.container import Lifetime, ServiceContainer
+from backend.runtime.container import Lifetime, ServiceContainer, ServiceHealth, ServiceMetadata
 from backend.runtime.exceptions import CircularDependencyException, ServiceNotRegisteredException
 
 
@@ -170,3 +170,55 @@ def test_lifetime_enum_values() -> None:
     assert Lifetime.SINGLETON.value == "singleton"
     assert Lifetime.SCOPED.value == "scoped"
     assert Lifetime.TRANSIENT.value == "transient"
+
+
+def test_unregister_removes_provider_and_singleton_instance() -> None:
+    container = ServiceContainer()
+    container.register_singleton(_Greeter, lambda _c: _Greeter())
+    container.resolve(_Greeter)
+
+    container.unregister(_Greeter)
+
+    assert container.is_registered(_Greeter) is False
+    with pytest.raises(ServiceNotRegisteredException):
+        container.resolve(_Greeter)
+
+
+def test_unregister_unknown_contract_raises() -> None:
+    container = ServiceContainer()
+    with pytest.raises(ServiceNotRegisteredException):
+        container.unregister(_Greeter)
+
+
+def test_describe_services_synthesizes_metadata_when_none_given() -> None:
+    container = ServiceContainer()
+    container.register_singleton(_Greeter, lambda _c: _Greeter())
+
+    described = container.describe_services()
+
+    assert len(described) == 1
+    assert described[0].service_id == "_Greeter"
+    assert described[0].name == "_Greeter"
+    assert described[0].lifetime is Lifetime.SINGLETON
+    assert described[0].health is ServiceHealth.UNKNOWN
+
+
+def test_describe_services_returns_explicit_metadata_when_given() -> None:
+    container = ServiceContainer()
+    metadata = ServiceMetadata(
+        service_id="greeter",
+        name="Greeter",
+        lifetime=Lifetime.TRANSIENT,
+        module="demo",
+        dependencies=("other",),
+        capabilities=("demo.cap",),
+        health=ServiceHealth.HEALTHY,
+        tags=("demo",),
+    )
+    container.register_transient(_Greeter, lambda _c: _Greeter(), metadata=metadata)
+
+    described = container.describe_services()
+
+    assert described == (metadata,)
+    assert described[0].as_dict()["serviceId"] == "greeter"
+    assert described[0].as_dict()["health"] == "healthy"

@@ -10,9 +10,62 @@ añadirlo sin cambiar este contrato.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from enum import Enum
 
 from backend.runtime.container import ServiceContainer
 from backend.runtime.exceptions import PluginValidationException
+
+
+class PluginLifecycleState(str, Enum):
+    """Estado de ciclo de vida de un plugin, visto desde ``PluginLoader``.
+
+    Vocabulario propio de plugins — deliberadamente distinto de
+    ``ModuleLifecycleState`` (``backend/core/registry.py``): un plugin y un
+    módulo son conceptos distintos aunque comparten la forma "registrado /
+    activo / retirado".
+    """
+
+    REGISTERED = "registered"
+    LOADED = "loaded"
+    UNLOADED = "unloaded"
+
+
+@dataclass(frozen=True, slots=True)
+class PluginMetadata:
+    """Metadata descriptiva de un plugin, expuesta por ``GET /runtime/plugins``."""
+
+    id: str
+    name: str
+    version: str
+    description: str = ""
+    author: str | None = None
+    license: str | None = None
+    dependencies: tuple[str, ...] = ()
+    capabilities: tuple[str, ...] = ()
+    priority: int = 0
+    tags: tuple[str, ...] = ()
+    compatible_runtime: str | None = None
+    lifecycle: PluginLifecycleState = PluginLifecycleState.REGISTERED
+    experimental: bool = False
+
+    def as_dict(self) -> dict[str, object]:
+        """Representación serializable (JSON) de esta metadata."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "author": self.author,
+            "license": self.license,
+            "dependencies": list(self.dependencies),
+            "capabilities": list(self.capabilities),
+            "priority": self.priority,
+            "tags": list(self.tags),
+            "compatibleRuntime": self.compatible_runtime,
+            "lifecycle": self.lifecycle.value,
+            "experimental": self.experimental,
+        }
 
 
 class Plugin(ABC):
@@ -27,6 +80,16 @@ class Plugin(ABC):
     def register(self, container: ServiceContainer) -> None:
         """Registra en ``container`` los servicios que aporta el plugin."""
         ...
+
+    @property
+    def metadata(self) -> PluginMetadata:
+        """Metadata descriptiva del plugin.
+
+        Por defecto se deriva de ``name``/``version`` — un plugin concreto
+        puede sobrescribir esta propiedad para aportar el resto de campos
+        (``author``, ``capabilities``, ``tags``, etc.).
+        """
+        return PluginMetadata(id=self.name, name=self.name, version=self.version)
 
 
 class PluginLoader:
@@ -54,6 +117,17 @@ class PluginLoader:
         self.validate(plugin)
         plugin.register(container)
         self._loaded[plugin.name] = plugin
+
+    def unload(self, name: str) -> None:
+        """Descarga el plugin ``name``.
+
+        Raises:
+            PluginValidationException: si no hay ningún plugin cargado con
+                ese ``name``.
+        """
+        if name not in self._loaded:
+            raise PluginValidationException(f"El plugin '{name}' no está cargado.")
+        del self._loaded[name]
 
     def is_loaded(self, name: str) -> bool:
         """``True`` si ya se cargó un plugin llamado ``name``."""

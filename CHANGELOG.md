@@ -7,7 +7,40 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.3.0-alpha](#030-alpha---2026-08-02).
+Sin cambios todavía sobre [0.4.0-alpha](#040-alpha---2026-08-03).
+
+## [0.4.0-alpha] - 2026-08-03
+
+### Added
+
+- **Platform Intelligence** (Sprint 2.4): el Runtime gana la capacidad de describirse a sí mismo — extiende, no reemplaza, la infraestructura de Sprint 2.3.
+  - **Capability Model** (`backend/runtime/capabilities/`): `CapabilityMetadata` (17 campos), `Capability`, `CapabilityCategory` (13 valores), `CapabilityStatus`, `CapabilityHealth`, `CapabilityBuilder` (fluido) y `CapabilityRegistry` (`register`/`unregister`/`find`/`exists`/`list`/`search`/`describe`). Ninguna capacidad real registrada.
+  - `CapabilityProviderRegistry` (`provider_registry.py`): agregación de capacidades de múltiples proveedores vía un `typing.Protocol` estructural (`CapabilityProviderLike`), sin importar `backend/contracts/` — preparación para un futuro servidor MCP, sin implementarlo.
+  - **Feature Flags** (`backend/runtime/features/`): `FeatureFlag`, `FeatureManager` (`register`/`enable`/`disable`/`exists`/`is_enabled`/`list`/`describe`), `FeatureGroup` (7 valores: Platform, Security, Database, AI, MCP, Experimental, Infrastructure), `FeatureStatus`. Sin persistencia.
+  - `ModuleDescriptor` (`backend/core/registry.py`) gana campos aditivos: `author`, `description`, `lifecycle_state` (nuevo `ModuleLifecycleState`, propio de Core), `capabilities`, `tags`, `documentation`, `experimental`, `created_at`, `updated_at`, propiedad `id` y `as_dict()`; `ModuleRegistry` gana `unregister()`.
+  - `Plugin` (`backend/runtime/plugin_loader.py`) gana la propiedad `metadata` (`PluginMetadata`, derivada por defecto de `name`/`version`); `PluginLoader` gana `unload()`.
+  - `ServiceContainer` (`backend/runtime/container.py`) gana `ServiceMetadata`, `ServiceHealth`, registro opcional de metadata en `register_singleton`/`register_scoped`/`register_transient`/`register_instance`, `unregister()` y `describe_services()`.
+  - `EventBus` (`backend/runtime/event_bus.py`) gana historial acotado (`history_limit`, `history(limit=...)`) — retiene los eventos publicados aunque no haya suscriptores.
+  - `ServiceDiscovery` (`backend/runtime/service_discovery.py`): `list`/`search`/`resolve`/`describe`/`capabilities`/`dependency_tree` (con protección contra ciclos) sobre `ServiceContainer`.
+  - `RuntimeDiagnostics` (`backend/runtime/diagnostics.py`) y `RuntimeSelfDescription` (`backend/runtime/self_description.py`): las dos fotografías extendidas del estado del Runtime, servidas por `Runtime.diagnostics()`/`Runtime.self_description()`.
+  - `Runtime` (`backend/runtime/runtime.py`) gana: atributos compuestos `capability_registry`, `feature_manager`, `capability_provider_registry`, `service_discovery`, `framework_version`, `modules`; wrappers `register_module`/`unregister_module`, `register_service`/`remove_service`/`resolve_service`, `register_capability`/`remove_capability`, `load_plugin`/`unload_plugin`, `enable_feature`/`disable_feature` (cada uno publica su evento correspondiente en el `EventBus`); eventos nuevos `framework.started`/`framework.stopped` (junto a los ya existentes, por compatibilidad), `module.registered`/`module.unregistered`, `service.registered`/`service.removed`/`service.resolved`, `capability.registered`/`capability.removed`, `plugin.loaded`/`plugin.unloaded`, `feature.enabled`/`feature.disabled`.
+  - **Runtime API** (`backend/runtime/api.py`, `GET /runtime/*`): `info`, `modules`, `services`, `plugins`, `capabilities`, `features`, `events` (con `?limit=`), `configuration`, `dependencies`, `self` — 10 endpoints, toda la información leída en vivo del Runtime.
+  - **Developer API** (`backend/developer/runtime_api.py`, paquete nuevo): `DeveloperRuntimeAPI` — mismas 9 superficies de consulta que la Runtime API (salvo `self`), sin HTTP, reutilizando las funciones `build_*_payload` del router para no duplicar el ensamblado de datos.
+  - **Runtime Manifest** (`backend/runtime/manifest.py`): `generate_manifest()`/`write_manifest()` producen `runtime.manifest.json` (Framework, Version, Runtime, Modules, Capabilities, Services, Plugins, Configuration, Feature Flags, Contracts, Providers, Factories) — generado automáticamente al arrancar (excepto en `TESTING`), gitignored.
+  - Contratos nuevos en `backend/contracts/`: `CapabilityProvider` y `FrameworkKnowledgeProvider` — preparación para IA/MCP, sin implementación.
+  - `backend/core/application.py`: monta `create_runtime_router`, construye `DeveloperRuntimeAPI`, genera `runtime.manifest.json` en `_lifespan` (guardado ante `OSError`), y expone `_configuration_summary()` como fuente única del resumen de configuración no sensible.
+- 96 pruebas nuevas (212 en total): Capability Model, Feature Flags, Service Discovery, extensiones de `Runtime` (wrappers + eventos + `diagnostics()`/`self_description()`), Runtime Manifest, Developer API, Runtime API (integración HTTP) y extensiones de `ModuleDescriptor`/`PluginMetadata`/`ServiceMetadata`/`EventBus`. Cobertura del código nuevo de Sprint 2.4: 100%.
+- `docs/platform/` (5 documentos): `PLATFORM-INTELLIGENCE.md`, `CAPABILITY-REGISTRY.md`, `RUNTIME-API.md`, `DEVELOPER-API.md`, `SELF-DESCRIBING-RUNTIME.md`.
+
+### Changed
+
+- Versión del framework: `0.3.0-alpha` → `0.4.0-alpha`.
+- `.gitignore`: nueva entrada `runtime.manifest.json` (artefacto generado, nunca versionado).
+
+### Notes
+
+- Sprint 2.4 es exclusivamente infraestructura de introspección: ninguna capacidad, feature flag ni plugin real se registra — sin persistencia, sin IA, sin MCP, sin autenticación en la Runtime API todavía.
+- Verificado sin dependencias circulares, `backend/runtime/` sigue sin importar `backend/contracts/` ni `backend/providers/` (incluida la nueva preparación para MCP, resuelta con `typing.Protocol` estructural), y el arranque real (`uvicorn`) sirve correctamente los 10 endpoints de `/runtime/*` además de `/info`.
 
 ## [0.3.0-alpha] - 2026-08-02
 
@@ -65,6 +98,7 @@ Sin cambios todavía sobre [0.3.0-alpha](#030-alpha---2026-08-02).
 - El backend ya es ejecutable end-to-end (`uvicorn backend.main:app --reload` responde en `/`, `/health`, `/live`, `/ready`, `/info`). Sigue sin haber base de datos, autenticación, frontend ejecutable, Docker ni CI/CD reales — llegan en Sprints posteriores (ver `docs/roadmap/ROADMAP.md`, Versión 1 en adelante).
 - Sprint 2.2 es exclusivamente infraestructura abstracta: contratos y clases base, sin ninguna implementación ni conexión real (sin PostgreSQL, SQLAlchemy funcional, JWT/OAuth, IA, MCP, storage ni scheduler reales).
 
-[Unreleased]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.3.0-alpha...HEAD
+[Unreleased]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.4.0-alpha...HEAD
+[0.4.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.3.0-alpha...v0.4.0-alpha
 [0.3.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.2.0-alpha...v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/main...v0.2.0-alpha

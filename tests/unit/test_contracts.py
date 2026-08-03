@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import pytest
 from backend.contracts.ai import AIProvider
+from backend.contracts.capability_provider import CapabilityProvider
 from backend.contracts.database import DatabaseProvider
+from backend.contracts.framework_knowledge import FrameworkKnowledgeProvider
 from backend.contracts.notification import NotificationChannel, NotificationProvider
 from backend.contracts.repository import Repository
 from backend.contracts.scheduler import SchedulerProvider
@@ -24,6 +26,8 @@ _ALL_CONTRACTS: tuple[type, ...] = (
     AIProvider,
     SchedulerProvider,
     NotificationProvider,
+    CapabilityProvider,
+    FrameworkKnowledgeProvider,
 )
 
 
@@ -59,3 +63,25 @@ def test_notification_channel_values() -> None:
     assert NotificationChannel.EMAIL.value == "email"
     assert NotificationChannel.PUSH.value == "push"
     assert NotificationChannel.CHAT.value == "chat"
+
+
+def test_capability_provider_minimal_implementation_is_instantiable() -> None:
+    class StaticCapabilityProvider(CapabilityProvider):
+        def get_capabilities(self) -> list[object]:
+            return []
+
+    provider = StaticCapabilityProvider()
+    assert isinstance(provider, CapabilityProvider)
+    assert provider.get_capabilities() == []
+
+
+def test_framework_knowledge_provider_minimal_implementation_is_instantiable() -> None:
+    class StaticFrameworkKnowledgeProvider(FrameworkKnowledgeProvider):
+        async def describe_framework(self) -> dict[str, object]:
+            return {"framework": "TEAF"}
+
+        async def answer_question(self, question: str) -> str:
+            return f"no sé responder a: {question}"
+
+    provider = StaticFrameworkKnowledgeProvider()
+    assert isinstance(provider, FrameworkKnowledgeProvider)

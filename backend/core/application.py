@@ -21,27 +21,37 @@ la sección 11 del blueprint, sin ninguna dependencia de otro módulo.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 
+from backend.config.environment import Environment
 from backend.config.settings import Settings, get_settings
 from backend.core.logging import configure_logging, get_logger
 from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
 from backend.core.version import get_version_info
+from backend.developer.runtime_api import DeveloperRuntimeAPI
 from backend.middleware.exception_handler import register_exception_handlers
 from backend.middleware.logging import RequestLoggingMiddleware
 from backend.middleware.request_id import RequestIdMiddleware
 from backend.monitoring.health import create_health_router
 from backend.monitoring.info import create_info_router
+from backend.runtime.api import create_runtime_router
+from backend.runtime.manifest import write_manifest
 from backend.runtime.runtime import Runtime
 from backend.shared.constants import DEFAULT_SERVICE_NAME
 
 #: Versión del propio framework TEAF (no de una aplicación construida sobre
 #: él). Se actualiza junto con CHANGELOG.md en cada release (ver
 #: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
-FRAMEWORK_VERSION = "0.3.0-alpha"
+FRAMEWORK_VERSION = "0.4.0-alpha"
+
+#: Raíz del repositorio, para escribir ``runtime.manifest.json`` (ver
+#: Sprint 2.4, ítem 9) siempre en el mismo lugar sin depender del directorio
+#: de trabajo desde el que se lance el proceso.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 #: Subsistemas de infraestructura que en Sprint 2.2 solo tienen contratos y
 #: clases base (``backend/contracts/`` + ``backend/providers/``) — sin
@@ -60,11 +70,49 @@ _INFRASTRUCTURE_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
+def _configuration_summary(settings: Settings) -> Mapping[str, object]:
+    """Resumen serializable y no sensible de la configuración activa.
+
+    Expuesto vía ``GET /runtime/configuration`` y ``runtime.manifest.json``.
+    Ningún campo de ``Settings`` actual es un secreto (ver
+    ``backend/config/settings.py``) — si un Sprint futuro añade credenciales
+    reales, deberá excluirlas explícitamente de este resumen antes de
+    exponerlas.
+    """
+    return {
+        "appName": settings.app_name,
+        "environment": settings.environment.value,
+        "debug": settings.debug,
+        "host": settings.host,
+        "port": settings.port,
+        "logLevel": settings.log_level,
+        "logFormat": settings.log_format,
+        "docsEnabled": settings.docs_enabled,
+    }
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Conecta el ``Runtime`` al ciclo de vida de FastAPI (startup/shutdown)."""
     runtime: Runtime = app.state.runtime
     await runtime.startup()
+
+    # El manifiesto es un artefacto de despliegue (ver Sprint 2.4, ítem 9) —
+    # no tiene sentido regenerarlo en cada instancia efímera de test, y un
+    # filesystem de solo lectura en producción no debe tumbar el arranque.
+    settings: Settings = app.state.settings
+    if settings.environment is not Environment.TESTING:
+        try:
+            write_manifest(
+                runtime,
+                _REPOSITORY_ROOT / "runtime.manifest.json",
+                configuration_summary=dict(app.state.configuration_summary),
+            )
+        except OSError as exc:
+            get_logger("teaf.runtime").warning(
+                "runtime_manifest_write_failed", extra={"context": {"error": str(exc)}}
+            )
+
     try:
         yield
     finally:
@@ -80,6 +128,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             en pruebas sin depender de variables de entorno globales).
     """
     settings = settings or get_settings()
+    configuration_summary = _configuration_summary(settings)
 
     configure_logging(
         level=settings.log_level,
@@ -119,6 +168,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.include_router(create_health_router(version_info))
 
+    # ``settings``/``configuration_summary`` viven en app.state para que
+    # ``_lifespan`` (que solo recibe ``app``) pueda leerlos sin capturarlos
+    # como variables libres de un closure — mismo criterio que
+    # ``module_registry``/``runtime`` más abajo.
+    app.state.settings = settings
+    app.state.configuration_summary = configuration_summary
+
     registry = ModuleRegistry()
     for module_name, module_dependencies in _INFRASTRUCTURE_MODULES:
         registry.register(
@@ -137,11 +193,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Igual que module_registry: un Runtime por instancia de aplicación, no
     # un singleton de proceso — arranca/se apaga vía _lifespan más arriba.
-    runtime = Runtime(registry=registry)
+    runtime = Runtime(registry=registry, framework_version=FRAMEWORK_VERSION)
     app.state.runtime = runtime
+    # Fachada de consumo directo (sin HTTP) del mismo Runtime — ver Sprint 2.4,
+    # ítem 13. No se expone por ningún router; queda disponible en app.state
+    # para scripts/consolas/plugins que corran en el mismo proceso.
+    app.state.developer_api = DeveloperRuntimeAPI(
+        runtime, configuration_provider=lambda: configuration_summary
+    )
 
     app.include_router(
         create_info_router(version_info, registry, lambda: runtime.describe().as_dict())
+    )
+    app.include_router(
+        create_runtime_router(runtime, configuration_provider=lambda: configuration_summary)
     )
 
     logger.info("application_bootstrap_completed")

@@ -32,3 +32,27 @@ class PluginValidationException(InfrastructureException):
     """Un plugin no cumple el contrato mínimo exigido por ``PluginLoader``."""
 
     default_error_code = "plugin-validation-error"
+
+
+class CapabilityNotFoundException(InfrastructureException):
+    """Se pidió una capacidad (``describe``/``unregister``) que no está registrada."""
+
+    default_error_code = "capability-not-found"
+
+
+class CapabilityAlreadyRegisteredException(InfrastructureException):
+    """Se intentó registrar una capacidad cuyo ``id`` ya existe en el ``CapabilityRegistry``."""
+
+    default_error_code = "capability-already-registered"
+
+
+class FeatureNotFoundException(InfrastructureException):
+    """Se pidió un feature flag (``enable``/``disable``/``describe``) que no está registrado."""
+
+    default_error_code = "feature-not-found"
+
+
+class FeatureAlreadyRegisteredException(InfrastructureException):
+    """Se intentó registrar un feature flag cuyo ``id`` ya existe en el ``FeatureManager``."""
+
+    default_error_code = "feature-already-registered"

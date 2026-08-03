@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import pytest
-from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
+from backend.core.registry import (
+    ModuleDescriptor,
+    ModuleLifecycleState,
+    ModuleRegistry,
+    ModuleStatus,
+)
 
 
 def test_register_and_get() -> None:
@@ -52,3 +57,68 @@ def test_independent_registries_do_not_share_state() -> None:
 
     assert second_registry.get("x") is None
     assert second_registry.list_modules() == ()
+
+
+def test_unregister_removes_module() -> None:
+    registry = ModuleRegistry()
+    registry.register(ModuleDescriptor(name="x", version="1", status=ModuleStatus.IMPLEMENTED))
+
+    registry.unregister("x")
+
+    assert registry.get("x") is None
+    assert registry.list_modules() == ()
+
+
+def test_unregister_unknown_module_raises_value_error() -> None:
+    registry = ModuleRegistry()
+    with pytest.raises(ValueError, match="does-not-exist"):
+        registry.unregister("does-not-exist")
+
+
+def test_module_descriptor_id_aliases_name() -> None:
+    descriptor = ModuleDescriptor(name="database", version="1", status=ModuleStatus.IMPLEMENTED)
+    assert descriptor.id == "database"
+
+
+def test_module_descriptor_defaults() -> None:
+    descriptor = ModuleDescriptor(name="x", version="1", status=ModuleStatus.CONTRACTS_ONLY)
+
+    assert descriptor.author is None
+    assert descriptor.description == ""
+    assert descriptor.lifecycle_state is ModuleLifecycleState.REGISTERED
+    assert descriptor.capabilities == ()
+    assert descriptor.tags == ()
+    assert descriptor.documentation is None
+    assert descriptor.experimental is False
+
+
+def test_module_descriptor_as_dict_is_serializable() -> None:
+    descriptor = ModuleDescriptor(
+        name="ai",
+        version="0.4.0-alpha",
+        status=ModuleStatus.CONTRACTS_ONLY,
+        dependencies=("security",),
+        author="TEAF Team",
+        description="Módulo de IA",
+        lifecycle_state=ModuleLifecycleState.ACTIVE,
+        capabilities=("ai.generate",),
+        tags=("ai",),
+        documentation="docs/ai/AI.md",
+        experimental=True,
+    )
+
+    payload = descriptor.as_dict()
+
+    assert payload["id"] == "ai"
+    assert payload["name"] == "ai"
+    assert payload["author"] == "TEAF Team"
+    assert payload["description"] == "Módulo de IA"
+    assert payload["status"] == "contracts_only"
+    assert payload["lifecycleState"] == "active"
+    assert payload["capabilities"] == ["ai.generate"]
+    assert payload["dependencies"] == ["security"]
+    assert payload["tags"] == ["ai"]
+    assert payload["documentation"] == "docs/ai/AI.md"
+    assert payload["experimental"] is True
+    assert isinstance(payload["createdAt"], str)
+    assert isinstance(payload["updatedAt"], str)

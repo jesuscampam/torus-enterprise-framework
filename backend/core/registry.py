@@ -20,7 +20,8 @@ en ``backend/providers/dependencies.py`` y lee ``request.app.state``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
 
 
@@ -33,6 +34,22 @@ class ModuleStatus(str, Enum):
     IMPLEMENTED = "implemented"
 
 
+class ModuleLifecycleState(str, Enum):
+    """Estado de ciclo de vida de un módulo, visto desde ``ModuleRegistry``.
+
+    Deliberadamente **no** es el mismo enum que ``LifecycleStage`` de
+    ``backend/runtime/lifecycle.py`` — importarlo aquí rompería la regla
+    "Core nunca depende de ningún otro módulo" (ver FRAMEWORK-BLUEPRINT.md,
+    sección 11). Vocabulario propio, más simple, para describir módulos —
+    no el arranque completo del framework.
+    """
+
+    REGISTERED = "registered"
+    ACTIVE = "active"
+    DEPRECATED = "deprecated"
+    RETIRED = "retired"
+
+
 @dataclass(frozen=True, slots=True)
 class ModuleDescriptor:
     """Identidad de un módulo registrado en el ``ModuleRegistry``.
@@ -42,12 +59,50 @@ class ModuleDescriptor:
     ``backend/runtime/dependency_graph.py`` para detectar ciclos antes del
     arranque. Vacío por defecto — no rompe a quien ya construía
     ``ModuleDescriptor`` sin este argumento (Sprint 2.2).
+
+    Los campos desde ``author`` son aditivos desde Sprint 2.4 (Platform
+    Intelligence): metadata descriptiva consumida por ``GET /runtime/modules``
+    y por ``RuntimeSelfDescription``. Todos tienen valor por defecto — no
+    rompen construcciones existentes de Sprint 2.2/2.3.
     """
 
     name: str
     version: str
     status: ModuleStatus
     dependencies: tuple[str, ...] = ()
+    author: str | None = None
+    description: str = ""
+    lifecycle_state: ModuleLifecycleState = ModuleLifecycleState.REGISTERED
+    capabilities: tuple[str, ...] = ()
+    tags: tuple[str, ...] = ()
+    documentation: str | None = None
+    experimental: bool = False
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+
+    @property
+    def id(self) -> str:
+        """Alias de ``name`` — identificador estable usado por la Runtime API."""
+        return self.name
+
+    def as_dict(self) -> dict[str, object]:
+        """Representación serializable (JSON) de este descriptor."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "version": self.version,
+            "author": self.author,
+            "description": self.description,
+            "status": self.status.value,
+            "lifecycleState": self.lifecycle_state.value,
+            "capabilities": list(self.capabilities),
+            "dependencies": list(self.dependencies),
+            "tags": list(self.tags),
+            "documentation": self.documentation,
+            "experimental": self.experimental,
+            "createdAt": self.created_at.isoformat(),
+            "updatedAt": self.updated_at.isoformat(),
+        }
 
 
 class ModuleRegistry:
@@ -65,6 +120,16 @@ class ModuleRegistry:
         if descriptor.name in self._modules:
             raise ValueError(f"El módulo '{descriptor.name}' ya está registrado.")
         self._modules[descriptor.name] = descriptor
+
+    def unregister(self, name: str) -> None:
+        """Elimina el módulo ``name``.
+
+        Raises:
+            ValueError: si no existe un módulo registrado con ese nombre.
+        """
+        if name not in self._modules:
+            raise ValueError(f"El módulo '{name}' no está registrado.")
+        del self._modules[name]
 
     def get(self, name: str) -> ModuleDescriptor | None:
         """Devuelve el descriptor de ``name``, o ``None`` si no está registrado."""
