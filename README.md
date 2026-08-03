@@ -113,7 +113,7 @@ Detalle completo en **[docs/roadmap/ROADMAP.md](docs/roadmap/ROADMAP.md)**.
 
 ## Cómo iniciar el proyecto
 
-> **Estado actual: v0.4.0-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence (Sprint 2.4).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, y ahora puede **describirse a sí mismo**: capacidades, feature flags, servicios, plugins y módulos consultables vía `GET /runtime/*` y un Developer API en proceso — sin ninguna implementación de negocio ni conexión externa todavía. Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
+> **Estado actual: v0.5.0-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence + Module SDK (Sprint 2.5).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, puede describirse a sí mismo vía `GET /runtime/*` y un Developer API en proceso, y ahora ofrece el **SDK oficial para construir módulos** (`backend/sdk/`): un desarrollador crea un módulo completo heredando de `ModuleBase`, con validación, resolución de dependencias, registro automático de servicios/capacidades y certificación — sin ningún módulo real implementado todavía. Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
 
 ```bash
 git clone https://github.com/jesuscampam/torus-enterprise-framework.git

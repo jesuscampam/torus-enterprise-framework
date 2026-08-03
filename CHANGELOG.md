@@ -7,7 +7,39 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.4.0-alpha](#040-alpha---2026-08-03).
+Sin cambios todavía sobre [0.5.0-alpha](#050-alpha---2026-08-03).
+
+## [0.5.0-alpha] - 2026-08-03
+
+### Added
+
+- **Module SDK** (Sprint 2.5, Developer Platform): paquete nuevo `backend/sdk/`, dependiente de `backend/core/` y `backend/runtime/` (a diferencia de `backend/runtime/`, que nunca depende de `contracts/`/`providers/` — el SDK sí depende del Runtime: es la capa de autoría de alto nivel apoyada en él). Un desarrollador crea un módulo completo heredando únicamente de `ModuleBase`.
+  - **Primitivas de descripción**: `ModuleDescriptor` (metadata de autoría, homónimo deliberado de `backend.core.registry.ModuleDescriptor`), `ModuleConfiguration`, `ModuleHealth` (reutiliza `CapabilityHealth`), `ModuleCapability`, `ModuleService`, `ModuleDependency`, `ModuleCategory` (7 valores).
+  - **`ModuleManifest`**: compone `ModuleDescriptor` + license/capabilities/dependencies/configuration/services/health_checks/events/runtime_compatibility/sdk_compatibility, con `as_dict()` aplanado.
+  - **`ModuleSpecification v1`** (`specification.py`): diez secciones formales (Metadata, Lifecycle, Dependencies, Capabilities, Configuration, Services, Health, Documentation, Packaging, Validation Rules).
+  - **`ModuleBuilder`** (`builder.py`): builder fluido — `with_*`/`add_*`/`build()` — única forma probada de construir un `ModuleManifest`.
+  - **`ModuleValidator`** (`validator.py`): valida metadata (slug/semver), duplicados (capacidades/servicios/configuración/health checks/dependencias), auto-dependencias y compatibilidad Runtime/SDK; `validate()`, `validate_or_raise()`, `errors_by_section()`.
+  - **`ModuleDependencyResolver`** (`dependency_resolver.py`): resuelve orden de inicialización entre varios manifiestos, detecta ciclos (reutilizando `backend.runtime.dependency_graph.DependencyGraph` vía un adaptador estructural), detecta conflictos de versión, construye árboles de dependencias.
+  - **`ServiceBinder`/`CapabilityBinder`** (`service_binder.py`, `capability_binder.py`): traducen `ModuleService`/`ModuleCapability` en registros reales contra `Runtime.register_service`/`register_capability` — el autor del módulo nunca llama al `ServiceContainer`/`CapabilityRegistry` directamente.
+  - **`ModuleContext`** (`context.py`): envuelve un `Runtime` + configuración + logger con nombre; atajos `.container`, `.capabilities`, `.features`, `.events`.
+  - **`ModuleBase`** (`module_base.py`): la única clase de la que hereda un módulo. Siete hooks opcionales, síncronos o asíncronos (`initialize`, `configure`, `register`, `start`, `ready`, `stop`, `dispose`); `bootstrap()`/`shutdown()` orquestan validación, comprobación de compatibilidad, registro en `ModuleRegistry`, enlace automático de servicios/capacidades y ejecución de hooks, avanzando `ModuleLifecycle` en cada paso.
+  - **`ModuleLifecycle`/`ModuleLifecycleState`** (`lifecycle.py`): ocho estados (created → initialized → configured → registered → started → ready → stopped → disposed, más `failed` terminal alcanzable desde cualquier punto), con historial y protección contra retrocesos.
+  - **`ModuleInspector`** (`inspector.py`): introspección de solo lectura — `describe`/`services`/`capabilities`/`dependencies`/`events`/`configuration`/`health`/`manifest`.
+  - **`MODULE_TEMPLATES`/`ModuleScaffolder`** (`templates.py`, `scaffolder.py`): 7 plantillas (Generic, Database, Security, Storage, Integration, AI, MCP), sin código de negocio; `scaffold()` genera un esqueleto en memoria (Python válido), `write_to_disk()` lo materializa como paso explícito — sin CLI.
+  - **`ModuleDocumentationGenerator`** (`documentation_generator.py`): genera Markdown a partir de un `ModuleManifest` — solo el servicio, sin escribir archivos.
+  - **`ModuleCertification`** (`certification.py`): certifica ocho secciones (Specification, Manifest, Metadata, Capabilities, Dependencies, Version, Health, Documentation) — más estricta que `ModuleValidator` en `documentation` (requerida para certificar, no para registrarse).
+  - Cinco excepciones nuevas: `ModuleValidationException`, `ModuleCompatibilityException`, `ModuleDependencyException`, `ModuleRegistrationException`, `ModuleLifecycleException`.
+- 130 pruebas nuevas (342 en total): primitivas, manifiesto/especificación, builder, validador, resolutor de dependencias, binders, `ModuleBase`/`ModuleContext` (incluye todos los caminos de fallo y comparador de compatibilidad), inspector, plantillas/scaffolder, generador de documentación, certificación. Cobertura del código nuevo de Sprint 2.5: 100%.
+- `docs/sdk/` (6 documentos): `SDK.md`, `MODULE-SPECIFICATION.md`, `MODULE-BUILDER.md`, `MODULE-LIFECYCLE.md`, `MODULE-CERTIFICATION.md`, `DEVELOPER-GUIDE.md`.
+
+### Changed
+
+- Versión del framework: `0.4.0-alpha` → `0.5.0-alpha`.
+
+### Notes
+
+- Sprint 2.5 es exclusivamente infraestructura de autoría: ningún módulo real (Database, Security, AI, ...) se implementa con el SDK todavía — sin CLI, sin generación de proyectos completos, sin persistencia de módulos, sin Database/Security/Storage/Scheduler/OpenTelemetry/Azure/MCP/AI reales.
+- Verificado sin dependencias circulares; `backend/sdk/` depende de `backend/core/` y `backend/runtime/` en un solo sentido (ningún archivo de `runtime/`/`core/` importa `sdk/`); el arranque real (`uvicorn`) sigue sirviendo correctamente sin ningún módulo SDK cableado en `application.py` (el SDK es opt-in, no se auto-carga).
 
 ## [0.4.0-alpha] - 2026-08-03
 
@@ -98,7 +130,8 @@ Sin cambios todavía sobre [0.4.0-alpha](#040-alpha---2026-08-03).
 - El backend ya es ejecutable end-to-end (`uvicorn backend.main:app --reload` responde en `/`, `/health`, `/live`, `/ready`, `/info`). Sigue sin haber base de datos, autenticación, frontend ejecutable, Docker ni CI/CD reales — llegan en Sprints posteriores (ver `docs/roadmap/ROADMAP.md`, Versión 1 en adelante).
 - Sprint 2.2 es exclusivamente infraestructura abstracta: contratos y clases base, sin ninguna implementación ni conexión real (sin PostgreSQL, SQLAlchemy funcional, JWT/OAuth, IA, MCP, storage ni scheduler reales).
 
-[Unreleased]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.4.0-alpha...HEAD
+[Unreleased]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.5.0-alpha...HEAD
+[0.5.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.4.0-alpha...v0.5.0-alpha
 [0.4.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.3.0-alpha...v0.4.0-alpha
 [0.3.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/v0.2.0-alpha...v0.3.0-alpha
 [0.2.0-alpha]: https://github.com/jesuscampam/torus-enterprise-framework/compare/main...v0.2.0-alpha
