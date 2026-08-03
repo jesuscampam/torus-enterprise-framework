@@ -7,7 +7,32 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.6.0-alpha](#060-alpha---2026-08-03).
+Sin cambios todavía sobre [0.6.1-alpha](#061-alpha---2026-08-03).
+
+## [0.6.1-alpha] - 2026-08-03
+
+### Added
+
+- **API Pública `teaf/`** (Sprint 2.5.1, Public SDK & Packaging): TEAF se instala como un paquete Python profesional (`pip install -e .`) y se consume exclusivamente vía `from teaf import ...` — sin conocer `backend/` por dentro. Sin capacidades nuevas del Runtime, sin módulos nuevos: exclusivamente empaquetado y experiencia de desarrollador sobre lo construido en los Sprints 2.1-2.6.
+  - **Catorce símbolos principales** (`teaf/__init__.py`, `__all__` explícito): `Application`, `Runtime`, `Module` (alias de `ModuleBase`), `ModuleBase`, `ModuleBuilder`, `ModuleContext`, `ModuleManifest`, `ServiceContainer`, `EventBus`, `CapabilityRegistry`, `ModuleRegistry`, `Health` (alias de `CapabilityHealth`), `Configuration` (alias de `Settings`), `Version` — más cinco símbolos compañero imprescindibles para usarlos sin recurrir a `backend.*` (`Lifetime`, `Event`, `CapabilityCategory`, `ModuleCategory`, `get_configuration`).
+  - **Nueve fachadas** bajo `teaf/` (`application.py`, `runtime.py`, `modules.py`, `services.py`, `events.py`, `configuration.py`, `capabilities.py`, `health.py`, `version.py`), cada una con su propio `__all__`, ninguna importa a otra — todas importan directamente de `backend/` (dirección de dependencias siempre `teaf/ → backend/`, nunca al revés, para evitar un ciclo real con `backend.core.application`).
+  - **`Application`**: fachada de aplicación, callable ASGI (`Application()` se sirve directamente con `uvicorn app:app`), con `.runtime`, `.version`, `.asgi` (vía de escape al `FastAPI` subyacente).
+  - **`teaf.version`**: único punto de verdad de cinco números de versión independientes — `FRAMEWORK_VERSION`, `SDK_VERSION`, `RUNTIME_VERSION` (nuevo — `backend/runtime/__init__.py`), `MODULE_SPEC_VERSION`, `PUBLIC_API_VERSION` (nuevo, nace en este Sprint) —, la clase `Version` (instancia ya construida, `teaf.Version`) y `is_compatible(actual, constraint)`, una utilidad de comparación de versiones independiente del ciclo de vida de un módulo.
+  - **`scripts/check_public_api_boundary.py`**: verificador estático (basado en `ast`, nunca ejecuta el código analizado) de que un árbol de archivos solo importa `teaf`, nunca `backend.*` — sienta la base para una futura verificación en CI, sin estar cableado a ningún pipeline todavía.
+  - **`examples/`** (3 ejemplos ejecutables, cada uno con su propio `README.md`): `hello-world/` (ciclo de vida mínimo), `basic-module/` (autoría de un módulo propio), `application-bootstrap/` (una `Application` completa con un módulo registrado) — los tres importan exclusivamente `from teaf import ...`, verificado por el checker de límites y por pruebas dedicadas.
+  - **`docs/public-api/`** (5 documentos): `PUBLIC-API.md`, `PACKAGE-STRUCTURE.md`, `IMPORT-GUIDE.md`, `VERSIONING.md`, `MIGRATION-GUIDE.md`.
+  - **`pyproject.toml`**: sección `[project]` completa (`name = "teaf"`, versión, clasificadores, `requires-python = ">=3.11"`, dependencias sincronizadas con `requirements.txt`), `[build-system]` (`setuptools`), descubrimiento de paquetes (`teaf*` + `backend*`), `teaf/py.typed` (PEP 561). Sin `[project.scripts]` — sin CLI todavía (ver "NO IMPLEMENTAR").
+- 68 pruebas nuevas (494 en total): superficie pública completa (`__all__`, identidad de alias, sin fugas de `backend.*`), cada fachada por separado, un flujo completo de autoría de módulo usando solo `teaf.*` contra un `Runtime` real, el verificador de límites (unitarias + contra `examples/` real), ejecución real de los tres ejemplos como subprocesos, `Application` como ASGI real (`httpx.ASGITransport`), y metadata de empaquetado (`pyproject.toml` ⇄ `requirements.txt` ⇄ distribución instalada). Cobertura del código nuevo de Sprint 2.5.1: 100% (`teaf/`), 98% (`scripts/check_public_api_boundary.py`, solo sin cubrir el bloque `if __name__ == "__main__":`).
+
+### Changed
+
+- Versión del framework: `0.6.0-alpha` → `0.6.1-alpha`. Nota de numeración: este Sprint se planificó como "2.5.1" (una continuación directa de Sprint 2.5/v0.5.0-alpha), pero se implementó después de que Sprint 2.6 ya hubiera publicado v0.6.0-alpha — se usa v0.6.1-alpha (PATCH sobre la versión real vigente) en vez de v0.5.1-alpha para no retroceder el historial de versiones.
+- `docs/architecture/MODULE-CATALOG.md`: sin cambios — este Sprint no introduce ni modifica ningún módulo del catálogo.
+
+### Notes
+
+- Sin capacidades nuevas del Runtime, sin módulos nuevos, sin cambios funcionales en `backend/runtime/` ni `backend/sdk/` (la única adición en esas rutas es la constante `RUNTIME_VERSION` en `backend/runtime/__init__.py`, puramente declarativa). `DatabaseModule` (Sprint 2.6) sigue sin cablearse en `create_app()` y sin exponerse desde `teaf/` — sigue siendo opt-in.
+- Verificado: `pip install -e .` instala correctamente (`teaf==0.6.1a0` normalizado PEP 440); `import teaf` y cada `from teaf import ...` funcionan; sin dependencias circulares (`teaf/ → backend/` en un solo sentido); el Runtime y el arranque real (`uvicorn`) siguen funcionando sin cambios de comportamiento; los tres ejemplos de `examples/` corren de extremo a extremo importando solo `teaf`.
 
 ## [0.6.0-alpha] - 2026-08-03
 
