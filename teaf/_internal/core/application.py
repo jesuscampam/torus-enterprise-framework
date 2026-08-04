@@ -12,8 +12,9 @@ este módulo es el *composition root* del framework (equivalente al
 componente "Main" de Clean Architecture: es el único lugar autorizado a
 conocer y conectar todas las capas para ensamblar la aplicación). Por eso,
 y solo aquí, se permite importar ``backend/config/``, ``backend/middleware/``,
-``backend/monitoring/``, ``backend/providers/`` y ``backend/runtime/`` desde
-dentro de ``backend/core/`` — el resto de los archivos de ``core/``
+``backend/monitoring/``, ``backend/providers/``, ``backend/runtime/`` y
+(desde Sprint 2.6.3, Module Registration API) ``backend/sdk/`` desde dentro
+de ``backend/core/`` — el resto de los archivos de ``core/``
 (``exceptions.py``, ``context.py``, ``logging.py``, ``version.py``,
 ``dependencies.py``, ``registry.py``) permanecen, como exige la regla 1 de
 la sección 11 del blueprint, sin ninguna dependencia de otro módulo.
@@ -21,7 +22,7 @@ la sección 11 del blueprint, sin ninguna dependencia de otro módulo.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -41,12 +42,14 @@ from teaf._internal.monitoring.info import create_info_router
 from teaf._internal.runtime.api import create_runtime_router
 from teaf._internal.runtime.manifest import write_manifest
 from teaf._internal.runtime.runtime import Runtime
+from teaf._internal.sdk.context import ModuleContext
+from teaf._internal.sdk.module_base import ModuleBase
 from teaf._internal.shared.constants import DEFAULT_SERVICE_NAME
 
 #: Versión del propio framework TEAF (no de una aplicación construida sobre
 #: él). Se actualiza junto con CHANGELOG.md en cada release (ver
 #: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
-FRAMEWORK_VERSION = "0.6.2-alpha"
+FRAMEWORK_VERSION = "0.6.3-alpha"
 
 #: Raíz del repositorio, para escribir ``runtime.manifest.json`` (ver
 #: Sprint 2.4, ítem 9) siempre en el mismo lugar sin depender del directorio
@@ -91,11 +94,39 @@ def _configuration_summary(settings: Settings) -> Mapping[str, object]:
     }
 
 
+async def _bootstrap_pending_modules(
+    modules: Sequence[ModuleBase], runtime: Runtime
+) -> list[ModuleBase]:
+    """Arranca, en orden, cada módulo pasado a ``Application(modules=[...])`` /
+    ``Application.add_module()`` (Sprint 2.6.3, Module Registration API) —
+    ningún consumidor llama a ``module.bootstrap()`` a mano. Devuelve los
+    módulos que completaron ``bootstrap()`` con éxito, para poder apagarlos
+    simétricamente en ``_shutdown_bootstrapped_modules``.
+    """
+    bootstrapped: list[ModuleBase] = []
+    for module in modules:
+        context = ModuleContext(runtime=runtime, module_id=module.get_manifest().descriptor.id)
+        await module.bootstrap(context)
+        bootstrapped.append(module)
+    return bootstrapped
+
+
+async def _shutdown_bootstrapped_modules(modules: Sequence[ModuleBase], runtime: Runtime) -> None:
+    """Apaga, en orden inverso, los módulos que ``_bootstrap_pending_modules`` arrancó."""
+    for module in reversed(modules):
+        context = ModuleContext(runtime=runtime, module_id=module.get_manifest().descriptor.id)
+        await module.shutdown(context)
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Conecta el ``Runtime`` al ciclo de vida de FastAPI (startup/shutdown)."""
+    """Conecta el ``Runtime`` al ciclo de vida de FastAPI (startup/shutdown) y,
+    desde Sprint 2.6.3, arranca/apaga los módulos pendientes de
+    ``app.state.pending_modules`` como parte de ese mismo ciclo."""
     runtime: Runtime = app.state.runtime
     await runtime.startup()
+
+    bootstrapped_modules = await _bootstrap_pending_modules(app.state.pending_modules, runtime)
 
     # El manifiesto es un artefacto de despliegue (ver Sprint 2.4, ítem 9) —
     # no tiene sentido regenerarlo en cada instancia efímera de test, y un
@@ -116,16 +147,26 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        await _shutdown_bootstrapped_modules(bootstrapped_modules, runtime)
         await runtime.shutdown()
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, *, modules: Sequence[ModuleBase] | None = None
+) -> FastAPI:
     """Construye y configura la instancia de FastAPI del framework.
 
     Args:
         settings: Configuración a usar. Si se omite, se resuelve con
             ``get_settings()`` (permite inyectar una configuración distinta
             en pruebas sin depender de variables de entorno globales).
+        modules: Módulos (``ModuleBase``) a arrancar automáticamente cuando
+            arranque el ciclo de vida ASGI de la aplicación resultante (ver
+            ``_lifespan``) — Sprint 2.6.3, Module Registration API. Se
+            almacenan en ``app.state.pending_modules`` (una lista mutable:
+            ``teaf.Application.add_module()`` puede seguir añadiendo a la
+            misma lista después de que ``create_app`` retorne, siempre que
+            sea antes de que el ciclo de vida arranque).
     """
     settings = settings or get_settings()
     configuration_summary = _configuration_summary(settings)
@@ -174,6 +215,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # ``module_registry``/``runtime`` más abajo.
     app.state.settings = settings
     app.state.configuration_summary = configuration_summary
+
+    # Módulos pendientes de arrancar en ``_lifespan`` (Sprint 2.6.3) — lista
+    # mutable a propósito: ``teaf.Application.add_module()`` le sigue
+    # añadiendo elementos después de que ``create_app`` retorne.
+    pending_modules: list[ModuleBase] = list(modules) if modules is not None else []
+    app.state.pending_modules = pending_modules
 
     registry = ModuleRegistry()
     for module_name, module_dependencies in _INFRASTRUCTURE_MODULES:

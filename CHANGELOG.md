@@ -7,7 +7,24 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.6.2-alpha](#062-alpha---2026-08-04).
+Sin cambios todavía sobre [0.6.3-alpha](#063-alpha---2026-08-04).
+
+## [0.6.3-alpha] - 2026-08-04
+
+### Added
+
+- **Module Registration API** (Sprint 2.6.3, cierre de la serie Sprint 2.6): registrar módulos usando exclusivamente la API pública — sin conocer el `Runtime`, sin llamar a `module.bootstrap()` a mano, sin `asyncio.run()`, sin threads.
+  - `Application(modules=[...])`: nuevo parámetro (keyword-only) del constructor — los módulos pasados arrancan automáticamente cuando arranca el ciclo de vida ASGI de la aplicación.
+  - `Application.add_module(module) -> Application`: forma encadenable equivalente (`Application().add_module(A()).add_module(B())`).
+  - Toda la orquestación vive en el composition root (`teaf/_internal/core/application.py`, `_lifespan`): arranca los módulos pendientes justo después de `runtime.startup()`, en orden de registro, y los apaga en orden inverso antes de `runtime.shutdown()` — el `Runtime` en sí no cambia (mantiene su dependencia de una sola vía hacia `sdk/`, nunca al revés, evitando un ciclo real con `ModuleContext`).
+  - Errores existentes (`ModuleRegistrationException` por duplicados, `ModuleValidationException` por manifiestos inválidos) se siguen lanzando igual, ahora disparados por el arranque del ciclo de vida en vez de por una llamada manual — mismo contrato de errores.
+  - Nuevo ejemplo `examples/module-registration/` (4º ejemplo de `examples/`): registra un módulo con `Application(modules=[HelloModule()])` y dispara el ciclo de vida con `TestClient`, sin bootstrap manual.
+  - 18 pruebas nuevas (`tests/unit/test_module_registration.py`): constructor con 0/1/N módulos, `.add_module()` encadenado, orden de arranque/apagado, integración con `Runtime`/`CapabilityRegistry`, duplicados, manifiestos inválidos, ciclo de vida (`READY`/`DISPOSED`). Suite completa: 519 pruebas.
+  - Documentación: nueva sección "Registrar módulos" en `docs/public-api/PUBLIC-API.md`; guía de migración (bootstrap manual → `Application(modules=[...])`) en `docs/public-api/MIGRATION-GUIDE.md`; nota cruzada en `docs/sdk/SDK.md`.
+
+### Notes
+
+- Compatibilidad hacia atrás completa: `Application()` sin argumentos, `create_app(settings)` posicional y todo el resto de la API pública (`Runtime`, `ModuleRegistry`, `CapabilityRegistry`, `ServiceContainer`, `PluginLoader`, `ModuleBase.bootstrap()`/`.shutdown()` manuales) siguen funcionando exactamente igual — ninguna capacidad existente se elimina ni cambia de comportamiento.
 
 ## [0.6.2-alpha] - 2026-08-04
 

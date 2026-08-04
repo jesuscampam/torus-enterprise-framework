@@ -67,6 +67,19 @@ def test_application_bootstrap_registers_the_clock_module() -> None:
     assert "Capacidades registradas: 1" in result.stdout
 
 
-def test_discovered_at_least_the_three_expected_examples() -> None:
+def test_module_registration_bootstraps_hello_module_automatically() -> None:
+    """Sprint 2.6.3 — Module Registration API: sin bootstrap() manual, sin asyncio.run()."""
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "module-registration",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "hello" in result.stdout
+    assert "Capacidad 'hello.greet' registrada: True" in result.stdout
+
+
+def test_discovered_at_least_the_four_expected_examples() -> None:
     names = {p.name for p in _EXAMPLE_DIRS}
-    assert names == {"hello-world", "basic-module", "application-bootstrap"}
+    assert names == {"hello-world", "basic-module", "application-bootstrap", "module-registration"}

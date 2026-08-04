@@ -114,7 +114,7 @@ Detalle completo en **[docs/roadmap/ROADMAP.md](docs/roadmap/ROADMAP.md)**.
 
 ## Cómo iniciar el proyecto
 
-> **Estado actual: v0.6.2-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence + Module SDK + Database Module + API Pública + Internal Namespace Refactor (Sprint 2.6.2).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, puede describirse a sí mismo vía `GET /runtime/*` y un Developer API en proceso, ofrece el SDK oficial para construir módulos (`teaf/_internal/sdk/`) y su primer módulo real construido sobre él (el Database Module), y se instala como un **paquete Python profesional**: `pip install -e .` y `from teaf import Application, Module, ModuleBuilder, ...` — la única API pública soportada, sin conocer `teaf/_internal/` por dentro (ver [docs/public-api/](docs/public-api/) y [`examples/`](examples/)). Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
+> **Estado actual: v0.6.3-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence + Module SDK + Database Module + API Pública + Internal Namespace Refactor + Module Registration API (Sprint 2.6.3).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, puede describirse a sí mismo vía `GET /runtime/*` y un Developer API en proceso, ofrece el SDK oficial para construir módulos (`teaf/_internal/sdk/`) y su primer módulo real construido sobre él (el Database Module), y se instala como un **paquete Python profesional**: `pip install -e .` y `from teaf import Application, Module, ModuleBuilder, ...` — la única API pública soportada, sin conocer `teaf/_internal/` por dentro (ver [docs/public-api/](docs/public-api/) y [`examples/`](examples/)). Registrar módulos propios no requiere conocer el `Runtime`: `Application(modules=[TaskModule()])` los arranca automáticamente (ver [PUBLIC-API.md, sección 3](docs/public-api/PUBLIC-API.md#3-registrar-módulos-module-registration-api-sprint-263)). Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
 
 ```bash
 git clone https://github.com/jesuscampam/torus-enterprise-framework.git
@@ -142,7 +142,7 @@ Para profundizar:
 5. **[docs/standards/](docs/standards/)** contiene las convenciones obligatorias de API, base de datos, código, seguridad y logging.
 6. Los **[ADR](docs/architecture/adr/)** explican el porqué de cada decisión estructural.
 7. Recorre `teaf/_internal/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
-8. **[docs/public-api/](docs/public-api/)** explica la API pública instalable (`pip install -e .`, `from teaf import ...`) y los tres ejemplos ejecutables de **[`examples/`](examples/)**.
+8. **[docs/public-api/](docs/public-api/)** explica la API pública instalable (`pip install -e .`, `from teaf import ...`, cómo registrar módulos con `Application(modules=[...])`) y los cuatro ejemplos ejecutables de **[`examples/`](examples/)**.
 
 ## Contribuir
 

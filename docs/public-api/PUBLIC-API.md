@@ -26,9 +26,27 @@ app = Application()
 uvicorn app:app   # si lo anterior vive en app.py
 ```
 
-Ver [`examples/`](../../examples/) para tres ejemplos completos y ejecutables.
+Ver [`examples/`](../../examples/) para cuatro ejemplos completos y ejecutables.
 
-## 3. Los catorce símbolos principales
+## 3. Registrar módulos (Module Registration API, Sprint 2.6.3)
+
+Un consumidor registra sus propios módulos usando exclusivamente `Application` — nunca conoce el `Runtime`, nunca llama a `module.bootstrap()`, nunca usa `asyncio.run()` ni threads:
+
+```python
+from teaf import Application
+
+app = Application(modules=[TaskModule(), CustomerModule()])
+```
+
+Forma equivalente, encadenable:
+
+```python
+app = Application().add_module(TaskModule()).add_module(CustomerModule())
+```
+
+Los módulos pasados así arrancan automáticamente cuando arranca el ciclo de vida ASGI de la aplicación — al servirla con `uvicorn app:app` en producción, o al entrar en su lifespan en un script (p. ej. con `TestClient`, ver [`examples/module-registration/`](../../examples/module-registration/)). El orden de arranque es el orden de registro; el apagado ocurre en orden inverso. Un `id` de módulo duplicado, o un manifiesto inválido, hace fallar el arranque de la aplicación con la misma excepción que ya lanzaba `module.bootstrap()` manual (`ModuleRegistrationException`/`ModuleValidationException`) — el contrato de errores no cambia, solo quién lo invoca.
+
+## 4. Los catorce símbolos principales
 
 | Símbolo | Qué es | Fachada (`teaf/`) | Envuelve (`teaf/_internal/`) |
 |---|---|---|---|
@@ -47,7 +65,7 @@ Ver [`examples/`](../../examples/) para tres ejemplos completos y ejecutables.
 | `Configuration` | Configuración tipada por entorno. | `configuration.py` | `teaf._internal.config.settings.Settings` |
 | `Version` | Fotografía inmutable de los cinco números de versión de TEAF. | `version.py` | agrega varios (ver [VERSIONING.md](VERSIONING.md)) |
 
-## 4. Símbolos compañeros
+## 5. Símbolos compañeros
 
 Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `teaf._internal.*` — se exportan por necesidad práctica, no por descuido (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)):
 
@@ -59,11 +77,11 @@ Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `t
 | `ModuleCategory` | `ModuleBuilder.with_category(ModuleCategory.INTEGRATION)` |
 | `get_configuration` | Función homóloga de `Configuration`/`get_settings()`. |
 
-## 5. Qué NO expone `teaf`
+## 6. Qué NO expone `teaf`
 
 Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule` ni ningún módulo real (Sprint 2.6 sigue siendo opt-in, ni siquiera se importa desde `teaf/`), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
 
-## 6. Documentos relacionados
+## 7. Documentos relacionados
 
 | Documento | Contenido |
 |---|---|

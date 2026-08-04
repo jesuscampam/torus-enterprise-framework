@@ -1,7 +1,7 @@
 """Hello World — el ejemplo mínimo de una aplicación TEAF.
 
 Construye una ``Application``, arranca su ``Runtime`` y lo apaga de nuevo.
-Ninguna dependencia salvo ``teaf`` — ni una sola línea conoce ``backend/``.
+Ninguna dependencia salvo ``teaf`` — ni una sola línea conoce ``teaf/_internal/``.
 
 Ejecutar:
 

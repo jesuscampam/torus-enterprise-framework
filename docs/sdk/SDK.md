@@ -34,6 +34,8 @@ await module.bootstrap(ModuleContext(runtime=runtime, module_id="greeter"))
 # runtime.container / runtime.capability_registry — sin una sola llamada manual.
 ```
 
+> Esa llamada a `bootstrap()` es lo que ocurre *por dentro* — el nivel de detalle que necesita quien escribe un módulo. Un consumidor de una `Application` completa nunca la invoca directamente: le basta con `Application(modules=[GreeterModule()])` (o `Application().add_module(GreeterModule())`), y TEAF llama a `bootstrap()` automáticamente cuando arranca el ciclo de vida ASGI — ver ["Registrar módulos"](../public-api/PUBLIC-API.md#3-registrar-módulos-module-registration-api-sprint-263) en PUBLIC-API.md (Sprint 2.6.3).
+
 ## 2. Arquitectura
 
 ```

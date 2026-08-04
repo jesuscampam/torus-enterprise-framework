@@ -52,13 +52,37 @@ app = Application()
 
 Nota el segundo cambio, no solo mecánico: `create_app()` devolvía un `FastAPI` sin envolver; `Application()` devuelve la fachada — usa `app.asgi` si de verdad necesitas el objeto `FastAPI` subyacente (por ejemplo, para montar un router adicional), y `app.runtime`/`app.version` para lo que antes exigía importar `Runtime`/`FRAMEWORK_VERSION` por separado.
 
-## 4. Si un símbolo que necesitas no está en `teaf`
+## 4. Registrar módulos sin bootstrap manual (Sprint 2.6.3)
+
+**Antes** (funcionaba, pero exigía conocer el `Runtime` y gestionar el event loop a mano):
+
+```python
+from teaf import Application, ModuleContext
+
+app = Application()
+await app.runtime.startup()
+module = TaskModule()
+await module.bootstrap(ModuleContext(runtime=app.runtime, module_id="task"))
+# ... y recordar await app.runtime.shutdown() al final.
+```
+
+**Después** (v0.6.3-alpha en adelante — ver ["Registrar módulos"](PUBLIC-API.md#3-registrar-módulos-module-registration-api-sprint-263) en PUBLIC-API.md):
+
+```python
+from teaf import Application
+
+app = Application(modules=[TaskModule()])
+```
+
+`ModuleContext`, `.bootstrap()` y el ciclo de vida del `Runtime` siguen existiendo exactamente igual (ninguna capacidad se elimina, ver [ADR](../architecture/adr/) correspondiente) — simplemente ya no hace falta invocarlos a mano para el caso común de "arrancar mis módulos junto con la aplicación".
+
+## 5. Si un símbolo que necesitas no está en `teaf`
 
 No hagas `from teaf._internal.xxx import Yyy` como solución temporal. En su lugar:
 
 1. Verifica en [PUBLIC-API.md](PUBLIC-API.md) si existe un equivalente con otro nombre (por ejemplo, `Health` en vez de `CapabilityHealth`).
 2. Si genuinamente falta, es una laguna de la API pública — repórtalo para que se añada a la fachada correspondiente de `teaf/` (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)) en un Sprint futuro, en vez de importar `teaf._internal.*` directamente.
 
-## 5. Cuando `PUBLIC_API_VERSION` suba de MAJOR
+## 6. Cuando `PUBLIC_API_VERSION` suba de MAJOR
 
 Todavía no ha ocurrido (`PUBLIC_API_VERSION = "1.0.0"`, ver [VERSIONING.md](VERSIONING.md)). Cuando ocurra, esta sección se ampliará con la tabla de cambios incompatibles concretos de esa versión — mismo criterio que ya sigue `CHANGELOG.md` para `FRAMEWORK_VERSION` (Keep a Changelog + SemVer), aplicado específicamente a los símbolos de `teaf/__init__.py`.

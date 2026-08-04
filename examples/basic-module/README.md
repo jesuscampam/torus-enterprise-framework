@@ -1,6 +1,6 @@
 # basic-module/
 
-Construye un módulo TEAF propio (`GreeterModule`) heredando de `teaf.Module` y lo registra contra un `teaf.Runtime` real — un servicio, una capacidad y un healthcheck, sin tocar `backend/`.
+Construye un módulo TEAF propio (`GreeterModule`) heredando de `teaf.Module` y lo registra contra un `teaf.Runtime` real — un servicio, una capacidad y un healthcheck, sin tocar `teaf/_internal/`.
 
 ## Ejecutar
 
