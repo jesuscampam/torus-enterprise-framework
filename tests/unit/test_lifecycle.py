@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from backend.runtime.exceptions import LifecycleException
-from backend.runtime.lifecycle import LifecycleManager, LifecycleStage
-from backend.runtime.pipeline import Pipeline, ShutdownPipeline, StartupPipeline
+from teaf._internal.runtime.exceptions import LifecycleException
+from teaf._internal.runtime.lifecycle import LifecycleManager, LifecycleStage
+from teaf._internal.runtime.pipeline import Pipeline, ShutdownPipeline, StartupPipeline
 
 
 def test_lifecycle_manager_starts_without_current_stage() -> None:

@@ -9,10 +9,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
-from backend.config.settings import TestingSettings
-from backend.core.application import create_app
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from teaf._internal.config.settings import TestingSettings
+from teaf._internal.core.application import create_app
 
 
 @pytest.fixture

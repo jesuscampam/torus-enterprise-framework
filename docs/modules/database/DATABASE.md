@@ -8,12 +8,12 @@ Documentación del Sprint 2.6 (Enterprise Persistence Foundation, v0.6.0-alpha):
 
 > Un módulo real y funcional puede construirse enteramente heredando de `ModuleBase`, sin una sola llamada directa a `ServiceContainer`/`CapabilityRegistry`.
 
-`DatabaseModule` (`backend/modules/database/module.py`) es la primera demostración de esa promesa con código productivo detrás — no un `GreeterModule` de ejemplo. Se registra, arranca y expone sus servicios contra un `Runtime` real exactamente igual que cualquier módulo del SDK (ver `tests/integration/test_database_module_bootstrap.py`).
+`DatabaseModule` (`teaf/_internal/modules/database/module.py`) es la primera demostración de esa promesa con código productivo detrás — no un `GreeterModule` de ejemplo. Se registra, arranca y expone sus servicios contra un `Runtime` real exactamente igual que cualquier módulo del SDK (ver `tests/integration/test_database_module_bootstrap.py`).
 
 ## 2. Arquitectura y capas
 
 ```
-backend/providers/database/     # Sprint 2.2 (andamiaje) + Sprint 2.6 (implementación real)
+teaf/_internal/providers/database/     # Sprint 2.2 (andamiaje) + Sprint 2.6 (implementación real)
 ├── engine.py                     # DatabaseDialect, ConnectionParameters, create_engine()
 ├── base_model.py                   # Base declarativa + AuditMixin (id/created_at/updated_at/deleted_at)
 ├── sqlalchemy_session.py             # SQLAlchemySessionAdapter (implementa DatabaseSession)
@@ -22,7 +22,7 @@ backend/providers/database/     # Sprint 2.2 (andamiaje) + Sprint 2.6 (implement
 ├── sqlalchemy_repository.py                # SQLAlchemyRepository (implementa RepositoryBase) — ver REPOSITORY.md
 └── sqlalchemy_unit_of_work.py                # SQLAlchemyUnitOfWork + Factory — ver UNIT-OF-WORK.md
 
-backend/modules/database/       # Sprint 2.6 — el módulo SDK propiamente dicho
+teaf/_internal/modules/database/       # Sprint 2.6 — el módulo SDK propiamente dicho
 ├── configuration.py              # DatabaseConfiguration (dataclass + from_mapping)
 ├── health.py                       # DatabaseHealth (cache síncrona + refresh asíncrono)
 ├── installer.py                      # DatabaseInstaller — ver MIGRATIONS.md
@@ -33,7 +33,7 @@ database/migrations/            # Alembic — ver MIGRATIONS.md
 alembic.ini                     # raíz del repositorio
 ```
 
-**Dirección de dependencias**: `backend/modules/database/` importa de `backend/providers/database/`, nunca al revés — igual que `backend/sdk/` importa de `backend/runtime/` sin que la relación se invierta. `backend/providers/database/engine.py` no importa `backend/modules/database/` deliberadamente (recibe `ConnectionParameters` primitivos, no `DatabaseConfiguration`), para no crear un ciclo entre "el motor" y "quién lo configura".
+**Dirección de dependencias**: `teaf/_internal/modules/database/` importa de `teaf/_internal/providers/database/`, nunca al revés — igual que `teaf/_internal/sdk/` importa de `teaf/_internal/runtime/` sin que la relación se invierta. `teaf/_internal/providers/database/engine.py` no importa `teaf/_internal/modules/database/` deliberadamente (recibe `ConnectionParameters` primitivos, no `DatabaseConfiguration`), para no crear un ciclo entre "el motor" y "quién lo configura".
 
 ## 3. Por qué el motor se construye en `__init__`, no en `initialize()`
 
@@ -58,10 +58,10 @@ Construir el `AsyncEngine` es síncrono y no abre ninguna conexión real — eso
 ## 4. Uso
 
 ```python
-from backend.modules.database.configuration import DatabaseConfiguration
-from backend.modules.database.module import DatabaseModule
-from backend.providers.database.engine import DatabaseDialect
-from backend.sdk.context import ModuleContext
+from teaf._internal.modules.database.configuration import DatabaseConfiguration
+from teaf._internal.modules.database.module import DatabaseModule
+from teaf._internal.providers.database.engine import DatabaseDialect
+from teaf._internal.sdk.context import ModuleContext
 
 module = DatabaseModule(DatabaseConfiguration(dialect=DatabaseDialect.POSTGRESQL, database="teaf"))
 await module.bootstrap(ModuleContext(runtime=runtime, module_id="database"))
@@ -71,7 +71,7 @@ provider = runtime.resolve_service(DatabaseProvider)   # SINGLETON
 uow = runtime.resolve_service(UnitOfWork)               # TRANSIENT — nueva instancia por resolución
 ```
 
-`DatabaseModule` **no** está cableado en `backend/core/application.py::create_app()` — es opt-in, igual que todo el SDK en Sprint 2.5. Auto-cablearlo introduciría una dependencia real de motor/conexión en cada test que use el `TestClient` (vía el patrón de `_lifespan` de Sprint 2.4) sin que este Sprint lo pida explícitamente. Un futuro Sprint decidirá cuándo y cómo se activa por defecto.
+`DatabaseModule` **no** está cableado en `teaf/_internal/core/application.py::create_app()` — es opt-in, igual que todo el SDK en Sprint 2.5. Auto-cablearlo introduciría una dependencia real de motor/conexión en cada test que use el `TestClient` (vía el patrón de `_lifespan` de Sprint 2.4) sin que este Sprint lo pida explícitamente. Un futuro Sprint decidirá cuándo y cómo se activa por defecto.
 
 ## 5. Las seis capacidades registradas
 
@@ -84,7 +84,7 @@ uow = runtime.resolve_service(UnitOfWork)               # TRANSIENT — nueva in
 | `database.migration` | `DATABASE` | Migraciones versionadas vía Alembic. |
 | `database.health` | `OBSERVABILITY` | Verificación de salud de la conexión. |
 
-Los tres servicios declarados (`DatabaseProvider` SINGLETON, `UnitOfWork` TRANSIENT, `DatabaseInstaller` SINGLETON) y las seis claves de configuración (`dialect`, `database`, `host`, `port`, `username`, `password` [sensible], `pool_size`) se listan íntegramente en `backend/modules/database/manifest.py` — ver `tests/unit/test_db_module_manifest.py` para la especificación exacta verificada.
+Los tres servicios declarados (`DatabaseProvider` SINGLETON, `UnitOfWork` TRANSIENT, `DatabaseInstaller` SINGLETON) y las seis claves de configuración (`dialect`, `database`, `host`, `port`, `username`, `password` [sensible], `pool_size`) se listan íntegramente en `teaf/_internal/modules/database/manifest.py` — ver `tests/unit/test_db_module_manifest.py` para la especificación exacta verificada.
 
 ## 6. Qué NO incluye este Sprint
 

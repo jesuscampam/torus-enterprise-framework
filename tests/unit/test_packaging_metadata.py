@@ -54,11 +54,11 @@ def test_pyproject_declares_no_cli_entry_points() -> None:
     assert "scripts" not in project  # type: ignore[operator]
 
 
-def test_pyproject_package_discovery_includes_teaf_and_backend() -> None:
+def test_pyproject_package_discovery_includes_only_teaf() -> None:
+    """Sprint 2.6.2: `backend*` desaparece — `teaf._internal` es subpaquete de `teaf`."""
     pyproject = _load_pyproject()
     include = pyproject["tool"]["setuptools"]["packages"]["find"]["include"]  # type: ignore[index]
-    assert "teaf*" in include
-    assert "backend*" in include
+    assert include == ["teaf*"]
 
 
 def test_pyproject_dependencies_match_requirements_txt() -> None:

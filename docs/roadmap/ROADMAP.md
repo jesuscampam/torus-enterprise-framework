@@ -40,7 +40,7 @@ Ninguna versión avanza sin aprobación explícita de la iteración anterior.
 
 ## Versión 3 — Frontend Foundation
 
-**Objetivo**: dotar al frontend de una base reutilizable equivalente a la del backend.
+**Objetivo**: dotar al frontend de una base reutilizable equivalente a la del teaf._internal.
 
 - Shell de aplicación React + TypeScript + Material UI, con theming (`theme/`) parametrizable por aplicación (branding TORUS común, variantes por producto).
 - Sistema de autenticación en frontend (flujo JWT, renovación de sesión, rutas protegidas).

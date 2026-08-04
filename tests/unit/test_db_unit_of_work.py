@@ -5,16 +5,20 @@ from __future__ import annotations
 import asyncio
 import uuid
 
-from backend.providers.database.base_model import AuditMixin, Base
-from backend.providers.database.engine import ConnectionParameters, DatabaseDialect, create_engine
-from backend.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
-from backend.providers.database.sqlalchemy_repository import SQLAlchemyRepository
-from backend.providers.database.sqlalchemy_unit_of_work import (
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
+from teaf._internal.providers.database.base_model import AuditMixin, Base
+from teaf._internal.providers.database.engine import (
+    ConnectionParameters,
+    DatabaseDialect,
+    create_engine,
+)
+from teaf._internal.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
+from teaf._internal.providers.database.sqlalchemy_repository import SQLAlchemyRepository
+from teaf._internal.providers.database.sqlalchemy_unit_of_work import (
     SQLAlchemyUnitOfWork,
     SQLAlchemyUnitOfWorkFactory,
 )
-from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
 
 
 class _Ledger(Base, AuditMixin):

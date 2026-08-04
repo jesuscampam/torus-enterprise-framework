@@ -1,6 +1,6 @@
 # Module SDK — TEAF
 
-Documentación del Sprint 2.5 (Developer Platform, v0.5.0-alpha): el SDK oficial para construir módulos de TEAF, apoyado en todo lo que Platform Intelligence (Sprint 2.4) y el Runtime (Sprint 2.3) ya ofrecen. Vive en `backend/sdk/`. Complementa — no reemplaza — [docs/runtime/RUNTIME.md](../runtime/RUNTIME.md) y [docs/platform/PLATFORM-INTELLIGENCE.md](../platform/PLATFORM-INTELLIGENCE.md).
+Documentación del Sprint 2.5 (Developer Platform, v0.5.0-alpha): el SDK oficial para construir módulos de TEAF, apoyado en todo lo que Platform Intelligence (Sprint 2.4) y el Runtime (Sprint 2.3) ya ofrecen. Vive en `teaf/_internal/sdk/`. Complementa — no reemplaza — [docs/runtime/RUNTIME.md](../runtime/RUNTIME.md) y [docs/platform/PLATFORM-INTELLIGENCE.md](../platform/PLATFORM-INTELLIGENCE.md).
 
 > Ningún módulo real (Database, Security, AI...) se construye con este SDK en este Sprint. Es infraestructura de autoría — pensada para que, cuando esos módulos se implementen, hereden de `ModuleBase` en vez de cablearse a mano contra el Runtime.
 
@@ -9,10 +9,10 @@ Documentación del Sprint 2.5 (Developer Platform, v0.5.0-alpha): el SDK oficial
 > Un desarrollador crea un módulo completo heredando únicamente de `ModuleBase`. Toda la infraestructura se registra automáticamente en el Runtime.
 
 ```python
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.context import ModuleContext
-from backend.sdk.manifest import ModuleManifest
-from backend.sdk.module_base import ModuleBase
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.context import ModuleContext
+from teaf._internal.sdk.manifest import ModuleManifest
+from teaf._internal.sdk.module_base import ModuleBase
 
 class GreeterModule(ModuleBase):
     def get_manifest(self) -> ModuleManifest:
@@ -37,7 +37,7 @@ await module.bootstrap(ModuleContext(runtime=runtime, module_id="greeter"))
 ## 2. Arquitectura
 
 ```
-backend/sdk/
+teaf/_internal/sdk/
 ├── enums.py                    # ModuleCategory
 ├── exceptions.py                 # 5 excepciones del SDK
 ├── descriptor.py                   # ModuleDescriptor (metadata de autoría)
@@ -63,7 +63,7 @@ backend/sdk/
 └── certification.py                                                        # ModuleCertification
 ```
 
-**Dependencias declaradas**: `backend/sdk/` importa de `backend/core/` y `backend/runtime/` — a diferencia de `backend/runtime/`, que nunca depende de `contracts/`/`providers/`, el SDK **sí** depende del Runtime: es la capa que se apoya en él para ofrecer autoría de alto nivel. Ningún archivo de `backend/runtime/` ni `backend/core/` importa `backend/sdk/` — la dependencia va en un solo sentido.
+**Dependencias declaradas**: `teaf/_internal/sdk/` importa de `teaf/_internal/core/` y `teaf/_internal/runtime/` — a diferencia de `teaf/_internal/runtime/`, que nunca depende de `contracts/`/`providers/`, el SDK **sí** depende del Runtime: es la capa que se apoya en él para ofrecer autoría de alto nivel. Ningún archivo de `teaf/_internal/runtime/` ni `teaf/_internal/core/` importa `teaf/_internal/sdk/` — la dependencia va en un solo sentido.
 
 ## 3. Los tres roles de cada pieza
 

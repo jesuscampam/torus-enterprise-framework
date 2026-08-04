@@ -2,12 +2,12 @@
 
 Documentación del Runtime implementado en el Sprint 2.3 (Framework Runtime, v0.3.0-alpha): la infraestructura que permite ejecutar módulos dentro de TEAF — contenedor de servicios, ciclo de vida, pipelines, descubrimiento de módulos, grafo de dependencias, bus de eventos y carga de plugins. Complementa — no reemplaza — [FRAMEWORK-BLUEPRINT.md](../architecture/FRAMEWORK-BLUEPRINT.md), [docs/core/CORE.md](../core/CORE.md) (Sprint 2.1) y [docs/infrastructure/INFRASTRUCTURE.md](../infrastructure/INFRASTRUCTURE.md) (Sprint 2.2).
 
-> Ningún módulo de negocio, servicio externo ni implementación concreta se conecta en este Sprint. `Runtime` es deliberadamente **independiente de `backend/contracts/` y `backend/providers/`** — no los importa en ningún archivo.
+> Ningún módulo de negocio, servicio externo ni implementación concreta se conecta en este Sprint. `Runtime` es deliberadamente **independiente de `teaf/_internal/contracts/` y `teaf/_internal/providers/`** — no los importa en ningún archivo.
 
 ## 1. Arquitectura
 
 ```
-backend/runtime/
+teaf/_internal/runtime/
 ├── container.py               # ServiceContainer, Lifetime, ServiceScope, Lazy
 ├── lifecycle.py                 # LifecycleManager, LifecycleStage
 ├── pipeline.py                   # Pipeline, StartupPipeline, ShutdownPipeline
@@ -21,9 +21,9 @@ backend/runtime/
 └── runtime.py                             # Runtime — orquestador que compone todo lo anterior
 ```
 
-`Runtime` es al ciclo de vida del framework lo que `backend/core/application.py` es a la aplicación FastAPI: un composition root local. Solo `runtime.py` conoce y ensambla el resto de piezas del paquete; cada pieza individual (`container.py`, `lifecycle.py`, etc.) es independiente entre sí salvo por las utilidades compartidas (`exceptions.py`, `hooks.py`).
+`Runtime` es al ciclo de vida del framework lo que `teaf/_internal/core/application.py` es a la aplicación FastAPI: un composition root local. Solo `runtime.py` conoce y ensambla el resto de piezas del paquete; cada pieza individual (`container.py`, `lifecycle.py`, etc.) es independiente entre sí salvo por las utilidades compartidas (`exceptions.py`, `hooks.py`).
 
-**Dependencias declaradas**: `backend/runtime/` → `backend/core/` únicamente (`ModuleRegistry`, `ModuleDescriptor`, `ModuleStatus`, `ApplicationException`/`InfrastructureException`/`ConfigurationException`). `backend/core/application.py` (composition root de la aplicación) importa `backend/runtime/`, igual que ya importaba `config/`, `middleware/`, `monitoring/` y `providers/` desde Sprint 2.1/2.2.
+**Dependencias declaradas**: `teaf/_internal/runtime/` → `teaf/_internal/core/` únicamente (`ModuleRegistry`, `ModuleDescriptor`, `ModuleStatus`, `ApplicationException`/`InfrastructureException`/`ConfigurationException`). `teaf/_internal/core/application.py` (composition root de la aplicación) importa `teaf/_internal/runtime/`, igual que ya importaba `config/`, `middleware/`, `monitoring/` y `providers/` desde Sprint 2.1/2.2.
 
 ## 2. Ciclo de vida (`LifecycleManager`)
 
@@ -68,7 +68,7 @@ instance = container.resolve(MyContract)
 
 `DependencyGraph` se construye a partir de `ModuleDescriptor.dependencies` (campo añadido de forma aditiva en este Sprint) y ofrece `detect_cycle()` / `topological_order()`. `Runtime.startup()` llama a `topological_order()` durante `BOOTSTRAP`, **antes** de correr el `StartupPipeline` — un ciclo aborta el arranque con `CircularDependencyException` en vez de fallar de forma confusa a mitad de la inicialización.
 
-Ejemplo real ya cableado en `backend/core/application.py`: el módulo `ai` declara `dependencies=("security",)`, reflejando la regla ya fijada en [FRAMEWORK-BLUEPRINT.md, sección 5](../architecture/FRAMEWORK-BLUEPRINT.md#5-mapa-de-dependencias) (AI depende de Security).
+Ejemplo real ya cableado en `teaf/_internal/core/application.py`: el módulo `ai` declara `dependencies=("security",)`, reflejando la regla ya fijada en [FRAMEWORK-BLUEPRINT.md, sección 5](../architecture/FRAMEWORK-BLUEPRINT.md#5-mapa-de-dependencias) (AI depende de Security).
 
 ## 6. Internal Event Bus
 
@@ -95,14 +95,14 @@ Cada módulo puede registrar un validador (`configuration_pipeline.register(modu
 - `loaded_modules`: nombres de los módulos del `ModuleRegistry`.
 - `registered_capabilities`: nombres de los contratos con proveedor registrado en el `ServiceContainer` (vacío en este Sprint — nada se registra todavía).
 
-`GET /info` la expone fusionada con la información ya existente de versión y módulos (Sprint 2.2). `backend/monitoring/info.py` **no importa `backend/runtime/`**: recibe un `Callable[[], dict]` que el composition root construye a partir de `runtime.describe().as_dict()`, preservando la regla "Monitoring depende únicamente de Core" y garantizando que cada petición lea el estado actual (no una fotografía capturada una vez al arrancar).
+`GET /info` la expone fusionada con la información ya existente de versión y módulos (Sprint 2.2). `teaf/_internal/monitoring/info.py` **no importa `teaf/_internal/runtime/`**: recibe un `Callable[[], dict]` que el composition root construye a partir de `runtime.describe().as_dict()`, preservando la regla "Monitoring depende únicamente de Core" y garantizando que cada petición lea el estado actual (no una fotografía capturada una vez al arrancar).
 
 ## 10. Buenas prácticas para extender el Runtime
 
-- **No registrar nada directamente en `container.py`, `lifecycle.py`, etc.** — esas piezas son genéricas. El cableado específico de un módulo va en el composition root (`backend/core/application.py`) o, en el futuro, en el propio módulo durante su fase de registro.
+- **No registrar nada directamente en `container.py`, `lifecycle.py`, etc.** — esas piezas son genéricas. El cableado específico de un módulo va en el composition root (`teaf/_internal/core/application.py`) o, en el futuro, en el propio módulo durante su fase de registro.
 - **Todo hook/paso debe ser idempotente si es razonablemente posible** — un reintento de arranque no debería dejar el sistema en un estado inconsistente.
 - **`ShutdownPipeline` es LIFO a propósito**: si un paso de `StartupPipeline` adquiere un recurso, el paso de `ShutdownPipeline` que lo libera debe registrarse en el mismo momento (no al final), para que el orden inverso sea correcto automáticamente.
-- **Nunca importar `backend/contracts/` ni `backend/providers/` desde `backend/runtime/`** — si una pieza del Runtime necesita conocer un contrato concreto, esa lógica pertenece al composition root, no al Runtime genérico.
+- **Nunca importar `teaf/_internal/contracts/` ni `teaf/_internal/providers/` desde `teaf/_internal/runtime/`** — si una pieza del Runtime necesita conocer un contrato concreto, esa lógica pertenece al composition root, no al Runtime genérico.
 - **Los eventos del `EventBus` son solo para desacoplar piezas internas del framework**, no un mecanismo de mensajería de negocio — no publiques eventos de dominio de una aplicación aquí.
 
 ## 11. Qué NO incluye este Sprint

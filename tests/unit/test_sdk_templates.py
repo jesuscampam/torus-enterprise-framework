@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.sdk.enums import ModuleCategory
-from backend.sdk.templates import MODULE_TEMPLATES, get_template
+from teaf._internal.sdk.enums import ModuleCategory
+from teaf._internal.sdk.templates import MODULE_TEMPLATES, get_template
 
 
 def test_all_seven_categories_have_a_template() -> None:

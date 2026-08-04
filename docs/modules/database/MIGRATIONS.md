@@ -1,6 +1,6 @@
 # Migraciones (Alembic) — TEAF
 
-`DatabaseInstaller` (`backend/modules/database/installer.py`) orquesta Alembic para el Database Module. Estructura de infraestructura únicamente en este Sprint — ver [DATABASE-STANDARD.md, sección 5](../../standards/DATABASE-STANDARD.md#5-migraciones-alembic) para las reglas normativas de toda migración futura.
+`DatabaseInstaller` (`teaf/_internal/modules/database/installer.py`) orquesta Alembic para el Database Module. Estructura de infraestructura únicamente en este Sprint — ver [DATABASE-STANDARD.md, sección 5](../../standards/DATABASE-STANDARD.md#5-migraciones-alembic) para las reglas normativas de toda migración futura.
 
 ## 1. Estructura
 
@@ -21,7 +21,7 @@ La única revisión existente en `versions/` tiene `upgrade()`/`downgrade()` vac
 
 ## 3. Por qué el entorno de Alembic es async
 
-`target_metadata = Base.metadata` (importado de `backend/providers/database/base_model.py`, vacío en este Sprint). `database/migrations/env.py` usa la plantilla async de Alembic (`async_engine_from_config` + `connection.run_sync(...)`) porque el motor del framework es `AsyncEngine` (SQLAlchemy 2.x asíncrono, ver [DATABASE.md](DATABASE.md)) — Alembic no tiene una forma nativa de ejecutar migraciones directamente sobre un engine asíncrono sin este puente.
+`target_metadata = Base.metadata` (importado de `teaf/_internal/providers/database/base_model.py`, vacío en este Sprint). `database/migrations/env.py` usa la plantilla async de Alembic (`async_engine_from_config` + `connection.run_sync(...)`) porque el motor del framework es `AsyncEngine` (SQLAlchemy 2.x asíncrono, ver [DATABASE.md](DATABASE.md)) — Alembic no tiene una forma nativa de ejecutar migraciones directamente sobre un engine asíncrono sin este puente.
 
 La URL de conexión se resuelve en este orden:
 
@@ -47,7 +47,7 @@ La API de comandos de Alembic (`command.upgrade`/`command.downgrade`) es síncro
 Por eso `DatabaseModule.start()` solo hace `provider.connect()` y `health.refresh()` — nunca llama a `DatabaseInstaller`. Aplicar migraciones es un **paso de despliegue explícito y separado**, ejecutado desde código síncrono fuera de cualquier `Runtime` en marcha:
 
 ```python
-from backend.modules.database.installer import DatabaseInstaller
+from teaf._internal.modules.database.installer import DatabaseInstaller
 
 installer = DatabaseInstaller()
 installer.upgrade_to_head("postgresql+asyncpg://user:pass@host/teaf")

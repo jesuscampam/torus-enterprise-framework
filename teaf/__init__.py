@@ -1,8 +1,8 @@
 """``teaf`` — la única API pública de TORUS Enterprise Application Framework.
 
 Desde este Sprint (2.5.1, Public SDK & Packaging), un consumidor externo de
-TEAF nunca importa ``backend.*`` directamente — solo ``from teaf import ...``.
-``backend/`` (``core``, ``config``, ``runtime``, ``sdk``, ``contracts``,
+TEAF nunca importa ``teaf._internal.*`` directamente — solo ``from teaf import ...``.
+``teaf/_internal/`` (``core``, ``config``, ``runtime``, ``sdk``, ``contracts``,
 ``providers``, ``modules``, ...) es la implementación privada detrás de
 esta fachada; puede reorganizarse internamente entre Sprints sin romper a
 ningún consumidor de ``teaf`` mientras el contrato de este archivo se
@@ -20,7 +20,7 @@ Superficie pública: los catorce símbolos pedidos explícitamente
 ``CapabilityRegistry``, ``ModuleRegistry``, ``Health``, ``Configuration``,
 ``Version``) más un puñado de enums/dataclasses *compañeros*, sin los
 cuales los símbolos principales no se podrían usar en la práctica sin
-recurrir a ``backend.*`` (``ModuleCategory``/``CapabilityCategory`` para
+recurrir a ``teaf._internal.*`` (``ModuleCategory``/``CapabilityCategory`` para
 categorizar; ``Lifetime`` para declarar el ciclo de vida de un servicio;
 ``Event`` para publicar en el ``EventBus``; ``get_configuration`` como
 función homóloga de ``Configuration``). Nada más se exporta — no hay
@@ -65,7 +65,7 @@ __all__ = [
     "Configuration",
     "Version",
     # -- Compañeros imprescindibles para usar los símbolos de arriba sin
-    # -- tocar ``backend.*`` — ver docstring del módulo.
+    # -- tocar ``teaf._internal.*`` — ver docstring del módulo.
     "CapabilityCategory",
     "Event",
     "Lifetime",

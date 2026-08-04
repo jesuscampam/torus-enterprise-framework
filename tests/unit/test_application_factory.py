@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from backend.config.settings import ProductionSettings, TestingSettings
-from backend.core.application import create_app
 from fastapi import FastAPI
+from teaf._internal.config.settings import ProductionSettings, TestingSettings
+from teaf._internal.core.application import create_app
 
 
 def test_create_app_returns_fastapi_instance() -> None:

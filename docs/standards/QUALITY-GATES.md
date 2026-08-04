@@ -48,7 +48,7 @@ Estos gates se verifican **a nivel de PR/cambio al framework**. Para el criterio
 
 ## 10. Swagger/OpenAPI actualizado
 
-- Todo endpoint nuevo o modificado en `backend/api/` está documentado en el esquema OpenAPI generado (resumen, ejemplos, códigos de error), conforme a [API-STANDARD.md](API-STANDARD.md).
+- Todo endpoint nuevo o modificado en `teaf/_internal/api/` está documentado en el esquema OpenAPI generado (resumen, ejemplos, códigos de error), conforme a [API-STANDARD.md](API-STANDARD.md).
 
 ## 11. Checklist de revisión humana
 

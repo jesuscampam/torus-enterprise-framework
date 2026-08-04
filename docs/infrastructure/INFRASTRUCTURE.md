@@ -18,10 +18,10 @@ core/registry →  inventario en tiempo de ejecución de qué módulos están
                 cableados y con qué madurez (contracts_only / implemented).
 ```
 
-Esto **no contradice** la responsabilidad ya documentada de `backend/security/`, `backend/database/`, `backend/ai/`, `backend/scheduler/` (Sprint 1): esas carpetas seguirán siendo el hogar de las implementaciones concretas — ahora, esas implementaciones extenderán las clases base de `providers/` y satisfarán las interfaces de `contracts/`, en vez de definir su propia interfaz desde cero. Es un refinamiento de **cómo** se cumple esa responsabilidad, no un cambio de **qué** responsabilidad tiene cada carpeta.
+Esto **no contradice** la responsabilidad ya documentada de `teaf/_internal/security/`, `teaf/_internal/database/`, `teaf/_internal/ai/`, `teaf/_internal/scheduler/` (Sprint 1): esas carpetas seguirán siendo el hogar de las implementaciones concretas — ahora, esas implementaciones extenderán las clases base de `providers/` y satisfarán las interfaces de `contracts/`, en vez de definir su propia interfaz desde cero. Es un refinamiento de **cómo** se cumple esa responsabilidad, no un cambio de **qué** responsabilidad tiene cada carpeta.
 
 ```
-backend/
+teaf/_internal/
 ├── contracts/          # Puertos — interfaces puras (Sprint 2.2)
 ├── providers/           # Adaptadores abstractos (Sprint 2.2)
 │   ├── database/
@@ -35,7 +35,7 @@ backend/
 └── scheduler/             # Implementación concreta futura (Sprint 2.4+, hoy solo README)
 ```
 
-## 2. Contracts (`backend/contracts/`)
+## 2. Contracts (`teaf/_internal/contracts/`)
 
 Interfaces puras (`abc.ABC` + `@abstractmethod`), sin lógica, sin dependencias de terceros — la capa más independiente del framework junto con `core/`.
 
@@ -51,7 +51,7 @@ Interfaces puras (`abc.ABC` + `@abstractmethod`), sin lógica, sin dependencias 
 | `SchedulerProvider` | `scheduler.py` | `schedule` (cron) / `run_once` (diferido) / `cancel`. |
 | `NotificationProvider` | `notification.py` | `send` por canal (`NotificationChannel`: email/push/chat). |
 
-## 3. Providers (`backend/providers/`)
+## 3. Providers (`teaf/_internal/providers/`)
 
 Clases base y factories **todavía abstractas** que implementan el andamiaje común sobre los contratos, listas para que una implementación concreta (Sprint 2.3+) las extienda.
 
@@ -78,20 +78,20 @@ Clases base y factories **todavía abstractas** que implementan el andamiaje com
 | Clase | Rol |
 |---|---|
 | `TracerProvider` / `MetricsProvider` | Especializaciones de `TelemetryProvider` — cada una implementa una mitad del contrato y deja la otra explícitamente sin soporte (`NotImplementedError`). |
-| `LoggerProvider` | Puente futuro entre `backend/core/logging.py` y un backend de observabilidad real. |
+| `LoggerProvider` | Puente futuro entre `teaf/_internal/core/logging.py` y un backend de observabilidad real. |
 | `TelemetryContext` | Reserva `trace_id`/`span_id` de la petición en curso — mismo patrón `ContextVar`, sin traza activa por defecto. |
 
 ### `providers/storage/` y `providers/ai/`
 
 Cada uno expone una única clase base (`BaseStorageProvider`, `BaseAIProvider`) que implementa el contrato correspondiente y solo añade un atributo de identidad (`provider_name`) — sin API adicional, a la espera de la primera implementación concreta.
 
-## 4. Module Registry (`backend/core/registry.py`)
+## 4. Module Registry (`teaf/_internal/core/registry.py`)
 
 `ModuleRegistry` es el inventario **en tiempo de ejecución** de qué subsistemas están cableados en la instancia actual y con qué madurez (`ModuleStatus.CONTRACTS_ONLY` / `IMPLEMENTED`). Complementa a [MODULE-CATALOG.md](../architecture/MODULE-CATALOG.md) (que documenta la intención arquitectónica) sin sustituirlo.
 
 Se crea **una vez por instancia de aplicación** (`app.state.module_registry`, cableado en `create_app()`) — deliberadamente **no** como singleton de proceso, para que cada instancia (por ejemplo, una app por test) tenga su propio registro aislado. El Sprint 2.2 registra 7 subsistemas, todos en `contracts_only`: `database`, `security`, `telemetry`, `storage`, `ai`, `scheduler`, `notification`.
 
-Consulta el estado del registro vía **`GET /info`** (`backend/monitoring/info.py`), que también expone la versión del framework (`0.2.0-alpha`).
+Consulta el estado del registro vía **`GET /info`** (`teaf/_internal/monitoring/info.py`), que también expone la versión del framework (`0.2.0-alpha`).
 
 ## 5. Factories
 
@@ -104,7 +104,7 @@ Ninguna tiene implementación concreta — ambas son `ABC` y no pueden instancia
 
 ## 6. Expansión de Dependency Injection
 
-`backend/providers/dependencies.py` centraliza los accesores inyectables (`Depends()`) de infraestructura:
+`teaf/_internal/providers/dependencies.py` centraliza los accesores inyectables (`Depends()`) de infraestructura:
 
 | Función | Comportamiento hoy |
 |---|---|
@@ -112,7 +112,7 @@ Ninguna tiene implementación concreta — ambas son `ABC` y no pueden instancia
 | `get_security_context` / `get_telemetry_context` | Devuelven un contexto por defecto seguro (anónimo / sin traza) — **ya utilizables hoy**. |
 | `get_module_registry` | Lee `request.app.state.module_registry` (ver sección 4). |
 
-`backend/core/dependencies.py` (Sprint 2.1) permanece sin cambios y sin conocer ningún proveedor concreto — sigue siendo la utilidad genérica (`singleton_provider`) sobre la que se construyen estos accesores.
+`teaf/_internal/core/dependencies.py` (Sprint 2.1) permanece sin cambios y sin conocer ningún proveedor concreto — sigue siendo la utilidad genérica (`singleton_provider`) sobre la que se construyen estos accesores.
 
 ## 7. Extensibilidad
 

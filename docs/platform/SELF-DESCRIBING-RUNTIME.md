@@ -4,7 +4,7 @@ Tres piezas responden, cada una desde un ángulo distinto, a la misma pregunta �
 
 ## 1. `RuntimeSelfDescription`
 
-La respuesta "¿qué eres y qué puedes hacer?" (`backend/runtime/self_description.py`), servida por `GET /runtime/self` y `Runtime.self_description()`:
+La respuesta "¿qué eres y qué puedes hacer?" (`teaf/_internal/runtime/self_description.py`), servida por `GET /runtime/self` y `Runtime.self_description()`:
 
 ```python
 description = runtime.self_description()
@@ -26,7 +26,7 @@ Los campos `supports_*` (`ai`, `mcp`, `scheduler`, `database`, `storage`, `notif
 
 ## 2. `RuntimeDiagnostics`
 
-El diagnóstico operativo extendido (`backend/runtime/diagnostics.py`), servido por `GET /runtime/info` y `Runtime.diagnostics()`. Complementa — no sustituye — `RuntimeMetadata` (Sprint 2.3, `GET /info`): `RuntimeMetadata` es el resumen mínimo de arranque; `RuntimeDiagnostics` es la vista extendida de plataforma.
+El diagnóstico operativo extendido (`teaf/_internal/runtime/diagnostics.py`), servido por `GET /runtime/info` y `Runtime.diagnostics()`. Complementa — no sustituye — `RuntimeMetadata` (Sprint 2.3, `GET /info`): `RuntimeMetadata` es el resumen mínimo de arranque; `RuntimeDiagnostics` es la vista extendida de plataforma.
 
 ```python
 diagnostics = runtime.diagnostics(configuration_summary={"environment": "production"})
@@ -51,7 +51,7 @@ diagnostics.memory_placeholder / cpu_placeholder          # siempre "not-impleme
 
 ## 3. `ServiceDiscovery` — la pieza que alimenta ambas vistas
 
-`backend/runtime/service_discovery.py` es una capa de solo lectura sobre `ServiceContainer.describe_services()` — no registra ni modifica nada:
+`teaf/_internal/runtime/service_discovery.py` es una capa de solo lectura sobre `ServiceContainer.describe_services()` — no registra ni modifica nada:
 
 ```python
 runtime.service_discovery.list()                       # tuple[ServiceMetadata, ...]
@@ -66,7 +66,7 @@ runtime.service_discovery.dependency_tree("my-service")          # árbol recurs
 
 ## 4. `runtime.manifest.json`
 
-Fotografía completa y serializable de la instancia, generada por `backend/runtime/manifest.py` (`generate_manifest()`/`write_manifest()`):
+Fotografía completa y serializable de la instancia, generada por `teaf/_internal/runtime/manifest.py` (`generate_manifest()`/`write_manifest()`):
 
 ```json
 {
@@ -85,21 +85,21 @@ Fotografía completa y serializable de la instancia, generada por `backend/runti
 }
 ```
 
-Los tres últimos campos (`contracts`, `providers`, `factories`) son las **únicas** constantes estáticas del Sprint: nombres de clases/subpaquetes de `backend/contracts/` y `backend/providers/`, listados a mano en `KNOWN_CONTRACTS`/`KNOWN_PROVIDERS`/`KNOWN_FACTORIES` — deliberadamente, para no importar esos paquetes desde `backend/runtime/` y romper la regla de dependencias ya establecida ([RUNTIME.md](../runtime/RUNTIME.md)). Todo lo demás en el manifiesto se lee en vivo del `Runtime`.
+Los tres últimos campos (`contracts`, `providers`, `factories`) son las **únicas** constantes estáticas del Sprint: nombres de clases/subpaquetes de `teaf/_internal/contracts/` y `teaf/_internal/providers/`, listados a mano en `KNOWN_CONTRACTS`/`KNOWN_PROVIDERS`/`KNOWN_FACTORIES` — deliberadamente, para no importar esos paquetes desde `teaf/_internal/runtime/` y romper la regla de dependencias ya establecida ([RUNTIME.md](../runtime/RUNTIME.md)). Todo lo demás en el manifiesto se lee en vivo del `Runtime`.
 
 ### Cuándo se genera
 
-`backend/core/application.py` lo escribe automáticamente en `_lifespan`, justo después de `runtime.startup()` — **excepto** cuando `settings.environment is Environment.TESTING`, para no ensuciar el repositorio en cada corrida de la suite de pruebas (`TestClient` dispara el mismo `lifespan` que un arranque real). Un fallo de escritura (por ejemplo, un filesystem de solo lectura en producción) se registra como advertencia y **no** tumba el arranque — es un artefacto de introspección, no una dependencia crítica del framework.
+`teaf/_internal/core/application.py` lo escribe automáticamente en `_lifespan`, justo después de `runtime.startup()` — **excepto** cuando `settings.environment is Environment.TESTING`, para no ensuciar el repositorio en cada corrida de la suite de pruebas (`TestClient` dispara el mismo `lifespan` que un arranque real). Un fallo de escritura (por ejemplo, un filesystem de solo lectura en producción) se registra como advertencia y **no** tumba el arranque — es un artefacto de introspección, no una dependencia crítica del framework.
 
 `runtime.manifest.json` se escribe siempre en la raíz del repositorio y está en `.gitignore` — es un artefacto generado, nunca una fuente de verdad editada a mano.
 
 ## 5. Feature Flags — el complemento operativo
 
-Un feature flag responde una pregunta distinta a una capacidad: no "¿existe esta funcionalidad?" sino "¿está **activada** ahora mismo?". Vive en `backend/runtime/features/` — mismo espíritu que `CapabilityRegistry` ([CAPABILITY-REGISTRY.md](CAPABILITY-REGISTRY.md)), sin persistencia.
+Un feature flag responde una pregunta distinta a una capacidad: no "¿existe esta funcionalidad?" sino "¿está **activada** ahora mismo?". Vive en `teaf/_internal/runtime/features/` — mismo espíritu que `CapabilityRegistry` ([CAPABILITY-REGISTRY.md](CAPABILITY-REGISTRY.md)), sin persistencia.
 
 ```python
-from backend.runtime.features.flag import FeatureFlag
-from backend.runtime.features.enums import FeatureGroup
+from teaf._internal.runtime.features.flag import FeatureFlag
+from teaf._internal.runtime.features.enums import FeatureGroup
 
 flag = FeatureFlag(id="ai.embeddings", name="AI Embeddings", group=FeatureGroup.AI)
 runtime.feature_manager.register(flag)   # registro directo, sin evento

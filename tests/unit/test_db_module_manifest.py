@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from backend.contracts.database import DatabaseProvider
-from backend.contracts.unit_of_work import UnitOfWork
-from backend.modules.database.configuration import DatabaseConfiguration
-from backend.modules.database.health import DatabaseHealth
-from backend.modules.database.installer import DatabaseInstaller
-from backend.modules.database.manifest import build_database_manifest
-from backend.providers.database.engine import create_engine
-from backend.providers.database.sqlalchemy_factory import SQLAlchemyDatabaseFactory
-from backend.providers.database.sqlalchemy_unit_of_work import SQLAlchemyUnitOfWorkFactory
-from backend.runtime.container import Lifetime
-from backend.sdk.manifest import ModuleManifest
+from teaf._internal.contracts.database import DatabaseProvider
+from teaf._internal.contracts.unit_of_work import UnitOfWork
+from teaf._internal.modules.database.configuration import DatabaseConfiguration
+from teaf._internal.modules.database.health import DatabaseHealth
+from teaf._internal.modules.database.installer import DatabaseInstaller
+from teaf._internal.modules.database.manifest import build_database_manifest
+from teaf._internal.providers.database.engine import create_engine
+from teaf._internal.providers.database.sqlalchemy_factory import SQLAlchemyDatabaseFactory
+from teaf._internal.providers.database.sqlalchemy_unit_of_work import SQLAlchemyUnitOfWorkFactory
+from teaf._internal.runtime.container import Lifetime
+from teaf._internal.sdk.manifest import ModuleManifest
 
 
 def _build_manifest(configuration: DatabaseConfiguration | None = None) -> ModuleManifest:

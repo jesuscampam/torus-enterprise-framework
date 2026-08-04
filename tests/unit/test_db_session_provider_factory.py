@@ -5,11 +5,15 @@ from __future__ import annotations
 import asyncio
 from typing import cast
 
-from backend.providers.database.engine import ConnectionParameters, DatabaseDialect, create_engine
-from backend.providers.database.sqlalchemy_factory import SQLAlchemyDatabaseFactory
-from backend.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from teaf._internal.providers.database.engine import (
+    ConnectionParameters,
+    DatabaseDialect,
+    create_engine,
+)
+from teaf._internal.providers.database.sqlalchemy_factory import SQLAlchemyDatabaseFactory
+from teaf._internal.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
 
 
 def _memory_engine() -> AsyncEngine:

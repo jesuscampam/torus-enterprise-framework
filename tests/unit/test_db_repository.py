@@ -7,12 +7,16 @@ import uuid
 from collections.abc import Callable, Coroutine
 from typing import Any, TypeVar
 
-from backend.providers.database.base_model import AuditMixin, Base
-from backend.providers.database.engine import ConnectionParameters, DatabaseDialect, create_engine
-from backend.providers.database.sqlalchemy_repository import SQLAlchemyRepository
 from sqlalchemy import String
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Mapped, mapped_column
+from teaf._internal.providers.database.base_model import AuditMixin, Base
+from teaf._internal.providers.database.engine import (
+    ConnectionParameters,
+    DatabaseDialect,
+    create_engine,
+)
+from teaf._internal.providers.database.sqlalchemy_repository import SQLAlchemyRepository
 
 R = TypeVar("R")
 

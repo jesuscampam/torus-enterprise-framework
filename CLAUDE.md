@@ -49,9 +49,9 @@ Resumen operativo — el detalle completo vive en cada estándar, léelo antes d
 | Estándar | Cuándo consultarlo |
 |---|---|
 | [CODING-STANDARD.md](docs/standards/CODING-STANDARD.md) | Siempre: estilo, principios SOLID/DRY/KISS, testing, checklist de revisión. |
-| [API-STANDARD.md](docs/standards/API-STANDARD.md) | Antes de tocar `backend/api/` o `backend/schemas/`. |
-| [DATABASE-STANDARD.md](docs/standards/DATABASE-STANDARD.md) | Antes de tocar `backend/database/`, `backend/models/`, `backend/repository/` o `database/migrations/`. |
-| [SECURITY-STANDARD.md](docs/standards/SECURITY-STANDARD.md) | Antes de tocar `backend/security/` o cualquier dato sensible. |
+| [API-STANDARD.md](docs/standards/API-STANDARD.md) | Antes de tocar `teaf/_internal/api/` o `teaf/_internal/schemas/`. |
+| [DATABASE-STANDARD.md](docs/standards/DATABASE-STANDARD.md) | Antes de tocar `teaf/_internal/database/`, `teaf/_internal/models/`, `teaf/_internal/repository/` o `database/migrations/`. |
+| [SECURITY-STANDARD.md](docs/standards/SECURITY-STANDARD.md) | Antes de tocar `teaf/_internal/security/` o cualquier dato sensible. |
 | [LOGGING-STANDARD.md](docs/standards/LOGGING-STANDARD.md) | Antes de emitir logs, métricas o trazas. |
 | [GIT-STANDARD.md](docs/standards/GIT-STANDARD.md) | Siempre: ramas, commits, versionado. |
 | [QUALITY-GATES.md](docs/standards/QUALITY-GATES.md) | Antes de abrir cualquier Pull Request. |
@@ -119,7 +119,7 @@ rama (según GIT-STANDARD.md)
 
 1. Define el módulo en [`docs/architecture/MODULE-CATALOG.md`](docs/architecture/MODULE-CATALOG.md) (objetivo, dependencias, versión objetivo, nivel de reutilización, prioridad) antes de crear código.
 2. Sigue el checklist y árbol de carpetas de [`/templates/module-template.md`](templates/module-template.md).
-3. Cada carpeta nueva incluye su propio `README.md` de responsabilidad, siguiendo el mismo estilo que los ya existentes en `backend/*/README.md` y `frontend/src/*/README.md`.
+3. Cada carpeta nueva incluye su propio `README.md` de responsabilidad, siguiendo el mismo estilo que los ya existentes en `teaf/_internal/*/README.md` y `frontend/src/*/README.md`.
 4. Si el módulo introduce una épica/feature nueva, añádela a [`docs/roadmap/BACKLOG.md`](docs/roadmap/BACKLOG.md).
 
 ## 15. Checklist antes de cada Pull Request

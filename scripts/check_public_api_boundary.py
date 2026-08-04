@@ -12,11 +12,20 @@ Namespaces del framework (ver docs/public-api/IMPORT-GUIDE.md):
 - **Público**: ``teaf`` — la única superficie que cualquier consumidor
   externo de TEAF (aplicaciones construidas sobre el framework, este mismo
   repositorio en ``examples/``) debe importar.
-- **Privado**: ``backend`` (y todo lo que cuelga de él — ``backend.core``,
-  ``backend.runtime``, ``backend.sdk``, ``backend.contracts``,
-  ``backend.providers``, ``backend.modules``, ...) — implementación interna
-  del framework, sin ninguna garantía de estabilidad entre versiones fuera
-  de lo que ``teaf/`` reexporta explícitamente.
+- **Privado**: ``teaf._internal`` (y todo lo que cuelga de él —
+  ``teaf._internal.core``, ``teaf._internal.runtime``, ``teaf._internal.sdk``,
+  ``teaf._internal.contracts``, ``teaf._internal.providers``,
+  ``teaf._internal.modules``, ...) — implementación interna del framework,
+  movida desde el antiguo paquete de nivel superior ``backend/`` en el
+  Sprint 2.6.2 (ver ADR-006), sin ninguna garantía de estabilidad entre
+  versiones fuera de lo que ``teaf/`` reexporta explícitamente.
+
+Como ``teaf._internal`` es un namespace de dos segmentos (no una raíz de
+paquete distinta como el antiguo ``backend``), la coincidencia se hace por
+**prefijo punteado**, no solo por la raíz del import — así se distingue
+``from teaf._internal.core import x`` (prohibido) de ``from teaf import
+Application`` (permitido), algo imposible con una comparación de solo la
+raíz.
 
 Es deliberadamente estático y basado en ``ast`` (nunca ejecuta el código
 inspeccionado) — sienta la base para una futura verificación automática en
@@ -38,7 +47,7 @@ PUBLIC_NAMESPACE = "teaf"
 
 #: Namespaces privados — implementación interna, nunca importada directamente
 #: fuera de ``teaf/`` ni de las pruebas de caja blanca del propio framework.
-PRIVATE_NAMESPACES = ("backend",)
+PRIVATE_NAMESPACES = ("teaf._internal",)
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,16 +71,38 @@ def iter_python_files(root: Path) -> Iterator[Path]:
     yield from sorted(root.rglob("*.py"))
 
 
-def _imported_root_modules(node: ast.Import | ast.ImportFrom) -> Iterator[str]:
-    """Los nombres de paquete raíz importados por un nodo ``Import``/``ImportFrom``."""
+def _imported_candidate_paths(node: ast.Import | ast.ImportFrom) -> Iterator[str]:
+    """Rutas punteadas candidatas a verificar contra el namespace prohibido.
+
+    Para ``ast.Import`` es la ruta completa de cada alias (p. ej.
+    ``teaf._internal.core.application``). Para ``ast.ImportFrom`` con import
+    absoluto (``level == 0``) incluye tanto el módulo base solo — para
+    detectar ``from teaf._internal import x`` — como cada combinación
+    módulo+alias — para detectar ``from teaf._internal.core import x`` y
+    también la evasión por atributo ``from teaf import _internal``.
+    """
     if isinstance(node, ast.Import):
         for alias in node.names:
-            yield alias.name.split(".")[0]
+            yield alias.name
     else:
         # ``from . import x`` / ``from .foo import x`` (imports relativos, level > 0)
         # nunca apuntan a un namespace externo — no pueden violar el límite.
         if node.level == 0 and node.module:
-            yield node.module.split(".")[0]
+            yield node.module
+            for alias in node.names:
+                yield f"{node.module}.{alias.name}"
+
+
+def _matched_forbidden(path: str, forbidden: Iterable[str]) -> str | None:
+    """El namespace prohibido de ``forbidden`` que ``path`` viola, si alguno.
+
+    Coincidencia por prefijo punteado: ``path`` viola ``entry`` si es
+    exactamente ``entry`` o cuelga de él (``entry.algo``, ``entry.algo.mas``).
+    """
+    for entry in forbidden:
+        if path == entry or path.startswith(f"{entry}."):
+            return entry
+    return None
 
 
 def find_forbidden_imports(
@@ -79,27 +110,46 @@ def find_forbidden_imports(
 ) -> list[ImportViolation]:
     """Analiza ``source`` (contenido de ``path``) y devuelve cada import prohibido.
 
-    Estático: usa ``ast.parse``, nunca importa ni ejecuta ``source``.
+    Estático: usa ``ast.parse``, nunca importa ni ejecuta ``source``. Reporta
+    como máximo una violación por namespace prohibido distinto y por nodo de
+    import — varias rutas candidatas del mismo nodo (p. ej. módulo base y
+    módulo+alias de un mismo ``from ... import ...``) que coinciden con el
+    mismo namespace prohibido no se duplican.
     """
-    forbidden_set = set(forbidden)
+    forbidden_tuple = tuple(forbidden)
     tree = ast.parse(source, filename=str(path))
     violations: list[ImportViolation] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Import | ast.ImportFrom):
             continue
-        for root_module in _imported_root_modules(node):
-            if root_module in forbidden_set:
-                violations.append(ImportViolation(path=path, line=node.lineno, module=root_module))
+        matched_for_node: set[str] = set()
+        for candidate in _imported_candidate_paths(node):
+            matched = _matched_forbidden(candidate, forbidden_tuple)
+            if matched is not None and matched not in matched_for_node:
+                matched_for_node.add(matched)
+                violations.append(ImportViolation(path=path, line=node.lineno, module=matched))
     return violations
 
 
-def check_paths(paths: Iterable[Path]) -> list[ImportViolation]:
-    """Verifica todos los archivos ``.py`` bajo cada ruta de ``paths``."""
+def check_paths(
+    paths: Iterable[Path], *, forbidden: Iterable[str] | None = None
+) -> list[ImportViolation]:
+    """Verifica todos los archivos ``.py`` bajo cada ruta de ``paths``.
+
+    ``forbidden`` permite verificar contra un conjunto de namespaces
+    prohibidos distinto de ``PRIVATE_NAMESPACES`` (p. ej.
+    ``scripts/check_internal_namespace.py`` lo usa con ``("backend",)`` para
+    confirmar que no sobrevive ningún import del namespace legado) sin
+    duplicar el recorrido de archivos.
+    """
+    forbidden_tuple = tuple(forbidden) if forbidden is not None else PRIVATE_NAMESPACES
     violations: list[ImportViolation] = []
     for root in paths:
         for file_path in iter_python_files(root):
             source = file_path.read_text(encoding="utf-8")
-            violations.extend(find_forbidden_imports(source, path=file_path))
+            violations.extend(
+                find_forbidden_imports(source, path=file_path, forbidden=forbidden_tuple)
+            )
     return violations
 
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import logging
 
-from backend.core.context import set_correlation_id
-from backend.core.logging import CorrelationIdFilter, JsonFormatter, configure_logging
+from teaf._internal.core.context import set_correlation_id
+from teaf._internal.core.logging import CorrelationIdFilter, JsonFormatter, configure_logging
 
 
 def _make_record(message: str = "hello") -> logging.LogRecord:

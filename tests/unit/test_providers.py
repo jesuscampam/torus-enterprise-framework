@@ -5,17 +5,17 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from backend.contracts.database import DatabaseProvider
-from backend.providers.database.connection_manager import ConnectionManager
-from backend.providers.database.factory import DatabaseFactory
-from backend.providers.security.factory import SecurityFactory
-from backend.providers.security.rbac import Role
-from backend.providers.security.security_context import (
+from teaf._internal.contracts.database import DatabaseProvider
+from teaf._internal.providers.database.connection_manager import ConnectionManager
+from teaf._internal.providers.database.factory import DatabaseFactory
+from teaf._internal.providers.security.factory import SecurityFactory
+from teaf._internal.providers.security.rbac import Role
+from teaf._internal.providers.security.security_context import (
     ANONYMOUS,
     SecurityContext,
     get_security_context,
 )
-from backend.providers.telemetry.telemetry_context import get_telemetry_context
+from teaf._internal.providers.telemetry.telemetry_context import get_telemetry_context
 
 
 def test_database_factory_is_abstract() -> None:

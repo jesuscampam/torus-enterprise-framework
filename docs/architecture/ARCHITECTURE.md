@@ -61,7 +61,7 @@ TEAF aplica Clean Architecture con Domain-Driven Design ligero. Las flechas indi
   Transversales a todas las capas: core/ · config/ · security/ · monitoring/ · shared/ · ai/ · webhooks/ · scheduler/
 ```
 
-### Descripción de cada capa (backend)
+### Descripción de cada capa (`teaf/_internal/`)
 
 | Capa | Responsabilidad | No debe contener |
 |---|---|---|

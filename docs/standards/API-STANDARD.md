@@ -22,7 +22,7 @@ El contrato de cada endpoint (ruta, método, payload de entrada, payload de sali
 
 ## 4. Formato de request / response
 
-- Todo payload de entrada y salida se valida mediante un `schema` de `backend/schemas/`, nunca se expone directamente un `model` de `backend/models/`.
+- Todo payload de entrada y salida se valida mediante un `schema` de `teaf/_internal/schemas/`, nunca se expone directamente un `model` de `teaf/_internal/models/`.
 - Los cuerpos de petición y respuesta usan `camelCase` o `snake_case` de forma **consistente en toda la API** (se define una única convención por proyecto y se documenta en el propio proyecto; el framework no impone cuál, pero prohíbe mezclarlas).
 - Las respuestas de colecciones siempre siguen un sobre (envelope) consistente:
 

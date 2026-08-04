@@ -5,8 +5,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from backend.sdk.enums import ModuleCategory
-from backend.sdk.scaffolder import ModuleScaffold, ModuleScaffolder, write_to_disk
+from teaf._internal.sdk.enums import ModuleCategory
+from teaf._internal.sdk.scaffolder import ModuleScaffold, ModuleScaffolder, write_to_disk
 
 
 def test_scaffold_generates_init_module_and_readme() -> None:

@@ -51,13 +51,13 @@ def test_module_is_an_alias_of_module_base_not_a_distinct_class() -> None:
 
 
 def test_health_is_an_alias_of_capability_health() -> None:
-    from backend.runtime.capabilities.enums import CapabilityHealth
+    from teaf._internal.runtime.capabilities.enums import CapabilityHealth
 
     assert teaf.Health is CapabilityHealth
 
 
 def test_configuration_is_an_alias_of_settings() -> None:
-    from backend.config.settings import Settings
+    from teaf._internal.config.settings import Settings
 
     assert teaf.Configuration is Settings
 

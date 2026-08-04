@@ -1,13 +1,13 @@
 # Module Builder — TEAF
 
-`ModuleBuilder` (`backend/sdk/builder.py`) es la forma recomendada — y única probada — de construir un `ModuleManifest`: un builder fluido donde cada `with_*`/`add_*` devuelve `self`. Ver visión general en [SDK.md](SDK.md).
+`ModuleBuilder` (`teaf/_internal/sdk/builder.py`) es la forma recomendada — y única probada — de construir un `ModuleManifest`: un builder fluido donde cada `with_*`/`add_*` devuelve `self`. Ver visión general en [SDK.md](SDK.md).
 
 ## 1. API completa
 
 ```python
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.enums import ModuleCategory
-from backend.runtime.container import Lifetime
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.enums import ModuleCategory
+from teaf._internal.runtime.container import Lifetime
 
 manifest = (
     ModuleBuilder(id="database", name="database", display_name="Database")
@@ -66,7 +66,7 @@ Cada llamada a `get_manifest()` construye un manifiesto **nuevo** — el builder
 
 ## 3. Ejemplo por cada una de las 7 categorías
 
-`ModuleCategory` (`backend/sdk/enums.py`) tiene 7 valores, cada uno con una plantilla asociada en `MODULE_TEMPLATES` (ver `templates.py` y `ModuleScaffolder` en [DEVELOPER-GUIDE.md](DEVELOPER-GUIDE.md)):
+`ModuleCategory` (`teaf/_internal/sdk/enums.py`) tiene 7 valores, cada uno con una plantilla asociada en `MODULE_TEMPLATES` (ver `templates.py` y `ModuleScaffolder` en [DEVELOPER-GUIDE.md](DEVELOPER-GUIDE.md)):
 
 | Categoría | Ejemplo de capacidad sugerida |
 |---|---|

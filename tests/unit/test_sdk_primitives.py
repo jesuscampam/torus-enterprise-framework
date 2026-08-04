@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import pytest
-from backend.runtime.capabilities.enums import CapabilityCategory, CapabilityHealth
-from backend.runtime.container import Lifetime
-from backend.sdk.capability import ModuleCapability
-from backend.sdk.configuration import ModuleConfiguration
-from backend.sdk.dependency import ModuleDependency
-from backend.sdk.descriptor import ModuleDescriptor
-from backend.sdk.enums import ModuleCategory
-from backend.sdk.health import ModuleHealth
-from backend.sdk.lifecycle import CANONICAL_ORDER, ModuleLifecycle, ModuleLifecycleState
-from backend.sdk.service import ModuleService
+from teaf._internal.runtime.capabilities.enums import CapabilityCategory, CapabilityHealth
+from teaf._internal.runtime.container import Lifetime
+from teaf._internal.sdk.capability import ModuleCapability
+from teaf._internal.sdk.configuration import ModuleConfiguration
+from teaf._internal.sdk.dependency import ModuleDependency
+from teaf._internal.sdk.descriptor import ModuleDescriptor
+from teaf._internal.sdk.enums import ModuleCategory
+from teaf._internal.sdk.health import ModuleHealth
+from teaf._internal.sdk.lifecycle import CANONICAL_ORDER, ModuleLifecycle, ModuleLifecycleState
+from teaf._internal.sdk.service import ModuleService
 
 
 def test_module_descriptor_as_dict_is_serializable() -> None:

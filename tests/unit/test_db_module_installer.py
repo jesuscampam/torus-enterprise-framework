@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from backend.modules.database.installer import DatabaseInstaller
+from teaf._internal.modules.database.installer import DatabaseInstaller
 
 
 def test_head_revision_reads_versions_directory() -> None:

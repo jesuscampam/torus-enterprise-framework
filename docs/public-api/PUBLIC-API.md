@@ -30,26 +30,26 @@ Ver [`examples/`](../../examples/) para tres ejemplos completos y ejecutables.
 
 ## 3. Los catorce símbolos principales
 
-| Símbolo | Qué es | Fachada (`teaf/`) | Envuelve (`backend/`) |
+| Símbolo | Qué es | Fachada (`teaf/`) | Envuelve (`teaf/_internal/`) |
 |---|---|---|---|
-| `Application` | Construye y sirve una aplicación TEAF completa; callable ASGI. | `application.py` | `backend.core.application.create_app` |
-| `Runtime` | Orquestador de ciclo de vida: contenedor, capacidades, eventos, módulos. | `runtime.py` | `backend.runtime.runtime.Runtime` |
-| `Module` | Alias corto de `ModuleBase` — hereda de él para escribir un módulo. | `modules.py` | `backend.sdk.module_base.ModuleBase` |
-| `ModuleBase` | Mismo objeto que `Module`, nombre explícito del SDK. | `modules.py` | `backend.sdk.module_base.ModuleBase` |
-| `ModuleBuilder` | Construcción fluida de un `ModuleManifest`. | `modules.py` | `backend.sdk.builder.ModuleBuilder` |
-| `ModuleContext` | Contexto pasado a cada hook de un módulo (`runtime`, `logger`, `configuration`). | `modules.py` | `backend.sdk.context.ModuleContext` |
-| `ModuleManifest` | El manifiesto completo que describe un módulo. | `modules.py` | `backend.sdk.manifest.ModuleManifest` |
-| `ServiceContainer` | Contenedor de inyección de dependencias por contrato. | `services.py` | `backend.runtime.container.ServiceContainer` |
-| `EventBus` | Publicación/suscripción interna del framework. | `events.py` | `backend.runtime.event_bus.EventBus` |
-| `CapabilityRegistry` | Inventario de capacidades registradas. | `capabilities.py` | `backend.runtime.capabilities.registry.CapabilityRegistry` |
-| `ModuleRegistry` | Inventario de módulos registrados (introspección). | `modules.py` | `backend.core.registry.ModuleRegistry` |
-| `Health` | Vocabulario de salud (`UNKNOWN`/`HEALTHY`/`DEGRADED`/`UNHEALTHY`). | `health.py` | `backend.runtime.capabilities.enums.CapabilityHealth` |
-| `Configuration` | Configuración tipada por entorno. | `configuration.py` | `backend.config.settings.Settings` |
+| `Application` | Construye y sirve una aplicación TEAF completa; callable ASGI. | `application.py` | `teaf._internal.core.application.create_app` |
+| `Runtime` | Orquestador de ciclo de vida: contenedor, capacidades, eventos, módulos. | `runtime.py` | `teaf._internal.runtime.runtime.Runtime` |
+| `Module` | Alias corto de `ModuleBase` — hereda de él para escribir un módulo. | `modules.py` | `teaf._internal.sdk.module_base.ModuleBase` |
+| `ModuleBase` | Mismo objeto que `Module`, nombre explícito del SDK. | `modules.py` | `teaf._internal.sdk.module_base.ModuleBase` |
+| `ModuleBuilder` | Construcción fluida de un `ModuleManifest`. | `modules.py` | `teaf._internal.sdk.builder.ModuleBuilder` |
+| `ModuleContext` | Contexto pasado a cada hook de un módulo (`runtime`, `logger`, `configuration`). | `modules.py` | `teaf._internal.sdk.context.ModuleContext` |
+| `ModuleManifest` | El manifiesto completo que describe un módulo. | `modules.py` | `teaf._internal.sdk.manifest.ModuleManifest` |
+| `ServiceContainer` | Contenedor de inyección de dependencias por contrato. | `services.py` | `teaf._internal.runtime.container.ServiceContainer` |
+| `EventBus` | Publicación/suscripción interna del framework. | `events.py` | `teaf._internal.runtime.event_bus.EventBus` |
+| `CapabilityRegistry` | Inventario de capacidades registradas. | `capabilities.py` | `teaf._internal.runtime.capabilities.registry.CapabilityRegistry` |
+| `ModuleRegistry` | Inventario de módulos registrados (introspección). | `modules.py` | `teaf._internal.core.registry.ModuleRegistry` |
+| `Health` | Vocabulario de salud (`UNKNOWN`/`HEALTHY`/`DEGRADED`/`UNHEALTHY`). | `health.py` | `teaf._internal.runtime.capabilities.enums.CapabilityHealth` |
+| `Configuration` | Configuración tipada por entorno. | `configuration.py` | `teaf._internal.config.settings.Settings` |
 | `Version` | Fotografía inmutable de los cinco números de versión de TEAF. | `version.py` | agrega varios (ver [VERSIONING.md](VERSIONING.md)) |
 
 ## 4. Símbolos compañeros
 
-Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `backend.*` — se exportan por necesidad práctica, no por descuido (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)):
+Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `teaf._internal.*` — se exportan por necesidad práctica, no por descuido (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)):
 
 | Símbolo | Necesario para |
 |---|---|
@@ -61,7 +61,7 @@ Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `b
 
 ## 5. Qué NO expone `teaf`
 
-Ninguna clase de `backend.core`, `backend.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `backend.sdk` (más allá de lo listado arriba), `backend.contracts`, `backend.providers` o `backend.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule` ni ningún módulo real (Sprint 2.6 sigue siendo opt-in, ni siquiera se importa desde `teaf/`), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule` ni ningún módulo real (Sprint 2.6 sigue siendo opt-in, ni siquiera se importa desde `teaf/`), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
 
 ## 6. Documentos relacionados
 
@@ -70,4 +70,4 @@ Ninguna clase de `backend.core`, `backend.runtime` (más allá de `Runtime`/`Ser
 | [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md) | Qué archivo de `teaf/` contiene qué, y por qué está separado así. |
 | [IMPORT-GUIDE.md](IMPORT-GUIDE.md) | Namespaces públicos/privados, el verificador de límites. |
 | [VERSIONING.md](VERSIONING.md) | Los cinco números de versión y las reglas de compatibilidad. |
-| [MIGRATION-GUIDE.md](MIGRATION-GUIDE.md) | Tabla de equivalencia `backend.*` → `teaf.*`. |
+| [MIGRATION-GUIDE.md](MIGRATION-GUIDE.md) | Tabla de equivalencia `teaf._internal.*` → `teaf.*`. |

@@ -6,7 +6,7 @@ uvicorn[standard]==0.34.0
 pydantic==2.10.4
 pydantic-settings==2.7.0
 
-# Sprint 2.6 — Enterprise Persistence Foundation (backend/modules/database/)
+# Sprint 2.6 — Enterprise Persistence Foundation (teaf/_internal/modules/database/)
 sqlalchemy[asyncio]==2.0.36
 alembic==1.14.0
 aiosqlite==0.20.0

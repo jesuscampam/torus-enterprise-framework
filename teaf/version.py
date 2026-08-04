@@ -5,20 +5,20 @@ una pregunta de compatibilidad distinta (ver
 docs/public-api/VERSIONING.md):
 
 - ``FRAMEWORK_VERSION``: la versión de release de TEAF (``CHANGELOG.md``).
-- ``SDK_VERSION``: el ``Module SDK`` (``backend/sdk/``) que usa un autor de
+- ``SDK_VERSION``: el ``Module SDK`` (``teaf/_internal/sdk/``) que usa un autor de
   módulos — evoluciona a su propio ritmo (nuevas primitivas, nuevos
   binders) independientemente del framework.
-- ``RUNTIME_VERSION``: la Runtime API (``backend/runtime/``) que consume el SDK.
-- ``MODULE_SPEC_VERSION``: ``ModuleSpecification`` (``backend/sdk/specification.py``)
+- ``RUNTIME_VERSION``: la Runtime API (``teaf/_internal/runtime/``) que consume el SDK.
+- ``MODULE_SPEC_VERSION``: ``ModuleSpecification`` (``teaf/_internal/sdk/specification.py``)
   — la forma que debe tener todo ``ModuleManifest`` para ser válido.
 - ``PUBLIC_API_VERSION``: la propia superficie pública ``teaf.*`` (este
   paquete) — sube solo cuando cambia de forma incompatible alguno de los
   símbolos exportados en ``teaf/__init__.py``.
 
-Cada constante se origina en su paquete dueño dentro de ``backend/`` (nunca
-al revés — ``backend/`` no importa ``teaf/``, para no invertir la dirección
+Cada constante se origina en su paquete dueño dentro de ``teaf/_internal/`` (nunca
+al revés — ``teaf/_internal/`` no importa ``teaf/``, para no invertir la dirección
 de dependencias e introducir un ciclo con ``teaf/application.py``, que sí
-importa ``backend.core.application``); este módulo simplemente las agrega
+importa ``teaf._internal.core.application``); este módulo simplemente las agrega
 en el único lugar donde un consumidor externo debe leerlas.
 """
 
@@ -27,14 +27,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from backend.core.application import FRAMEWORK_VERSION as FRAMEWORK_VERSION
-from backend.runtime import RUNTIME_VERSION as RUNTIME_VERSION
-from backend.sdk import SDK_VERSION as SDK_VERSION
-from backend.sdk.specification import SPEC_VERSION as MODULE_SPEC_VERSION
+from teaf._internal.core.application import FRAMEWORK_VERSION as FRAMEWORK_VERSION
+from teaf._internal.runtime import RUNTIME_VERSION as RUNTIME_VERSION
+from teaf._internal.sdk import SDK_VERSION as SDK_VERSION
+from teaf._internal.sdk.specification import SPEC_VERSION as MODULE_SPEC_VERSION
 
 #: Versión de la superficie pública ``teaf.*`` en sí misma (este paquete).
 #: A diferencia de las otras cuatro, no tiene un "dueño" dentro de
-#: ``backend/`` — el concepto de API pública nace en este Sprint (2.5.1).
+#: ``teaf/_internal/`` — el concepto de API pública nace en este Sprint (2.5.1).
 PUBLIC_API_VERSION = "1.0.0"
 
 _VERSION_NUMBER = re.compile(r"\d+(?:\.\d+)*")
@@ -57,7 +57,7 @@ def is_compatible(actual_version: str, constraint: str) -> bool:
     explícito (``">=1.2"``, ``"<=2.0"``, ``"~=1.4"``, ``">1.0"``, ``"<2.0"``).
     Un ``constraint`` con una forma no reconocida se considera satisfecho
     (permisivo por diseño — igual criterio que
-    ``ModuleBase._check_compatibility``, ver ``backend/sdk/module_base.py``).
+    ``ModuleBase._check_compatibility``, ver ``teaf/_internal/sdk/module_base.py``).
 
     Útil para que herramientas externas (o un futuro ``import checker`` más
     estricto) verifiquen, antes de instalar un módulo o una integración,

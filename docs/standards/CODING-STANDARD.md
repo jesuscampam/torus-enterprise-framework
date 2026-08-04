@@ -29,7 +29,7 @@ Este documento define las convenciones de estilo, estructura y calidad de códig
 ## 4. Estructura y capas
 
 - Todo código nuevo respeta la capa a la que pertenece según `docs/architecture/ARCHITECTURE.md`; no se implementa lógica de negocio en `api/` ni acceso a datos fuera de `repository/`.
-- No se crean nuevas carpetas de primer nivel dentro de `backend/` o `frontend/src/` sin que la necesidad esté documentada (ADR si es estructural).
+- No se crean nuevas carpetas de primer nivel dentro de `teaf/_internal/` o `frontend/src/` sin que la necesidad esté documentada (ADR si es estructural).
 
 ## 5. Convención de commits
 

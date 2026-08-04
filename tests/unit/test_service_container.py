@@ -3,8 +3,16 @@
 from __future__ import annotations
 
 import pytest
-from backend.runtime.container import Lifetime, ServiceContainer, ServiceHealth, ServiceMetadata
-from backend.runtime.exceptions import CircularDependencyException, ServiceNotRegisteredException
+from teaf._internal.runtime.container import (
+    Lifetime,
+    ServiceContainer,
+    ServiceHealth,
+    ServiceMetadata,
+)
+from teaf._internal.runtime.exceptions import (
+    CircularDependencyException,
+    ServiceNotRegisteredException,
+)
 
 
 class _Greeter:

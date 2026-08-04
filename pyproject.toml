@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "teaf"
-version = "0.6.1-alpha"
+version = "0.6.2-alpha"
 description = "TORUS Enterprise Application Framework — a modular, API-first, Cloud-ready and AI-ready Python framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -43,10 +43,12 @@ Documentation = "https://github.com/jesuscampam/torus-enterprise-framework/tree/
 Changelog = "https://github.com/jesuscampam/torus-enterprise-framework/blob/main/CHANGELOG.md"
 
 # `teaf/` es la única API pública (ver docs/public-api/PUBLIC-API.md);
-# `backend/` viaja en la misma distribución porque `teaf/` lo envuelve
-# internamente — no es un paquete independiente ni se instala por separado.
+# la implementación privada vive en `teaf/_internal/` (Sprint 2.6.2, ver
+# ADR-006), un subpaquete de `teaf` — no un paquete de nivel superior
+# independiente, precisamente para no poder colisionar con un posible
+# paquete `backend/` propio de una aplicación consumidora.
 [tool.setuptools.packages.find]
-include = ["teaf*", "backend*"]
+include = ["teaf*"]
 exclude = ["tests*", "examples*"]
 
 [tool.setuptools.package-data]
@@ -55,7 +57,7 @@ teaf = ["py.typed"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["teaf", "backend", "tests", "examples", "scripts"]
+src = ["teaf", "tests", "examples", "scripts"]
 # Revisiones de Alembic generadas por plantilla (script.py.mako) — no se
 # reescriben a mano en cada `alembic revision`, así que no se fuerzan a las
 # reglas de lint del proyecto (ver docs/modules/database/MIGRATIONS.md).
@@ -70,7 +72,7 @@ target-version = ["py311"]
 
 [tool.mypy]
 python_version = "3.11"
-packages = ["teaf", "backend"]
+packages = ["teaf"]
 strict = true
 ignore_missing_imports = true
 

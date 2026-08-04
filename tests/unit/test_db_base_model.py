@@ -5,11 +5,15 @@ from __future__ import annotations
 import asyncio
 import uuid
 
-from backend.providers.database.base_model import AuditMixin, Base
-from backend.providers.database.engine import ConnectionParameters, DatabaseDialect, create_engine
 from sqlalchemy import String
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import Mapped, mapped_column
+from teaf._internal.providers.database.base_model import AuditMixin, Base
+from teaf._internal.providers.database.engine import (
+    ConnectionParameters,
+    DatabaseDialect,
+    create_engine,
+)
 
 
 class _AuditedEntity(Base, AuditMixin):

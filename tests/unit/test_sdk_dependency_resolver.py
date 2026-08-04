@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.dependency_resolver import ModuleDependencyResolver
-from backend.sdk.exceptions import ModuleDependencyException
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.dependency_resolver import ModuleDependencyResolver
+from teaf._internal.sdk.exceptions import ModuleDependencyException
 
 
 def test_resolve_orders_dependencies_before_dependents() -> None:

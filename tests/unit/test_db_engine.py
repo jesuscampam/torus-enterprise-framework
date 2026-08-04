@@ -5,15 +5,15 @@ from __future__ import annotations
 import asyncio
 from typing import cast
 
-from backend.providers.database.engine import (
+from sqlalchemy import text
+from sqlalchemy.pool import QueuePool
+from teaf._internal.providers.database.engine import (
     ConnectionParameters,
     DatabaseDialect,
     build_database_url,
     create_engine,
     is_in_memory_sqlite,
 )
-from sqlalchemy import text
-from sqlalchemy.pool import QueuePool
 
 
 def test_build_url_sqlite_memory() -> None:

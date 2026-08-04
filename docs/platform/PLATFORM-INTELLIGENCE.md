@@ -11,7 +11,7 @@ Un framework que va a sostener años de aplicaciones (TicketGateway, Portal TORU
 ## 2. Arquitectura
 
 ```
-backend/runtime/
+teaf/_internal/runtime/
 ├── capabilities/                       # Capability Model — ver CAPABILITY-REGISTRY.md
 │   ├── enums.py                          # CapabilityCategory, CapabilityStatus, CapabilityHealth
 │   ├── metadata.py                        # CapabilityMetadata, Capability
@@ -29,17 +29,17 @@ backend/runtime/
 ├── api.py                               # Runtime API HTTP — ver RUNTIME-API.md
 └── runtime.py                           # Runtime — extendido con wrappers + diagnostics()/self_description()
 
-backend/developer/
+teaf/_internal/developer/
 └── runtime_api.py                       # DeveloperRuntimeAPI — ver DEVELOPER-API.md
 
-backend/contracts/
+teaf/_internal/contracts/
 ├── capability_provider.py               # CapabilityProvider — preparación IA/MCP, solo contrato
 └── framework_knowledge.py               # FrameworkKnowledgeProvider — preparación IA, solo contrato
 ```
 
 `Runtime` (Sprint 2.3) se **extiende, no se reemplaza**: gana cuatro atributos compuestos nuevos (`capability_registry`, `feature_manager`, `capability_provider_registry`, `service_discovery`), un conjunto de métodos wrapper (`register_module`, `register_service`, `register_capability`, `load_plugin`, `enable_feature`, y sus contrapartes de baja/eliminación), y dos métodos de consulta (`diagnostics()`, `self_description()`). Todo el código de Sprint 2.3 (`container.py`, `lifecycle.py`, `pipeline.py`, `event_bus.py`, `plugin_loader.py`, etc.) sigue funcionando sin cambios de comportamiento — las pruebas de Sprint 2.3 pasan sin modificación.
 
-**Dependencias declaradas**: igual que el resto de `backend/runtime/`, ningún archivo nuevo importa `backend/contracts/` ni `backend/providers/`. Donde el modelo necesita relacionarse con un contrato futuro (`CapabilityProvider`), se usa un `typing.Protocol` estructural local (`CapabilityProviderLike` en `provider_registry.py`) en vez de un import — ver [CAPABILITY-REGISTRY.md, sección 4](CAPABILITY-REGISTRY.md#4-preparación-para-mcp-capabilityproviderregistry).
+**Dependencias declaradas**: igual que el resto de `teaf/_internal/runtime/`, ningún archivo nuevo importa `teaf/_internal/contracts/` ni `teaf/_internal/providers/`. Donde el modelo necesita relacionarse con un contrato futuro (`CapabilityProvider`), se usa un `typing.Protocol` estructural local (`CapabilityProviderLike` en `provider_registry.py`) en vez de un import — ver [CAPABILITY-REGISTRY.md, sección 4](CAPABILITY-REGISTRY.md#4-preparación-para-mcp-capabilityproviderregistry).
 
 ## 3. Las cuatro preguntas que responde
 
@@ -69,7 +69,7 @@ El `EventBus` ahora retiene, además, un **historial acotado** (`history_limit`,
 
 - **Usa siempre los wrappers de `Runtime`** (`register_capability`, `enable_feature`, etc.) en vez de llamar directamente a `runtime.capability_registry.register(...)` — solo los wrappers publican el evento correspondiente.
 - **No registres capacidades/feature flags reales todavía** — este Sprint es infraestructura pura; la primera capacidad real la registrará el módulo que la implemente (Database, Security, AI...) cuando deje de ser `contracts_only`.
-- **La Runtime API y el Developer API comparten la misma lógica de ensamblado** (`build_*_payload` en `backend/runtime/api.py`) — si necesitas una vista nueva, añade una función `build_*_payload` y expónla en ambos lados, nunca dupliques el ensamblado.
+- **La Runtime API y el Developer API comparten la misma lógica de ensamblado** (`build_*_payload` en `teaf/_internal/runtime/api.py`) — si necesitas una vista nueva, añade una función `build_*_payload` y expónla en ambos lados, nunca dupliques el ensamblado.
 - **`runtime.manifest.json` nunca se versiona** (ver `.gitignore`) — es un artefacto generado en cada arranque real (no en tests), no una fuente de verdad editable a mano.
 
 ## 6. Qué NO incluye este Sprint

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from backend.runtime.capabilities.enums import CapabilityCategory
-from backend.runtime.container import Lifetime
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.enums import ModuleCategory
+from teaf._internal.runtime.capabilities.enums import CapabilityCategory
+from teaf._internal.runtime.container import Lifetime
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.enums import ModuleCategory
 
 
 class _Greeter:

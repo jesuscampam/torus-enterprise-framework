@@ -72,14 +72,14 @@ Presentation → API → Application → Domain → Infrastructure → Persisten
 | # | Capa lógica | Carpeta física en TEAF | Puede hacer | NO puede hacer |
 |---|---|---|---|---|
 | 1 | **Presentation** | `frontend/` | Renderizar UI, consumir la API vía `frontend/src/services/`, gestionar estado de UI. | Acceder a la base de datos, contener reglas de negocio del dominio. |
-| 2 | **API** | `backend/api/` + `backend/middleware/` | Enrutar, validar payload con `schemas/`, invocar `Application`. | Contener lógica de negocio, acceder a `models/`/`database/` directamente. |
-| 3 | **Application** | `backend/services/` | Orquestar casos de uso, coordinar transacciones, invocar `Domain` y `Persistence` (vía interfaz). | Conocer detalles HTTP, ejecutar SQL. |
-| 4 | **Domain** | `backend/models/` + reglas de negocio embebidas en `services/` | Definir entidades, invariantes y reglas de negocio puras. | Depender de frameworks web, ORM concreto o infraestructura. |
+| 2 | **API** | `teaf/_internal/api/` + `teaf/_internal/middleware/` | Enrutar, validar payload con `schemas/`, invocar `Application`. | Contener lógica de negocio, acceder a `models/`/`database/` directamente. |
+| 3 | **Application** | `teaf/_internal/services/` | Orquestar casos de uso, coordinar transacciones, invocar `Domain` y `Persistence` (vía interfaz). | Conocer detalles HTTP, ejecutar SQL. |
+| 4 | **Domain** | `teaf/_internal/models/` + reglas de negocio embebidas en `services/` | Definir entidades, invariantes y reglas de negocio puras. | Depender de frameworks web, ORM concreto o infraestructura. |
 | 5 | **Infrastructure** | `core/ · config/ · security/ · monitoring/ · shared/ · scheduler/` | Proveer capacidades transversales (DI, config, auth, observabilidad) a cualquier capa. | Contener lógica de negocio de una aplicación. |
-| 6 | **Persistence** | `backend/database/` + `backend/repository/` + `database/migrations/` | Traducir operaciones de dominio a PostgreSQL vía SQLAlchemy. | Contener reglas de negocio. |
-| 7 | **External Services** | `backend/webhooks/` + conectores (SAP/Salesforce/Control-M) + proveedores de `backend/ai/` | Integrar sistemas externos detrás de una interfaz estable. | Ser invocada directamente desde `Domain` o `Persistence`. |
+| 6 | **Persistence** | `teaf/_internal/database/` + `teaf/_internal/repository/` + `database/migrations/` | Traducir operaciones de dominio a PostgreSQL vía SQLAlchemy. | Contener reglas de negocio. |
+| 7 | **External Services** | `teaf/_internal/webhooks/` + conectores (SAP/Salesforce/Control-M) + proveedores de `teaf/_internal/ai/` | Integrar sistemas externos detrás de una interfaz estable. | Ser invocada directamente desde `Domain` o `Persistence`. |
 
-> **Nota sobre `Domain`**: TEAF no tiene hoy una carpeta `backend/domain/` dedicada — las reglas de negocio puras conviven en `services/` junto a la orquestación, y las entidades en `models/` junto a la persistencia. Es una simplificación deliberada del Sprint 1, válida mientras el framework no tenga modelos de dominio ricos. Si en el futuro se requieren invariantes de dominio complejas o Value Objects independientes del ORM, se propone **ADR-006: Separar `Domain` de `Persistence`** (ver sección 13 y el reporte final) — no se implementa sin ese ADR aceptado.
+> **Nota sobre `Domain`**: TEAF no tiene hoy una carpeta `teaf/_internal/domain/` dedicada — las reglas de negocio puras conviven en `services/` junto a la orquestación, y las entidades en `models/` junto a la persistencia. Es una simplificación deliberada del Sprint 1, válida mientras el framework no tenga modelos de dominio ricos. Si en el futuro se requieren invariantes de dominio complejas o Value Objects independientes del ORM, se propone **ADR-006: Separar `Domain` de `Persistence`** (ver sección 13 y el reporte final) — no se implementa sin ese ADR aceptado.
 
 Diagrama completo: [`docs/diagrams/layer-architecture.mmd`](../diagrams/layer-architecture.mmd).
 
@@ -172,16 +172,16 @@ Toda excepción de dominio hereda de una excepción base definida en `core/` (ve
 
 | Carpeta | Responsabilidad |
 |---|---|
-| [`backend/`](../../backend/README.md) | Todo el backend FastAPI, organizado en capas. |
+| [`teaf/_internal/`](../../teaf/_internal/README.md) | Todo el backend FastAPI, organizado en capas. |
 | [`frontend/`](../../frontend/README.md) | Aplicación React + TypeScript + MUI. |
-| [`backend/core/`](../../backend/core/README.md) | Kernel: bootstrap, DI, excepciones base, ciclo de vida. |
-| [`backend/config/`](../../backend/config/README.md) | Configuración tipada por entorno. |
-| [`backend/database/`](../../backend/database/README.md) | Motor/sesión SQLAlchemy. |
-| [`backend/monitoring/`](../../backend/monitoring/README.md) | Observabilidad OpenTelemetry, health checks. |
-| [`backend/security/`](../../backend/security/README.md) | JWT, RBAC, hashing. |
-| [`backend/scheduler/`](../../backend/scheduler/README.md) | Tareas programadas multi-instancia. |
-| [`backend/ai/`](../../backend/ai/README.md) | Abstracciones de IA (cliente LLM, embeddings, vector store). |
-| [`backend/webhooks/`](../../backend/webhooks/README.md) | Eventos entrantes/salientes con sistemas externos. |
+| [`teaf/_internal/core/`](../../teaf/_internal/core/README.md) | Kernel: bootstrap, DI, excepciones base, ciclo de vida. |
+| [`teaf/_internal/config/`](../../teaf/_internal/config/README.md) | Configuración tipada por entorno. |
+| [`teaf/_internal/database/`](../../teaf/_internal/database/README.md) | Motor/sesión SQLAlchemy. |
+| [`teaf/_internal/monitoring/`](../../teaf/_internal/monitoring/README.md) | Observabilidad OpenTelemetry, health checks. |
+| [`teaf/_internal/security/`](../../teaf/_internal/security/README.md) | JWT, RBAC, hashing. |
+| [`teaf/_internal/scheduler/`](../../teaf/_internal/scheduler/README.md) | Tareas programadas multi-instancia. |
+| [`teaf/_internal/ai/`](../../teaf/_internal/ai/README.md) | Abstracciones de IA (cliente LLM, embeddings, vector store). |
+| [`teaf/_internal/webhooks/`](../../teaf/_internal/webhooks/README.md) | Eventos entrantes/salientes con sistemas externos. |
 | [`tests/`](../../tests/README.md) | Pruebas unitarias, de integración y e2e. |
 | [`scripts/`](../../scripts/README.md) | Automatización operativa (setup, lint, migraciones). |
 | [`docker/`](../../docker/README.md) | Definiciones de contenedores por componente. |
@@ -211,12 +211,12 @@ El detalle operativo completo de cada camino de extensión —incluyendo cómo r
 | Para agregar... | Camino oficial |
 |---|---|
 | Un módulo nuevo | [`/templates/module-template.md`](../../templates/module-template.md) → alta en [MODULE-CATALOG.md](MODULE-CATALOG.md) → actualizar `dependency-map.mmd` y `module-map.mmd`. |
-| Un conector nuevo (SAP/Salesforce/Control-M u otro) | Se implementa sobre `backend/webhooks/` como nuevo módulo "Connector", dependiente de `Webhooks` (+ `Scheduler` si requiere polling); nunca accede a `Database` directo. |
+| Un conector nuevo (SAP/Salesforce/Control-M u otro) | Se implementa sobre `teaf/_internal/webhooks/` como nuevo módulo "Connector", dependiente de `Webhooks` (+ `Scheduler` si requiere polling); nunca accede a `Database` directo. |
 | Un motor de base de datos nuevo | Requiere ADR (viola por definición Database Agnostic si se introduce sin uno) — ver [ADR-002](adr/ADR-002-uso-de-postgresql.md) como referencia del nivel de detalle exigido. |
-| Un motor de IA nuevo (proveedor de LLM) | Se implementa como una nueva implementación de la interfaz de cliente LLM en `backend/ai/`; no requiere ADR si respeta la interfaz ya aceptada, sí lo requiere si cambia la interfaz misma. |
+| Un motor de IA nuevo (proveedor de LLM) | Se implementa como una nueva implementación de la interfaz de cliente LLM en `teaf/_internal/ai/`; no requiere ADR si respeta la interfaz ya aceptada, sí lo requiere si cambia la interfaz misma. |
 | Un MCP nuevo | Se expone como capacidad de `MCP`, dependiente de `AI` y `Core`, siguiendo el mismo patrón de interfaz desacoplada. |
-| Un Scheduler nuevo (motor de jobs distinto) | Implementación alternativa detrás de la interfaz de `backend/scheduler/`; requiere ADR si cambia el modelo de coordinación multi-instancia ya aceptado. |
-| Un Middleware nuevo | Se añade a `backend/middleware/` sin modificar el orden de los middlewares existentes salvo que se documente explícitamente por qué el orden cambia. |
+| Un Scheduler nuevo (motor de jobs distinto) | Implementación alternativa detrás de la interfaz de `teaf/_internal/scheduler/`; requiere ADR si cambia el modelo de coordinación multi-instancia ya aceptado. |
+| Un Middleware nuevo | Se añade a `teaf/_internal/middleware/` sin modificar el orden de los middlewares existentes salvo que se documente explícitamente por qué el orden cambia. |
 
 Compatibilidad hacia atrás: todo cambio que rompa un contrato (`schemas/`, interfaz de `repository/`, interfaz de `ai/`) sigue el versionado SemVer de [GIT-STANDARD.md](../standards/GIT-STANDARD.md) — es un cambio `MAJOR`, documentado con `BREAKING CHANGE` y, si aplica, con nueva versión de API (`API-STANDARD.md`).
 

@@ -85,7 +85,8 @@ La justificación de cada elección tecnológica está documentada en **[docs/ar
 
 ```
 /
-├── backend/        # API, capas de servicio, repositorio, dominio e infraestructura (FastAPI)
+├── teaf/             # API pública (from teaf import ...) + teaf/_internal/ (implementación
+│                      # privada: API, capas de servicio, repositorio, dominio e infraestructura, FastAPI)
 ├── frontend/        # Aplicación React + TypeScript + Material UI
 ├── database/        # Migraciones (Alembic) y datos semilla
 ├── docker/           # Definiciones de contenedores por componente
@@ -113,7 +114,7 @@ Detalle completo en **[docs/roadmap/ROADMAP.md](docs/roadmap/ROADMAP.md)**.
 
 ## Cómo iniciar el proyecto
 
-> **Estado actual: v0.6.1-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence + Module SDK + Database Module + API Pública (Sprint 2.5.1).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, puede describirse a sí mismo vía `GET /runtime/*` y un Developer API en proceso, ofrece el SDK oficial para construir módulos (`backend/sdk/`) y su primer módulo real construido sobre él (el Database Module), y ahora se instala como un **paquete Python profesional**: `pip install -e .` y `from teaf import Application, Module, ModuleBuilder, ...` — la única API pública soportada, sin conocer `backend/` por dentro (ver [docs/public-api/](docs/public-api/) y [`examples/`](examples/)). Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
+> **Estado actual: v0.6.2-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence + Module SDK + Database Module + API Pública + Internal Namespace Refactor (Sprint 2.6.2).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, puede describirse a sí mismo vía `GET /runtime/*` y un Developer API en proceso, ofrece el SDK oficial para construir módulos (`teaf/_internal/sdk/`) y su primer módulo real construido sobre él (el Database Module), y se instala como un **paquete Python profesional**: `pip install -e .` y `from teaf import Application, Module, ModuleBuilder, ...` — la única API pública soportada, sin conocer `teaf/_internal/` por dentro (ver [docs/public-api/](docs/public-api/) y [`examples/`](examples/)). Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
 
 ```bash
 git clone https://github.com/jesuscampam/torus-enterprise-framework.git
@@ -124,7 +125,8 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 
 cp .env.example .env
-uvicorn backend.main:app --reload
+python -c "from teaf import Application; open('app.py', 'w').write('from teaf import Application\n\napp = Application()\n')"
+uvicorn app:app --reload
 ```
 
 Verifica que responde: `curl http://localhost:8000/health` y `curl http://localhost:8000/info` (versión y módulos registrados). Documentación interactiva (Swagger) en `http://localhost:8000/docs`.
@@ -133,13 +135,13 @@ Ejecutar la suite de pruebas: `python -m pytest`.
 
 Para profundizar:
 
-1. **[docs/core/CORE.md](docs/core/CORE.md)** explica la arquitectura del Core implementado, cómo extenderlo y por qué el entry point es `backend.main:app`.
+1. **[docs/core/CORE.md](docs/core/CORE.md)** explica la arquitectura del Core implementado y cómo extenderlo — el entry point público es `from teaf import Application; app = Application()` (ver [`teaf/application.py`](teaf/application.py)).
 2. **[docs/infrastructure/INFRASTRUCTURE.md](docs/infrastructure/INFRASTRUCTURE.md)** explica los contratos, providers, el registro de módulos y cómo se conectará una implementación real en el futuro.
 3. **[docs/runtime/RUNTIME.md](docs/runtime/RUNTIME.md)** explica el ciclo de vida, el contenedor de servicios, los pipelines, el grafo de dependencias, el event bus y el plugin loader.
 4. **[docs/architecture/FRAMEWORK-BLUEPRINT.md](docs/architecture/FRAMEWORK-BLUEPRINT.md)** es la arquitectura técnica oficial completa, con diagramas.
 5. **[docs/standards/](docs/standards/)** contiene las convenciones obligatorias de API, base de datos, código, seguridad y logging.
 6. Los **[ADR](docs/architecture/adr/)** explican el porqué de cada decisión estructural.
-7. Recorre `backend/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
+7. Recorre `teaf/_internal/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
 8. **[docs/public-api/](docs/public-api/)** explica la API pública instalable (`pip install -e .`, `from teaf import ...`) y los tres ejemplos ejecutables de **[`examples/`](examples/)**.
 
 ## Contribuir

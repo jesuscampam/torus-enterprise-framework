@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from backend.runtime.container import Lifetime, ServiceContainer, ServiceMetadata
-from backend.runtime.exceptions import ServiceNotRegisteredException
-from backend.runtime.service_discovery import ServiceDiscovery
+from teaf._internal.runtime.container import Lifetime, ServiceContainer, ServiceMetadata
+from teaf._internal.runtime.exceptions import ServiceNotRegisteredException
+from teaf._internal.runtime.service_discovery import ServiceDiscovery
 
 
 class _Greeter:

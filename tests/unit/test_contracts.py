@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import pytest
-from backend.contracts.ai import AIProvider
-from backend.contracts.capability_provider import CapabilityProvider
-from backend.contracts.database import DatabaseProvider
-from backend.contracts.framework_knowledge import FrameworkKnowledgeProvider
-from backend.contracts.notification import NotificationChannel, NotificationProvider
-from backend.contracts.repository import Repository
-from backend.contracts.scheduler import SchedulerProvider
-from backend.contracts.security import AuthenticationProvider, AuthorizationProvider
-from backend.contracts.storage import StorageProvider
-from backend.contracts.telemetry import TelemetryProvider
-from backend.contracts.unit_of_work import UnitOfWork
+from teaf._internal.contracts.ai import AIProvider
+from teaf._internal.contracts.capability_provider import CapabilityProvider
+from teaf._internal.contracts.database import DatabaseProvider
+from teaf._internal.contracts.framework_knowledge import FrameworkKnowledgeProvider
+from teaf._internal.contracts.notification import NotificationChannel, NotificationProvider
+from teaf._internal.contracts.repository import Repository
+from teaf._internal.contracts.scheduler import SchedulerProvider
+from teaf._internal.contracts.security import AuthenticationProvider, AuthorizationProvider
+from teaf._internal.contracts.storage import StorageProvider
+from teaf._internal.contracts.telemetry import TelemetryProvider
+from teaf._internal.contracts.unit_of_work import UnitOfWork
 
 _ALL_CONTRACTS: tuple[type, ...] = (
     Repository,

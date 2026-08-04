@@ -7,7 +7,18 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.6.1-alpha](#061-alpha---2026-08-03).
+Sin cambios todavía sobre [0.6.2-alpha](#062-alpha---2026-08-04).
+
+## [0.6.2-alpha] - 2026-08-04
+
+### Changed
+
+- **Internal Namespace Refactor** (Sprint 2.6.2): el paquete privado `backend/` (127 archivos, 12 subpaquetes reales más 10 directorios reservados) se mueve íntegramente a `teaf/_internal/`, como subpaquete privado de `teaf` en vez de paquete de nivel superior independiente — elimina por construcción el riesgo de colisión de namespace con un posible paquete `backend/` propio de una aplicación consumidora (resolución de imports dependiente del orden de `sys.path`). La API pública (`from teaf import ...`, los símbolos de `__all__` de `teaf/__init__.py`) no cambia en absoluto — cero cambios requeridos en código consumidor. Ver [ADR-006](docs/architecture/adr/ADR-006-internal-namespace-refactor.md).
+  - `pyproject.toml`: `[tool.setuptools.packages.find].include` ya no declara `backend*` — `teaf._internal` se descubre automáticamente como subpaquete de `teaf*`. Mismo ajuste en `[tool.ruff].src` y `[tool.mypy].packages`.
+  - `scripts/check_public_api_boundary.py`: generalizado de coincidencia por raíz a coincidencia por **prefijo punteado**, necesario porque `teaf._internal` (a diferencia del antiguo `backend`) es un namespace de dos segmentos que cuelga del propio namespace público `teaf`. `PRIVATE_NAMESPACES` pasa de `("backend",)` a `("teaf._internal",)`. `check_paths()` gana un parámetro `forbidden` opcional.
+  - **`scripts/check_internal_namespace.py`** (nuevo): verificador de integridad de la migración — confirma que no queda ningún import de `backend.*`, que `backend/` no existe en disco, y que todo el árbol `teaf.*` sigue siendo importable de punta a punta.
+  - 4 pruebas nuevas (`tests/unit/test_internal_namespace.py`): ausencia de `backend` como paquete de nivel superior, `teaf._internal` importable, ningún import de `backend.*` en el repositorio, superficie pública intacta tras el refactor. Suite completa: 499 pruebas (495 + 4 nuevas).
+  - Sin cambios funcionales: mismos módulos, mismas clases, mismo comportamiento — únicamente reorganización de namespace y reescritura mecánica de 402 líneas de import en 125 archivos.
 
 ## [0.6.1-alpha] - 2026-08-03
 

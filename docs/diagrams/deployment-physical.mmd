@@ -10,7 +10,7 @@ flowchart TB
         direction TB
         AFD["Azure Front Door\n(CDN + WAF + balanceo global)"]
         APPSVC["Azure App Service\n(contenedores Docker, autoescalado)"]
-        FASTAPI["FastAPI\n(backend/, dentro del contenedor)"]
+        FASTAPI["FastAPI\n(teaf/_internal/, dentro del contenedor)"]
         PG[("Azure Database for PostgreSQL")]
         STORAGE["Azure Storage\n(blobs — módulo Storage, V4)"]
         KV["Azure Key Vault\n(secretos y certificados)"]

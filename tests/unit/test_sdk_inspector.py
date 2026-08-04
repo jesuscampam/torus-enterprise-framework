@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.inspector import ModuleInspector
-from backend.sdk.lifecycle import ModuleLifecycleState
-from backend.sdk.manifest import ModuleManifest
-from backend.sdk.module_base import ModuleBase
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.inspector import ModuleInspector
+from teaf._internal.sdk.lifecycle import ModuleLifecycleState
+from teaf._internal.sdk.manifest import ModuleManifest
+from teaf._internal.sdk.module_base import ModuleBase
 
 
 class _Greeter:
