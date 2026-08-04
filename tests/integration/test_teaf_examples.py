@@ -80,6 +80,116 @@ def test_module_registration_bootstraps_hello_module_automatically() -> None:
     assert "Capacidad 'hello.greet' registrada: True" in result.stdout
 
 
-def test_discovered_at_least_the_four_expected_examples() -> None:
+def test_jwt_login_issues_a_token_and_protects_an_endpoint() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "jwt-login",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "POST /login -> 401" in result.stdout
+    assert "GET /me (con token) -> 200" in result.stdout
+
+
+def test_api_key_auth_issues_uses_revokes_and_rotates_a_key() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "api-key-auth",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "GET /reports (header) -> 200" in result.stdout
+    assert "GET /reports (revocada) -> 401" in result.stdout
+    assert "GET /reports (nueva key) -> 200" in result.stdout
+
+
+def test_ldap_login_maps_a_group_to_a_role() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "ldap-login",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "GET /tickets/close (bind fallido) -> 401" in result.stdout
+    assert "GET /tickets/close (bind correcto) -> 200" in result.stdout
+
+
+def test_azure_ad_login_validates_a_mocked_oidc_token() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "azure-ad-login",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "login.microsoftonline.com" in result.stdout
+    assert "GET /me (con token) -> 200" in result.stdout
+
+
+def test_role_based_endpoint_enforces_the_admin_role() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "role-based-endpoint",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "POST /incidents/42/close -> 403" in result.stdout
+    assert "POST /incidents/42/close -> 200" in result.stdout
+
+
+def test_permission_based_endpoint_enforces_the_permission() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "permission-based-endpoint",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "POST /invoices/7/void -> 403" in result.stdout
+    assert "POST /invoices/7/void -> 200" in result.stdout
+
+
+def test_policy_based_endpoint_enforces_tenant_membership() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "policy-based-endpoint",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "GET /tenants/acme/settings -> 200" in result.stdout
+    assert "GET /tenants/acme/settings -> 403" in result.stdout
+
+
+def test_anonymous_endpoint_contrasts_public_and_protected_routes() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "anonymous-endpoint",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "GET /status -> 200" in result.stdout
+    assert "GET /account -> 401" in result.stdout
+
+
+def test_discovered_at_least_the_expected_examples() -> None:
     names = {p.name for p in _EXAMPLE_DIRS}
-    assert names == {"hello-world", "basic-module", "application-bootstrap", "module-registration"}
+    assert names == {
+        "hello-world",
+        "basic-module",
+        "application-bootstrap",
+        "module-registration",
+        "jwt-login",
+        "api-key-auth",
+        "ldap-login",
+        "azure-ad-login",
+        "role-based-endpoint",
+        "permission-based-endpoint",
+        "policy-based-endpoint",
+        "anonymous-endpoint",
+    }

@@ -7,7 +7,36 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.6.3-alpha](#063-alpha---2026-08-04).
+Sin cambios todavía sobre [0.7.0-alpha](#070-alpha---2026-08-04).
+
+## [0.7.0-alpha] - 2026-08-04
+
+### Added
+
+- **Enterprise Security Platform** (Sprint 2.7, [ADR-007](docs/architecture/adr/ADR-007-enterprise-security-stack.md)): autenticación y autorización empresarial completas, diseñadas alrededor del contrato `IdentityProvider` — nunca acopladas a JWT ni a ningún mecanismo concreto. Ver [docs/security/SECURITY-ARCHITECTURE.md](docs/security/SECURITY-ARCHITECTURE.md).
+  - **Cinco Identity Providers implementados**: Anonymous (respaldo, siempre disponible), JWT (`JWTProvider`/`JWTIdentityProvider`, access+refresh, revocación, rotación con revocación-en-reutilización, clock skew configurable), API Key (`ApiKeyProvider`/`ApiKeyIdentityProvider`, transporte por header/query string, hashing HMAC-SHA256, expiración, revocación, scopes, rotación), LDAP/Active Directory (`LDAPProvider`, bind + búsqueda de grupos + mapeo a roles/permisos, vía `ldap3` en threadpool), Azure AD/Microsoft Entra ID (`AzureADProvider`, OIDC + JWKS + Authorization Code Flow, multi-tenant con lista de tenants permitidos).
+  - **`OpenIDConnectProvider`**: base OIDC genérica y reutilizable de la que `AzureADProvider` es la primera especialización — Keycloak/Auth0/Okta/Google se añadirían como subclases sin tocar `SecurityMiddleware` ni ningún otro proveedor. Contratos preparados y deliberadamente sin implementación para OAuth2 no-OIDC (`OAuth2IdentityProvider`, pensado para GitHub/Apple) y SAML (`SAMLIdentityProvider`).
+  - **RBAC + políticas**: `Role`/`Permission` (reutilizados de Sprint 2.2), `StaticRoleResolver`, `RolePermissionResolver`, `PrincipalResolver`, `Policy`/`DefaultPolicyEvaluator` para reglas arbitrarias que un rol/permiso plano no puede expresar (p. ej. pertenencia a tenant).
+  - **Modelo de dominio**: `Claims`, `Identity`, `Principal`, `AuthenticationCredentials`/`AuthenticationResult`, `TokenPair` (`teaf._internal.security.models`) — `SecurityContext` (Sprint 2.2) extendido aditivamente con `identity`/`principal`/`tenant_id`/`provider_id`/`correlation_id`/`request_id`.
+  - **Criptografía**: `Argon2PasswordHasher` (por defecto, OWASP) y `BcryptPasswordHasher` (alternativo) implementando `PasswordHasher`; `HmacCryptoProvider` (firmas HMAC-SHA256 con rotación de claves) implementando `CryptoProvider`.
+  - **`SecurityMiddleware`**: resuelve identidad en cada petición ("sniffing" de `Authorization: Bearer` hacia `jwt`/`azure-ad` según el `iss` sin verificar, `Basic` hacia `ldap`, `X-API-Key`/`?api_key=` hacia `api-key`), publica el `SecurityContext` en un `ContextVar` — nunca bloquea una petición por falta de autenticación. Publica `authentication.started`/`succeeded`/`failed` vía `EventBus`.
+  - **`@authorize()`/`@allow_anonymous()`**: decoradores de autorización declarativa por endpoint (`role=`/`permission=`/`policy=`, funcionan en endpoints síncronos y `async def`) — `teaf._internal.security.decorators`.
+  - **Dependencias de FastAPI**: `current_identity`/`current_principal`/`current_claims`/`current_security_context` — leen el `SecurityContext` de la petición en curso vía `Depends(...)`.
+  - **`SecurityModule`**: el módulo SDK que empaqueta toda la plataforma (`teaf/_internal/modules/security/`) — segundo módulo real construido sobre el Module SDK (tras `DatabaseModule`), con `SecurityConfiguration`, `SecurityHealth` y 5 capacidades/3 servicios/12 eventos declarados en su manifiesto. No se expone públicamente (mismo criterio que `DatabaseModule`) — una aplicación compone la plataforma directamente vía `teaf.security`.
+  - **API pública `teaf.security`** (`teaf/security.py`, 52 símbolos, reexportados también desde `teaf` de nivel superior): `SecurityContext`, `Identity`, `Principal`, `Claims`, `Role`, `Permission`, `Policy`, `IdentityProvider`, `JWTProvider`, `ApiKeyProvider`, `LDAPProvider`, `AzureADProvider`, `AuthenticationProvider`, `AuthorizationProvider`, `PasswordHasher`, `CryptoProvider`, `authorize`, `allow_anonymous`, `current_identity`/`current_principal`/`current_claims`/`current_security_context`, y sus compañeros necesarios (`IdentityProviderRegistry`, `SecurityMiddleware`, resolutores RBAC, tiendas de revocación/API Key, etc.).
+  - **Nuevas Settings** (`teaf._internal.config.settings.Settings`): JWT (secret/algorithm/issuer/audience/TTLs/clock skew), API Keys (header/query param/hash secret), LDAP (server/base DN/user DN template/group search), Azure AD (tenant/client id/secret/allowed tenants), Multi Tenant, política de contraseñas (hasher/costes Argon2/rounds BCrypt, reducidos automáticamente en `TestingSettings`), rotación de secretos (activada por defecto en `ProductionSettings`), cabeceras de seguridad HTTP.
+  - **8 ejemplos ejecutables** en `examples/`: `jwt-login`, `api-key-auth`, `ldap-login`, `azure-ad-login`, `role-based-endpoint`, `permission-based-endpoint`, `policy-based-endpoint`, `anonymous-endpoint` — todos vía la API pública exclusivamente, verificados por `scripts/check_public_api_boundary.py` y ejecutados como subprocesos reales en `tests/integration/test_teaf_examples.py`.
+  - **7 documentos nuevos** en `docs/security/`: `SECURITY-ARCHITECTURE.md`, `JWT.md`, `APIKEY.md`, `LDAP.md`, `AZURE-AD.md`, `RBAC.md`, `CLAIMS.md`. Actualizados: `README.md`, `docs/public-api/PUBLIC-API.md`, `docs/public-api/PACKAGE-STRUCTURE.md`, `docs/public-api/IMPORT-GUIDE.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/MODULE-CATALOG.md`, `docs/standards/SECURITY-STANDARD.md`.
+  - **151 pruebas nuevas** (135 de la plataforma de seguridad propiamente dicha, cubriendo modelo de dominio, criptografía, JWT, API Keys, los 5 Identity Providers —LDAP con conexión falsa inyectada, Azure AD con `httpx.MockTransport` y un JWT RS256 real firmado en la prueba—, RBAC/políticas, `SecurityMiddleware` de extremo a extremo, decoradores, dependencias de FastAPI, `SecurityModule`, Settings y la fachada pública; más 16 pruebas que verifican los 8 ejemplos nuevos ejecutándolos como subprocesos reales) — 96% de cobertura de la plataforma de seguridad. Suite completa: 670 pruebas (519 + 151 nuevas).
+
+### Fixed
+
+- `_INFRASTRUCTURE_MODULES` (`teaf/_internal/core/application.py`) registraba un placeholder `"security"` (`CONTRACTS_ONLY`, heredado de Sprint 2.2) en el mismo `ModuleRegistry` que usa `Application(modules=[...])` — colisionaba por nombre con cualquier `SecurityModule` real, impidiendo registrarlo. Retirado, ahora que Sprint 2.7 entrega la implementación real (mismo criterio que ya aplica a `"database"` desde Sprint 2.6).
+
+### Notes
+
+- Compatibilidad hacia atrás completa: ningún símbolo público existente cambia de nombre, firma ni comportamiento. `AuthenticationProvider`/`AuthorizationProvider` (contratos mínimos de Sprint 2.1) se mantienen sin cambios. `SecurityContext` se extiende solo de forma aditiva (todos los campos nuevos con valor por defecto).
+- La plataforma está lista para OAuth2 genérico/OIDC genérico/Keycloak/Auth0/Okta/Google/SAML sin rediseño arquitectónico — ver sección 5 de `docs/security/SECURITY-ARCHITECTURE.md`.
 
 ## [0.6.3-alpha] - 2026-08-04
 

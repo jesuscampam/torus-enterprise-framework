@@ -17,7 +17,8 @@ teaf/
 ├── services.py                     # ServiceContainer, Lifetime
 ├── events.py                         # EventBus, Event
 ├── capabilities.py                     # CapabilityRegistry, CapabilityCategory
-└── health.py                             # Health
+├── health.py                             # Health
+└── security.py                             # Plataforma de seguridad (Sprint 2.7) — ver docs/security/SECURITY-ARCHITECTURE.md
 ```
 
 ## 2. Por qué una fachada por concepto, no un único archivo

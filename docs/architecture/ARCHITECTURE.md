@@ -72,7 +72,7 @@ TEAF aplica Clean Architecture con Domain-Driven Design ligero. Las flechas indi
 | `database/` | Motor y sesión de SQLAlchemy, `Base` declarativa, gestión del ciclo de conexión. | Reglas de negocio ni entidades de dominio puras. |
 | `models/` | Entidades ORM (capa de persistencia). | Lógica de aplicación. |
 | `schemas/` | DTOs Pydantic — contratos de entrada/salida de la API, independientes de los modelos ORM. | Acceso a datos. |
-| `security/` | Autenticación (JWT), autorización (RBAC), hashing, políticas de permisos. | Lógica de negocio no relacionada con seguridad. |
+| `security/` | Autenticación pluggable (`IdentityProvider`: Anonymous/JWT/API Key/LDAP/Azure AD), autorización (RBAC + políticas), hashing (Argon2id/BCrypt), criptografía. Implementación completa desde Sprint 2.7 — ver [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md). | Lógica de negocio no relacionada con seguridad. |
 | `middleware/` | Componentes transversales HTTP: correlation-id, logging de requests, rate limiting, manejo centralizado de errores. | Casos de uso de negocio. |
 | `monitoring/` | Observabilidad: instrumentación OpenTelemetry, métricas, health checks. | Lógica de negocio. |
 | `shared/` | Utilidades, constantes y tipos genéricos reutilizables entre capas. | Dependencias hacia capas superiores (`api`, `services`). |

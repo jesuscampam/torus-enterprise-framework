@@ -20,7 +20,7 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 | Repository | Repository Pattern sobre `models/` | Documentado (`teaf/_internal/repository/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
 | Models | Entidades ORM | Documentado (`teaf/_internal/models/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
 | Schemas | Contratos Pydantic de entrada/salida | Documentado (`teaf/_internal/schemas/`) | — | V1 | 🟢 Alto | 🔴 Alta |
-| [Security](../../teaf/_internal/security/README.md) | JWT, RBAC, hashing | Documentado | Core | V2 | 🟢 Alto | 🔴 Alta |
+| [Security](../security/SECURITY-ARCHITECTURE.md) | Autenticación pluggable (`IdentityProvider`: Anonymous/JWT/API Key/LDAP/Azure AD), RBAC, políticas, hashing — segundo módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/security/` + `teaf/_internal/security/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
 | Middleware | Correlation-id, rate limiting, manejo de errores | Documentado (`teaf/_internal/middleware/`) | Security, Monitoring | V2 | 🟢 Alto | 🔴 Alta |
 | [Monitoring](../../teaf/_internal/monitoring/README.md) (OpenTelemetry) | Trazas, métricas, health checks | Documentado | Core | V2 | 🟢 Alto | 🔴 Alta |
 | Shared | Utilidades y tipos genéricos | Documentado (`teaf/_internal/shared/`) | — | V1 | 🟡 Medio | 🟡 Media |

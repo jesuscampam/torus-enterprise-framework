@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "teaf"
-version = "0.6.3-alpha"
+version = "0.7.0-alpha"
 description = "TORUS Enterprise Application Framework — a modular, API-first, Cloud-ready and AI-ready Python framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -32,6 +32,11 @@ dependencies = [
     "alembic==1.14.0",
     "aiosqlite==0.20.0",
     "asyncpg==0.30.0",
+    "pyjwt[crypto]==2.10.1",
+    "argon2-cffi==23.1.0",
+    "bcrypt==4.2.1",
+    "ldap3==2.9.1",
+    "httpx==0.28.1",
 ]
 
 # Sin [project.scripts]: TEAF no ofrece una CLI en este Sprint (ver
@@ -65,6 +70,13 @@ extend-exclude = ["database/migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# B008 ("no llamar a una función en un valor por defecto") es un falso
+# positivo conocido y documentado para FastAPI: ``Depends(...)`` en la firma
+# de un endpoint es el idioma estándar de FastAPI, no un bug — ver
+# ``current_identity``/``current_principal``/``current_claims``/
+# ``current_security_context`` (Sprint 2.7, teaf/_internal/security/dependencies.py)
+# y su uso en tests/examples vía ``Depends(current_principal)``.
+ignore = ["B008"]
 
 [tool.black]
 line-length = 100

@@ -2,7 +2,11 @@
 
 Este documento define las prácticas de seguridad obligatorias del framework, en cumplimiento del principio **Security by Design**. Aplica a toda aplicación construida sobre TEAF, sin excepciones.
 
+> Este documento sigue siendo la fuente normativa de *qué* prácticas son obligatorias. *Cómo* TEAF las implementa concretamente (Sprint 2.7, `teaf.security`) está documentado en [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) y sus documentos relacionados (JWT.md, APIKEY.md, LDAP.md, AZURE-AD.md, RBAC.md, CLAIMS.md) — no se duplica aquí.
+
 ## 1. Autenticación (JWT)
+
+> Implementado por `teaf.security.JWTProvider` — ver [JWT.md](../security/JWT.md).
 
 - Toda API protegida exige un **JWT** válido, verificado por `middleware/` antes de que la petición llegue a `api/`.
 - Se emiten dos tipos de token:
@@ -13,11 +17,15 @@ Este documento define las prácticas de seguridad obligatorias del framework, en
 
 ## 2. Autorización (RBAC)
 
+> Implementado por `teaf.security` (`@authorize()`, `StaticRoleResolver`, `PrincipalResolver`, `Policy`) — ver [RBAC.md](../security/RBAC.md).
+
 - El modelo de autorización estándar es **RBAC** (Role-Based Access Control): usuarios → roles → permisos.
 - La verificación de autorización ocurre en `security/`, invocada desde `api/` o `services/` según el nivel de granularidad (ruta vs. recurso específico), nunca implementada de forma ad-hoc y duplicada en cada endpoint.
 - El principio de **mínimo privilegio** rige el diseño de roles: ningún rol se define con permisos más amplios de los estrictamente necesarios.
 
 ## 3. Gestión de contraseñas y credenciales
+
+> Implementado por `teaf.security.Argon2PasswordHasher`/`BcryptPasswordHasher` — ver [SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md).
 
 - Las contraseñas se almacenan exclusivamente como hash con **bcrypt** o **argon2** (nunca SHA/MD5, nunca en texto plano).
 - Las credenciales de infraestructura (base de datos, integraciones SAP/Salesforce/Control-M, claves de IA) se gestionan vía variables de entorno resueltas por `config/`, respaldadas en producción por un gestor de secretos (Azure Key Vault).

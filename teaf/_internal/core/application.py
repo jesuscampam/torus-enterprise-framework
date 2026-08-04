@@ -49,22 +49,29 @@ from teaf._internal.shared.constants import DEFAULT_SERVICE_NAME
 #: Versión del propio framework TEAF (no de una aplicación construida sobre
 #: él). Se actualiza junto con CHANGELOG.md en cada release (ver
 #: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
-FRAMEWORK_VERSION = "0.6.3-alpha"
+FRAMEWORK_VERSION = "0.7.0-alpha"
 
 #: Raíz del repositorio, para escribir ``runtime.manifest.json`` (ver
 #: Sprint 2.4, ítem 9) siempre en el mismo lugar sin depender del directorio
 #: de trabajo desde el que se lance el proceso.
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
-#: Subsistemas de infraestructura que en Sprint 2.2 solo tienen contratos y
-#: clases base (``backend/contracts/`` + ``backend/providers/``) — sin
-#: implementación ni conexión real. ``dependencies`` refleja las reglas ya
-#: fijadas en FRAMEWORK-BLUEPRINT.md, sección 5 (AI depende de Security);
+#: Subsistemas de infraestructura que en Sprint 2.2 solo tenían contratos y
+#: clases base (``teaf/_internal/contracts/`` + ``teaf/_internal/providers/``) —
+#: sin implementación ni conexión real. ``dependencies`` refleja las reglas
+#: ya fijadas en FRAMEWORK-BLUEPRINT.md, sección 5 (AI depende de Security);
 #: el ``DependencyGraph`` del Runtime las usa para detectar ciclos antes de
-#: arrancar.
+#: arrancar. Un subsistema desaparece de esta lista en cuanto tiene un
+#: ``ModuleBase`` real (Sprint 2.6 para "database", Sprint 2.7 para
+#: "security") — de lo contrario su placeholder ``CONTRACTS_ONLY`` colisiona
+#: por nombre con el módulo real al registrarse en el mismo
+#: ``ModuleRegistry`` vía ``Application(modules=[...])``
+#: (``ModuleRegistry.register()`` no permite dos módulos con el mismo
+#: nombre). ``DependencyGraph.edges()`` ignora dependencias que no
+#: correspondan a un nodo registrado, así que retirar "security" de aquí no
+#: rompe la dependencia declarada de "ai" hacia "security".
 _INFRASTRUCTURE_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("database", ()),
-    ("security", ()),
     ("telemetry", ()),
     ("storage", ()),
     ("ai", ("security",)),

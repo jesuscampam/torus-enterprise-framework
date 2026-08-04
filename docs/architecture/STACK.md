@@ -92,6 +92,40 @@ Este documento justifica cada elección tecnológica oficial del framework: por 
 
 **Trade-offs aceptados**: la revocación de tokens requiere una estrategia explícita (expiración corta + refresh tokens), documentada en `SECURITY-STANDARD.md`.
 
+**Librería — PyJWT** (Sprint 2.7, ver [ADR-007](adr/ADR-007-enterprise-security-stack.md)): implementación de referencia del estándar (RFC 7519), soporta HS256 y RS256/ES256 (extra `[crypto]`, necesario para validar tokens firmados por Azure AD/Entra ID sin gestionar la criptografía a mano), API mínima y estable.
+
+**Alternativas consideradas**: `python-jose` (API más amplia pero menos mantenida activamente; superficie de ataque mayor sin beneficio adicional para el caso de uso de TEAF).
+
+## Identidad — Identity Providers (Sprint 2.7)
+
+**Por qué**: la plataforma de seguridad se diseña alrededor de un contrato `IdentityProvider` (no alrededor de JWT en sí) — JWT es uno de varios mecanismos de identidad, no el único. Esto permite añadir OAuth2/OIDC genérico, Keycloak, Auth0, Okta, Google, GitHub, SAML como implementaciones nuevas sin tocar el Runtime, el `ServiceContainer` ni el `SecurityMiddleware` — ver [ADR-007](adr/ADR-007-enterprise-security-stack.md) y [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md).
+
+**Alternativas consideradas**: acoplar la plataforma directamente a JWT (más simple a corto plazo, pero exige un rediseño estructural en cuanto una aplicación TORUS necesite LDAP/Active Directory o Microsoft Entra ID — un requisito ya confirmado, no hipotético).
+
+**Trade-offs aceptados**: una capa de indirección adicional (`IdentityProvider` → `AuthenticationResult` → `SecurityContext`) frente a decodificar un JWT directamente en el middleware.
+
+## LDAP / Active Directory — ldap3
+
+**Por qué**: cliente LDAP puro Python (sin enlazar contra `libldap` del sistema operativo como exige `python-ldap`), lo que preserva Docker First / Cloud Ready (imagen de contenedor sin dependencias nativas adicionales que instalar/mantener); soporta bind simple, búsqueda de grupos y TLS.
+
+**Alternativas consideradas**: `python-ldap` (requiere `libldap2-dev` en la imagen Docker — overhead operativo contrario a Cloud Ready, ver ADR-005).
+
+**Trade-offs aceptados**: `ldap3` es síncrono — las llamadas se ejecutan en threadpool (`anyio.to_thread`) para no bloquear el event loop, mismo patrón que cualquier librería síncrona consumida desde código async.
+
+## Cliente HTTP para OIDC/OAuth2 — httpx
+
+**Por qué**: ya es una dependencia del proyecto (usada en tests desde Sprint 2.1); promovida a dependencia de runtime en Sprint 2.7 porque `AzureADIdentityProvider`/`OpenIDConnectIdentityProvider` necesitan hacer descubrimiento OIDC (`.well-known/openid-configuration`), obtener JWKS y ejecutar el intercambio de código por token del Authorization Code Flow — todo async-nativo, coherente con el resto del framework.
+
+**Alternativas consideradas**: `requests` (síncrono, requeriría el mismo threadpool wrapping que se evita usando `httpx`).
+
+## Contraseñas — Argon2id (vía `argon2-cffi`), BCrypt como proveedor alternativo
+
+**Por qué**: Argon2id es el ganador de la Password Hashing Competition y la recomendación actual de OWASP; resistente a ataques por GPU/ASIC. `PasswordHasher` es un contrato (`teaf._internal.security.crypto.password_hasher.PasswordHasher`) — Argon2 es el proveedor por defecto, BCrypt (vía `bcrypt`) queda disponible como proveedor alternativo sin cambiar el contrato, para compatibilidad con hashes preexistentes de una aplicación migrada a TEAF.
+
+**Alternativas consideradas**: SHA-256/MD5 sin *salt* ni factor de coste (prohibido explícitamente por `SECURITY-STANDARD.md`, vulnerable a fuerza bruta con hardware moderno).
+
+**Trade-offs aceptados**: Argon2 consume más CPU/memoria por diseño (esa es la propiedad de seguridad deseada) — se configura el coste vía `Settings` para poder ajustarlo por entorno.
+
 ## UI — Material UI
 
 **Por qué**: sistema de diseño maduro y accesible por defecto, con amplia cobertura de componentes empresariales (tablas, formularios, navegación), personalizable vía theming (`frontend/src/theme/`) para mantener identidad visual consistente entre todas las aplicaciones TORUS.

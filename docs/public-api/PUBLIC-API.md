@@ -77,11 +77,26 @@ Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `t
 | `ModuleCategory` | `ModuleBuilder.with_category(ModuleCategory.INTEGRATION)` |
 | `get_configuration` | Función homóloga de `Configuration`/`get_settings()`. |
 
-## 6. Qué NO expone `teaf`
+## 6. Plataforma de seguridad (`teaf.security`, Sprint 2.7)
 
-Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule` ni ningún módulo real (Sprint 2.6 sigue siendo opt-in, ni siquiera se importa desde `teaf/`), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+Además de los catorce símbolos principales, `teaf`/`teaf.security` reexportan la plataforma de seguridad empresarial completa (autenticación pluggable vía el contrato `IdentityProvider`, RBAC, políticas, JWT, API Keys, LDAP, Azure AD, hashing de contraseñas y criptografía) — más de 50 símbolos, documentados íntegramente en [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) en vez de repetidos aquí. Mismo patrón que el resto de este documento: `from teaf import SecurityContext` funciona igual que `from teaf.security import SecurityContext`.
 
-## 7. Documentos relacionados
+```python
+from teaf import Application
+from teaf.security import (
+    AnonymousIdentityProvider, JWTIdentityProvider, JWTProvider,
+    IdentityProviderRegistry, PrincipalResolver, StaticRoleResolver,
+    SecurityMiddleware, authorize, current_principal,
+)
+```
+
+Ver los 8 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-seguridad-sprint-27-adr-007).
+
+## 7. Qué NO expone `teaf`
+
+Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule` ni `SecurityModule`, ni ningún otro módulo real (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad a partir de las piezas públicas de `teaf.security`, ver sección 6), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+
+## 8. Documentos relacionados
 
 | Documento | Contenido |
 |---|---|
@@ -89,3 +104,4 @@ Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de 
 | [IMPORT-GUIDE.md](IMPORT-GUIDE.md) | Namespaces públicos/privados, el verificador de límites. |
 | [VERSIONING.md](VERSIONING.md) | Los cinco números de versión y las reglas de compatibilidad. |
 | [MIGRATION-GUIDE.md](MIGRATION-GUIDE.md) | Tabla de equivalencia `teaf._internal.*` → `teaf.*`. |
+| [SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) | La plataforma de seguridad empresarial completa (sección 6). |

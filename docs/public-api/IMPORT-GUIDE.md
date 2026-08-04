@@ -12,10 +12,12 @@ Qué namespaces son públicos y cuáles son privados, y cómo se verifica. Ver [
 ```python
 # Correcto — cualquier consumidor externo:
 from teaf import Application, Module, ModuleBuilder
+from teaf.security import JWTProvider, SecurityMiddleware, authorize   # también válido: from teaf import ...
 
 # Incorrecto — nunca fuera de este repositorio, ni en examples/:
 from teaf._internal.core.application import create_app
 from teaf._internal.sdk.module_base import ModuleBase
+from teaf._internal.security.tokens.jwt_provider import JWTTokenProvider
 ```
 
 No hay una lista de excepciones: si un símbolo de `teaf/_internal/` es genuinamente útil para un consumidor externo, la corrección es exponerlo desde la fachada correspondiente de `teaf/` (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)) — nunca "solo por esta vez" importar `teaf._internal.*` directamente desde fuera.

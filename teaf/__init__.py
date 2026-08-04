@@ -26,6 +26,16 @@ categorizar; ``Lifetime`` para declarar el ciclo de vida de un servicio;
 función homóloga de ``Configuration``). Nada más se exporta — no hay
 importaciones implícitas ni reexportaciones accidentales de símbolos
 internos.
+
+Desde Sprint 2.7 (Enterprise Security Platform, ADR-007) se reexporta,
+además, todo lo declarado en ``teaf.security`` (``teaf/security.py``) — el
+mismo criterio: ``from teaf import SecurityContext`` funciona igual que
+``from teaf.security import SecurityContext``, exactamente como ya ocurre
+con ``teaf.modules``/``teaf.runtime``/etc. ``SecurityModule`` no se expone
+(ni aquí ni en ``teaf.security``) — mismo criterio que ``DatabaseModule``
+(ver docs/public-api/PUBLIC-API.md, sección 6): ningún módulo real del
+framework se expone desde ``teaf/``, se construye la seguridad de una
+aplicación componiendo estas piezas directamente.
 """
 
 from __future__ import annotations
@@ -45,6 +55,60 @@ from teaf.modules import (
     ModuleRegistry,
 )
 from teaf.runtime import Runtime
+from teaf.security import (
+    ANONYMOUS_IDENTITY,
+    ANONYMOUS_PRINCIPAL,
+    AnonymousIdentityProvider,
+    ApiKeyIdentityProvider,
+    ApiKeyProvider,
+    ApiKeyRecord,
+    ApiKeyStore,
+    Argon2PasswordHasher,
+    AuthenticationCredentials,
+    AuthenticationProvider,
+    AuthenticationResult,
+    AuthorizationProvider,
+    AzureADProvider,
+    BcryptPasswordHasher,
+    Claims,
+    CryptoProvider,
+    DefaultPolicyEvaluator,
+    HmacCryptoProvider,
+    Identity,
+    IdentityProvider,
+    IdentityProviderRegistry,
+    InMemoryApiKeyStore,
+    InMemoryTokenRevocationStore,
+    JWTIdentityProvider,
+    JWTProvider,
+    LDAPProvider,
+    OAuth2IdentityProvider,
+    OpenIDConnectProvider,
+    PasswordHasher,
+    Permission,
+    PermissionResolver,
+    Policy,
+    PolicyEvaluator,
+    PolicyRule,
+    Principal,
+    PrincipalResolver,
+    Role,
+    RolePermissionResolver,
+    RoleResolver,
+    SAMLIdentityProvider,
+    SecurityContext,
+    SecurityMiddleware,
+    StaticRoleResolver,
+    TokenPair,
+    TokenProvider,
+    TokenRevocationStore,
+    allow_anonymous,
+    authorize,
+    current_claims,
+    current_identity,
+    current_principal,
+    current_security_context,
+)
 from teaf.services import Lifetime, ServiceContainer
 from teaf.version import CURRENT_VERSION as Version
 
@@ -71,4 +135,58 @@ __all__ = [
     "Lifetime",
     "ModuleCategory",
     "get_configuration",
+    # -- Plataforma de seguridad empresarial (Sprint 2.7, ADR-007) — ver
+    # -- ``teaf/security.py`` para el detalle y la justificación de cada nombre.
+    "ANONYMOUS_IDENTITY",
+    "ANONYMOUS_PRINCIPAL",
+    "AnonymousIdentityProvider",
+    "ApiKeyIdentityProvider",
+    "ApiKeyProvider",
+    "ApiKeyRecord",
+    "ApiKeyStore",
+    "Argon2PasswordHasher",
+    "AuthenticationCredentials",
+    "AuthenticationProvider",
+    "AuthenticationResult",
+    "AuthorizationProvider",
+    "AzureADProvider",
+    "BcryptPasswordHasher",
+    "Claims",
+    "CryptoProvider",
+    "DefaultPolicyEvaluator",
+    "HmacCryptoProvider",
+    "Identity",
+    "IdentityProvider",
+    "IdentityProviderRegistry",
+    "InMemoryApiKeyStore",
+    "InMemoryTokenRevocationStore",
+    "JWTIdentityProvider",
+    "JWTProvider",
+    "LDAPProvider",
+    "OAuth2IdentityProvider",
+    "OpenIDConnectProvider",
+    "PasswordHasher",
+    "Permission",
+    "PermissionResolver",
+    "Policy",
+    "PolicyEvaluator",
+    "PolicyRule",
+    "Principal",
+    "PrincipalResolver",
+    "Role",
+    "RolePermissionResolver",
+    "RoleResolver",
+    "SAMLIdentityProvider",
+    "SecurityContext",
+    "SecurityMiddleware",
+    "StaticRoleResolver",
+    "TokenPair",
+    "TokenProvider",
+    "TokenRevocationStore",
+    "allow_anonymous",
+    "authorize",
+    "current_claims",
+    "current_identity",
+    "current_principal",
+    "current_security_context",
 ]
