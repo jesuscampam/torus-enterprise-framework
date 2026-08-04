@@ -80,9 +80,16 @@ MODULE_TEMPLATES: dict[ModuleCategory, ModuleTemplate] = {
         description="Módulo que expone capacidades del framework a un servidor MCP.",
         suggested_capabilities=("mcp.expose-tool",),
     ),
+    ModuleCategory.OBSERVABILITY: ModuleTemplate(
+        category=ModuleCategory.OBSERVABILITY,
+        name="Observability Module",
+        description="Módulo que aporta logging, trazas, métricas y salud (ver ADR-008).",
+        suggested_capabilities=("observability.tracing", "observability.metrics"),
+        suggested_services=("Tracer", "Meter"),
+    ),
 }
 
 
 def get_template(category: ModuleCategory) -> ModuleTemplate:
-    """Devuelve la plantilla de ``category`` (una entrada fija por cada una de las 7)."""
+    """Devuelve la plantilla de ``category`` (una entrada fija por cada una de las 8)."""
     return MODULE_TEMPLATES[category]

@@ -24,6 +24,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from teaf._internal.core.context import set_identity_context
 from teaf._internal.providers.security.rbac import Permission, Role
 
 if TYPE_CHECKING:
@@ -65,8 +66,15 @@ _security_context_var: ContextVar[SecurityContext] = ContextVar(
 
 
 def set_security_context(context: SecurityContext) -> None:
-    """Establece el contexto de seguridad de la petición en curso."""
+    """Establece el contexto de seguridad de la petición en curso.
+
+    También propaga ``principal_id``/``tenant_id`` a ``core/context.py``
+    (Sprint 2.8, ver ADR-008) — así ``JsonFormatter`` incluye ``userId``/
+    ``tenant`` en cada log emitido durante la petición, sin que
+    ``core/logging.py`` necesite conocer ``SecurityContext``.
+    """
     _security_context_var.set(context)
+    set_identity_context(user_id=context.principal_id, tenant_id=context.tenant_id)
 
 
 def get_security_context() -> SecurityContext:

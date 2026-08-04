@@ -58,7 +58,7 @@ TEAF aplica Clean Architecture con Domain-Driven Design ligero. Las flechas indi
                         │  database/ + models/ (infra)   │  SQLAlchemy, PostgreSQL
                         └─────────────────────────────────┘
 
-  Transversales a todas las capas: core/ · config/ · security/ · monitoring/ · shared/ · ai/ · webhooks/ · scheduler/
+  Transversales a todas las capas: core/ · config/ · security/ · observability/ · monitoring/ · shared/ · ai/ · webhooks/ · scheduler/
 ```
 
 ### Descripción de cada capa (`teaf/_internal/`)
@@ -74,7 +74,8 @@ TEAF aplica Clean Architecture con Domain-Driven Design ligero. Las flechas indi
 | `schemas/` | DTOs Pydantic — contratos de entrada/salida de la API, independientes de los modelos ORM. | Acceso a datos. |
 | `security/` | Autenticación pluggable (`IdentityProvider`: Anonymous/JWT/API Key/LDAP/Azure AD), autorización (RBAC + políticas), hashing (Argon2id/BCrypt), criptografía. Implementación completa desde Sprint 2.7 — ver [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md). | Lógica de negocio no relacionada con seguridad. |
 | `middleware/` | Componentes transversales HTTP: correlation-id, logging de requests, rate limiting, manejo centralizado de errores. | Casos de uso de negocio. |
-| `monitoring/` | Observabilidad: instrumentación OpenTelemetry, métricas, health checks. | Lógica de negocio. |
+| `observability/` | Plataforma de observabilidad empresarial: tracing/métricas sobre OpenTelemetry (`Tracer`/`Meter`), exportadores (Console/OTLP/Prometheus), health checks compuestos, diagnóstico agregado del Runtime. Implementación completa desde Sprint 2.8 — ver [docs/observability/OBSERVABILITY.md](../observability/OBSERVABILITY.md). | Lógica de negocio no relacionada con observabilidad. |
+| `monitoring/` | Rutas de sistema (`/health`, `/ready`, `/live`, `/info`) — consume `observability/` para evaluar salud real, nunca reimplementa la evaluación. | Lógica de negocio. |
 | `shared/` | Utilidades, constantes y tipos genéricos reutilizables entre capas. | Dependencias hacia capas superiores (`api`, `services`). |
 | `config/` | Configuración tipada por entorno (dev/staging/prod), carga de secretos. | Valores hardcodeados de negocio. |
 | `ai/` | Abstracciones AI-Ready: interfaces de cliente LLM, prompts, embeddings, vector stores. | Acoplamiento directo a un proveedor de IA concreto en las capas superiores. |

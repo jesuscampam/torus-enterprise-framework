@@ -21,8 +21,9 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 | Models | Entidades ORM | Documentado (`teaf/_internal/models/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
 | Schemas | Contratos Pydantic de entrada/salida | Documentado (`teaf/_internal/schemas/`) | — | V1 | 🟢 Alto | 🔴 Alta |
 | [Security](../security/SECURITY-ARCHITECTURE.md) | Autenticación pluggable (`IdentityProvider`: Anonymous/JWT/API Key/LDAP/Azure AD), RBAC, políticas, hashing — segundo módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/security/` + `teaf/_internal/security/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
-| Middleware | Correlation-id, rate limiting, manejo de errores | Documentado (`teaf/_internal/middleware/`) | Security, Monitoring | V2 | 🟢 Alto | 🔴 Alta |
-| [Monitoring](../../teaf/_internal/monitoring/README.md) (OpenTelemetry) | Trazas, métricas, health checks | Documentado | Core | V2 | 🟢 Alto | 🔴 Alta |
+| Middleware | Correlation-id, rate limiting, manejo de errores | Documentado (`teaf/_internal/middleware/`) | Security, Observability | V2 | 🟢 Alto | 🔴 Alta |
+| [Observability](../observability/OBSERVABILITY.md) (OpenTelemetry) | Logging estructurado, tracing distribuido, métricas, health checks compuestos, diagnóstico agregado del Runtime — tercer módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/observability/` + `teaf/_internal/observability/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
+| [Monitoring](../../teaf/_internal/monitoring/README.md) | Rutas de sistema (`/health`, `/ready`, `/live`, `/info`) — consume `CompositeHealthChecker` de Observability. | Documentado | Core, Observability | V2 | 🟢 Alto | 🔴 Alta |
 | Shared | Utilidades y tipos genéricos | Documentado (`teaf/_internal/shared/`) | — | V1 | 🟡 Medio | 🟡 Media |
 | [AI](../../teaf/_internal/ai/README.md) | Abstracciones de cliente LLM, embeddings, vector store | Documentado | Core, Security | V4 | 🟡 Medio | 🟡 Media |
 | [Webhooks](../../teaf/_internal/webhooks/README.md) | Framework de eventos entrantes/salientes | Documentado | Security | V4 | 🟡 Medio | 🟡 Media |

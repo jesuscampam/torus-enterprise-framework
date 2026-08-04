@@ -49,7 +49,7 @@ from teaf._internal.shared.constants import DEFAULT_SERVICE_NAME
 #: Versión del propio framework TEAF (no de una aplicación construida sobre
 #: él). Se actualiza junto con CHANGELOG.md en cada release (ver
 #: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
-FRAMEWORK_VERSION = "0.7.0-alpha"
+FRAMEWORK_VERSION = "0.8.0-alpha"
 
 #: Raíz del repositorio, para escribir ``runtime.manifest.json`` (ver
 #: Sprint 2.4, ítem 9) siempre en el mismo lugar sin depender del directorio
@@ -63,16 +63,19 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 #: el ``DependencyGraph`` del Runtime las usa para detectar ciclos antes de
 #: arrancar. Un subsistema desaparece de esta lista en cuanto tiene un
 #: ``ModuleBase`` real (Sprint 2.6 para "database", Sprint 2.7 para
-#: "security") — de lo contrario su placeholder ``CONTRACTS_ONLY`` colisiona
-#: por nombre con el módulo real al registrarse en el mismo
-#: ``ModuleRegistry`` vía ``Application(modules=[...])``
-#: (``ModuleRegistry.register()`` no permite dos módulos con el mismo
-#: nombre). ``DependencyGraph.edges()`` ignora dependencias que no
-#: correspondan a un nodo registrado, así que retirar "security" de aquí no
-#: rompe la dependencia declarada de "ai" hacia "security".
+#: "security", Sprint 2.8 para "telemetry" — su ``ModuleBase`` real,
+#: ``ObservabilityModule``, se registra como "observability", pero el
+#: placeholder original ya no aporta nada distinto: retirarlo evita dos
+#: entradas para el mismo subsistema) — de lo contrario su placeholder
+#: ``CONTRACTS_ONLY`` colisiona por nombre con el módulo real al
+#: registrarse en el mismo ``ModuleRegistry`` vía
+#: ``Application(modules=[...])`` (``ModuleRegistry.register()`` no
+#: permite dos módulos con el mismo nombre). ``DependencyGraph.edges()``
+#: ignora dependencias que no correspondan a un nodo registrado, así que
+#: retirar "security"/"telemetry" de aquí no rompe la dependencia
+#: declarada de "ai" hacia "security".
 _INFRASTRUCTURE_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("database", ()),
-    ("telemetry", ()),
     ("storage", ()),
     ("ai", ("security",)),
     ("scheduler", ()),
@@ -134,6 +137,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     await runtime.startup()
 
     bootstrapped_modules = await _bootstrap_pending_modules(app.state.pending_modules, runtime)
+    # Leído por ``monitoring/health.py`` (``/health``/``/ready``, Sprint 2.8)
+    # para evaluar el ``ModuleHealth`` real de cada módulo bootstrapeado.
+    app.state.bootstrapped_modules = bootstrapped_modules
 
     # El manifiesto es un artefacto de despliegue (ver Sprint 2.4, ítem 9) —
     # no tiene sentido regenerarlo en cada instancia efímera de test, y un
@@ -182,6 +188,7 @@ def create_app(
         level=settings.log_level,
         log_format=settings.log_format,
         service_name=DEFAULT_SERVICE_NAME,
+        environment=settings.environment.value,
         log_file=settings.log_file,
     )
     logger = get_logger("teaf.bootstrap")

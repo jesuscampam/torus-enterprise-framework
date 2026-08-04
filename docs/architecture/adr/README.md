@@ -24,6 +24,7 @@ No crees un ADR para decisiones de implementación local que no afecten al frame
 | [ADR-005](ADR-005-cloud-ready.md) | Cloud Ready | Aceptado |
 | [ADR-006](ADR-006-internal-namespace-refactor.md) | Internal Namespace Refactor | Aceptado |
 | [ADR-007](ADR-007-enterprise-security-stack.md) | Enterprise Security Stack | Aceptado |
+| [ADR-008](ADR-008-enterprise-observability-stack.md) | Enterprise Observability Stack | Aceptado |
 
 ## Plantilla
 

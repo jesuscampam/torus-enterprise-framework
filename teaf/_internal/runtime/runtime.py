@@ -14,6 +14,7 @@ docs/runtime/RUNTIME.md).
 
 from __future__ import annotations
 
+import resource
 import sys
 import uuid
 from collections.abc import Mapping
@@ -263,7 +264,20 @@ class Runtime:
             container_statistics={
                 "registeredContracts": len(self.container.registered_contracts()),
             },
+            memory_rss_bytes=self._current_memory_rss_bytes(),
+            cpu_time_seconds=self._current_cpu_time_seconds(),
         )
+
+    @staticmethod
+    def _current_memory_rss_bytes() -> int:
+        """Memoria residente del proceso — ``ru_maxrss`` viene en KiB en Linux."""
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+
+    @staticmethod
+    def _current_cpu_time_seconds() -> float:
+        """Tiempo de CPU acumulado del proceso (usuario + sistema)."""
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        return usage.ru_utime + usage.ru_stime
 
     def self_description(self) -> RuntimeSelfDescription:
         """El Runtime describiéndose a sí mismo (ver ``GET /runtime/self``)."""

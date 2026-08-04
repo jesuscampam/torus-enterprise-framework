@@ -33,3 +33,16 @@ Cada uno construye su propio `IdentityProviderRegistry`/`PrincipalResolver` y lo
 | [`permission-based-endpoint/`](permission-based-endpoint/) | Proteger un endpoint con `@authorize(permission=...)`, desacoplado del nombre del rol. | `python examples/permission-based-endpoint/main.py` |
 | [`policy-based-endpoint/`](policy-based-endpoint/) | Proteger un endpoint con `@authorize(policy=...)` — una regla arbitraria sobre el `Principal`. | `python examples/policy-based-endpoint/main.py` |
 | [`anonymous-endpoint/`](anonymous-endpoint/) | Marcar un endpoint como público a propósito con `@allow_anonymous()`, en contraste con uno protegido. | `python examples/anonymous-endpoint/main.py` |
+
+## Plataforma de observabilidad (Sprint 2.8, ADR-008)
+
+Cada uno construye sus proveedores de OpenTelemetry directamente (`TracerProvider`/`MeterProvider`, dependencias públicas ya declaradas por TEAF) y los envuelve con `teaf.observability` (`OtelTracer`/`OtelMeter`/exportadores) — mismo patrón de cableado manual que la plataforma de seguridad (`ObservabilityModule` no se expone públicamente, igual que `DatabaseModule`/`SecurityModule`, ver [PUBLIC-API.md](../docs/public-api/PUBLIC-API.md)).
+
+| Carpeta | Qué demuestra | Ejecutar |
+|---|---|---|
+| [`structured-logging/`](structured-logging/) | Logging JSON estructurado (`get_logger()`) con correlation/trace/span-id, user-id/tenant y contexto libre. | `python examples/structured-logging/main.py` |
+| [`distributed-tracing/`](distributed-tracing/) | Spans padre/hijo, atributos, eventos, excepciones y estado (`Tracer`/`Span`) sobre un `TracerProvider` real. | `python examples/distributed-tracing/main.py` |
+| [`metrics/`](metrics/) | Los cuatro instrumentos de `Meter`: `Counter`, `UpDownCounter`, `Histogram`, `Gauge`. | `python examples/metrics/main.py` |
+| [`health-checks/`](health-checks/) | `/health`/`/ready` agregando el `ModuleHealth` real de varios módulos vía `CompositeHealthChecker`. | `python examples/health-checks/main.py` |
+| [`prometheus-metrics/`](prometheus-metrics/) | Métricas expuestas en formato Prometheus (`GET /metrics`, modelo *pull*) con `PrometheusExporter`. | `python examples/prometheus-metrics/main.py` |
+| [`opentelemetry-otlp/`](opentelemetry-otlp/) | Exportar trazas y métricas vía OTLP/HTTP a un Collector real — el camino hacia Jaeger/Datadog/Grafana/etc. | `python examples/opentelemetry-otlp/main.py` |

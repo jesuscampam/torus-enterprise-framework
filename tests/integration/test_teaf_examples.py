@@ -177,6 +177,85 @@ def test_anonymous_endpoint_contrasts_public_and_protected_routes() -> None:
     assert "GET /account -> 401" in result.stdout
 
 
+def test_structured_logging_emits_the_full_json_schema() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "structured-logging",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert '"message": "order_created"' in result.stdout
+    assert '"traceId": "4bf92f3577b34da6a3ce929d0e0e4736"' in result.stdout
+    assert '"module": "orders"' in result.stdout
+
+
+def test_distributed_tracing_propagates_the_same_trace_id_to_child_spans() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "distributed-tracing",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert '"name": "create_order"' in result.stdout
+    assert '"name": "charge_payment"' in result.stdout
+    assert '"status_code": "ERROR"' in result.stdout
+
+
+def test_metrics_example_exports_all_four_instruments() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "metrics",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    for metric_name in (
+        '"name": "orders_created_total"',
+        '"name": "active_checkouts"',
+        '"name": "order_processing_seconds"',
+        '"name": "checkout_queue_size"',
+    ):
+        assert metric_name in result.stdout
+
+
+def test_health_checks_example_reports_the_worst_module_status() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "health-checks",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "GET /health -> ok" in result.stdout
+    assert "'status': 'degraded'" in result.stdout
+    assert "GET /ready -> 200" in result.stdout
+
+
+def test_prometheus_metrics_example_exposes_the_prefixed_counter() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "prometheus-metrics",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "GET /metrics -> 200" in result.stdout
+    assert "orders_service_orders_created_total" in result.stdout
+
+
+def test_opentelemetry_otlp_example_completes_even_without_a_collector() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py"],
+        cwd=_EXAMPLES_DIR / "opentelemetry-otlp",
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "Traza y métrica enviadas vía OTLP" in result.stdout
+
+
 def test_discovered_at_least_the_expected_examples() -> None:
     names = {p.name for p in _EXAMPLE_DIRS}
     assert names == {
@@ -192,4 +271,10 @@ def test_discovered_at_least_the_expected_examples() -> None:
         "permission-based-endpoint",
         "policy-based-endpoint",
         "anonymous-endpoint",
+        "structured-logging",
+        "distributed-tracing",
+        "metrics",
+        "health-checks",
+        "prometheus-metrics",
+        "opentelemetry-otlp",
     }

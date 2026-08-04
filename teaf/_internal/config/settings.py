@@ -109,6 +109,30 @@ class Settings(BaseSettings):
     security_hsts_max_age_seconds: int = 31_536_000
     security_frame_options: str = "DENY"
 
+    # -- Observabilidad (Sprint 2.8, ADR-008) --------------------------------------------
+    #
+    # Mismo criterio que la sección de Seguridad de arriba: superficie de
+    # configuración por entorno, deliberadamente desacoplada de
+    # ``ObservabilityConfiguration``/``ObservabilityModule``
+    # (``teaf/_internal/modules/observability/configuration.py``) — una
+    # aplicación concreta decide si construye esa configuración a partir de
+    # estos campos (``ObservabilityConfiguration.from_mapping(settings.model_dump())``)
+    # o de otra fuente.
+
+    observability_service_version: str = "0.0.0"
+    observability_tracing_enabled: bool = True
+    observability_metrics_enabled: bool = True
+    observability_sampling_ratio: float = 1.0
+
+    observability_console_exporter_enabled: bool = True
+    observability_otlp_exporter_enabled: bool = False
+    observability_otlp_traces_endpoint: str | None = None
+    observability_otlp_metrics_endpoint: str | None = None
+    observability_otlp_timeout_seconds: float | None = None
+    observability_prometheus_exporter_enabled: bool = False
+    observability_prometheus_prefix: str = ""
+    observability_metrics_export_interval_millis: int = 60_000
+
 
 class DevelopmentSettings(Settings):
     environment: Environment = Environment.DEVELOPMENT

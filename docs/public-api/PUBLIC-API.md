@@ -92,11 +92,30 @@ from teaf.security import (
 
 Ver los 8 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-seguridad-sprint-27-adr-007).
 
-## 7. Qué NO expone `teaf`
+## 7. Plataforma de observabilidad (`teaf.observability`, Sprint 2.8)
 
-Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule` ni `SecurityModule`, ni ningún otro módulo real (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad a partir de las piezas públicas de `teaf.security`, ver sección 6), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+Además de los catorce símbolos principales, `teaf`/`teaf.observability` reexportan la plataforma de observabilidad empresarial completa (logging estructurado, tracing distribuido y métricas sobre OpenTelemetry, health checks compuestos, exportadores Console/OTLP/Prometheus + 9 preparados) — documentada íntegramente en [docs/observability/OBSERVABILITY.md](../observability/OBSERVABILITY.md) en vez de repetida aquí. Mismo patrón que la sección 6: `from teaf import Tracer` funciona igual que `from teaf.observability import Tracer`.
 
-## 8. Documentos relacionados
+```python
+from opentelemetry.sdk.trace import TracerProvider
+from teaf import ConsoleExporter, OtelTracer, SpanKind, get_logger
+
+provider = TracerProvider()
+ConsoleExporter().configure_tracing(provider)
+tracer = OtelTracer(provider.get_tracer("orders-service"))
+
+logger = get_logger("orders.checkout")
+with tracer.start_span("create_order", kind=SpanKind.SERVER) as span:
+    logger.info("order_created", extra={"context": {"orderId": "ord-1"}})
+```
+
+Ver los 6 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-observabilidad-sprint-28-adr-008).
+
+## 8. Qué NO expone `teaf`
+
+Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule`, `SecurityModule` ni `ObservabilityModule`, ni ningún otro módulo real (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad/observabilidad a partir de las piezas públicas de `teaf.security`/`teaf.observability`, ver secciones 6-7), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+
+## 9. Documentos relacionados
 
 | Documento | Contenido |
 |---|---|
@@ -105,3 +124,4 @@ Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de 
 | [VERSIONING.md](VERSIONING.md) | Los cinco números de versión y las reglas de compatibilidad. |
 | [MIGRATION-GUIDE.md](MIGRATION-GUIDE.md) | Tabla de equivalencia `teaf._internal.*` → `teaf.*`. |
 | [SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) | La plataforma de seguridad empresarial completa (sección 6). |
+| [OBSERVABILITY.md](../observability/OBSERVABILITY.md) | La plataforma de observabilidad empresarial completa (sección 7). |

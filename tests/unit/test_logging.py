@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from teaf._internal.core.context import set_correlation_id
+from teaf._internal.core.context import set_correlation_id, set_identity_context, set_trace_context
 from teaf._internal.core.logging import CorrelationIdFilter, JsonFormatter, configure_logging
 
 
@@ -52,5 +52,63 @@ def test_json_formatter_produces_expected_schema() -> None:
     assert payload["level"] == "INFO"
     assert payload["message"] == "evento de prueba"
     assert payload["correlationId"] == "corr-xyz"
-    # Reservado para OpenTelemetry — todavía no implementado (Sprint 2.1).
+    assert payload["requestId"] == "corr-xyz"
+    # Sin trace/identidad activa en este test — ver los tests de
+    # enriquecimiento de contexto más abajo (Sprint 2.8, ADR-008).
     assert payload["traceId"] is None
+    assert payload["spanId"] is None
+    assert payload["userId"] is None
+    assert payload["tenant"] is None
+
+
+def test_json_formatter_includes_environment() -> None:
+    record = _make_record()
+    payload = json.loads(
+        JsonFormatter(service_name="teaf-test", environment="staging").format(record)
+    )
+    assert payload["environment"] == "staging"
+
+
+def test_correlation_id_filter_injects_trace_and_identity_context() -> None:
+    set_trace_context(trace_id="4bf92f3577b34da6a3ce929d0e0e4736", span_id="00f067aa0ba902b7")
+    set_identity_context(user_id="user-123", tenant_id="tenant-abc")
+    record = _make_record()
+    CorrelationIdFilter().filter(record)
+
+    assert getattr(record, "trace_id") == "4bf92f3577b34da6a3ce929d0e0e4736"  # noqa: B009
+    assert getattr(record, "span_id") == "00f067aa0ba902b7"  # noqa: B009
+    assert getattr(record, "user_id") == "user-123"  # noqa: B009
+    assert getattr(record, "tenant_id") == "tenant-abc"  # noqa: B009
+
+
+def test_json_formatter_includes_real_trace_and_identity_fields_once_populated() -> None:
+    set_trace_context(trace_id="4bf92f3577b34da6a3ce929d0e0e4736", span_id="00f067aa0ba902b7")
+    set_identity_context(user_id="user-123", tenant_id="tenant-abc")
+    record = _make_record()
+    CorrelationIdFilter().filter(record)
+
+    payload = json.loads(JsonFormatter(service_name="teaf-test").format(record))
+    assert payload["traceId"] == "4bf92f3577b34da6a3ce929d0e0e4736"
+    assert payload["spanId"] == "00f067aa0ba902b7"
+    assert payload["userId"] == "user-123"
+    assert payload["tenant"] == "tenant-abc"
+
+    # Aislamiento entre pruebas: no dejar contexto activo para el resto del módulo.
+    set_trace_context(trace_id=None, span_id=None)
+    set_identity_context(user_id=None, tenant_id=None)
+
+
+def test_json_formatter_only_includes_module_and_capability_when_passed_explicitly() -> None:
+    record = _make_record()
+    payload = json.loads(JsonFormatter(service_name="teaf-test").format(record))
+    assert "module" not in payload
+    assert "capability" not in payload
+
+    record_with_context = _make_record()
+    record_with_context.module_id = "database"
+    record_with_context.capability = "database.query"
+    payload_with_context = json.loads(
+        JsonFormatter(service_name="teaf-test").format(record_with_context)
+    )
+    assert payload_with_context["module"] == "database"
+    assert payload_with_context["capability"] == "database.query"

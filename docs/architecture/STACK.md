@@ -84,6 +84,10 @@ Este documento justifica cada elección tecnológica oficial del framework: por 
 
 **Trade-offs aceptados**: mayor esfuerzo inicial de instrumentación manual frente a agentes "todo incluido" de APM comerciales.
 
+### Librerías — SDK oficial (Sprint 2.8, ADR-008)
+
+`opentelemetry-api`/`opentelemetry-sdk` 1.44.0 — el motor único de trazas y métricas de `teaf.observability`; nunca una abstracción propia por debajo, para heredar semantic conventions, sampling y context propagation ya estandarizados. `opentelemetry-exporter-otlp-proto-http` 1.44.0 exporta hacia cualquier backend compatible con OTLP (Azure Monitor, Grafana Tempo/Mimir, Jaeger, un Collector). `opentelemetry-exporter-prometheus` 0.65b0 + `prometheus-client` 0.26.0 exponen `/metrics` en formato Prometheus a partir de las mismas métricas OTel, sin un pipeline de instrumentación paralelo. Detalle completo en [ADR-008](adr/ADR-008-enterprise-observability-stack.md).
+
 ## Autenticación — JWT
 
 **Por qué**: estándar sin estado (stateless), ideal para arquitecturas Cloud Ready con múltiples instancias horizontalmente escalables sin sesión compartida; interoperable entre backend, frontend y futuras integraciones (SAP, Salesforce, Control-M).

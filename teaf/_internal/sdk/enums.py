@@ -15,3 +15,4 @@ class ModuleCategory(str, Enum):
     INTEGRATION = "integration"
     AI = "ai"
     MCP = "mcp"
+    OBSERVABILITY = "observability"

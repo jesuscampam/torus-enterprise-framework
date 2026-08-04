@@ -168,8 +168,8 @@ def test_diagnostics_before_startup_has_no_startup_time() -> None:
     assert diagnostics.startup_time is None
     assert diagnostics.running_time_seconds == 0.0
     assert diagnostics.framework_version == "0.4.0-alpha"
-    assert diagnostics.memory_placeholder == "not-implemented"
-    assert diagnostics.cpu_placeholder == "not-implemented"
+    assert diagnostics.memory_rss_bytes is not None and diagnostics.memory_rss_bytes > 0
+    assert diagnostics.cpu_time_seconds is not None and diagnostics.cpu_time_seconds >= 0.0
 
 
 def test_diagnostics_after_startup_reflects_counts_and_configuration() -> None:
