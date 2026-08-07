@@ -34,8 +34,16 @@ from teaf._internal.sdk.specification import SPEC_VERSION as MODULE_SPEC_VERSION
 
 #: Versión de la superficie pública ``teaf.*`` en sí misma (este paquete).
 #: A diferencia de las otras cuatro, no tiene un "dueño" dentro de
-#: ``teaf/_internal/`` — el concepto de API pública nace en este Sprint (2.5.1).
-PUBLIC_API_VERSION = "1.0.0"
+#: ``teaf/_internal/`` — el concepto de API pública nace en Sprint 2.5.1.
+#:
+#: Sube a ``2.0.0`` en Sprint 3.0: los constructores de
+#: ``RedisRateLimitStore``/``RedisQuotaStore``/``RedisIdempotencyStore``
+#: pasan de ``(url, prefix)`` a recibir un ``CacheProvider`` (ADR-012 §5).
+#: Ninguna llamada real puede romperse —hasta 2.9.2 esos constructores
+#: lanzaban ``NotImplementedError``—, pero la firma cambió de forma
+#: incompatible y la política de VERSIONING.md §5 es subir MAJOR cuando eso
+#: ocurre, no cuando además duela.
+PUBLIC_API_VERSION = "2.0.0"
 
 _VERSION_NUMBER = re.compile(r"\d+(?:\.\d+)*")
 _CONSTRAINT = re.compile(r"^(==|>=|<=|~=|>|<)?(\d+(?:\.\d+)*)$")

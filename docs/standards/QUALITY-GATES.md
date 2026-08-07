@@ -27,13 +27,16 @@ Sale con código distinto de cero si alguna falla, así que sirve en CI sin envo
 | `boundary` | Ningún ejemplo importa `teaf._internal` |
 | `public-api` | La API pública no rompe compatibilidad — firmas, no solo nombres ([BACKWARD-COMPATIBILITY.md](../BACKWARD-COMPATIBILITY.md)) |
 | `startup` | La aplicación **arranca de verdad** y sus endpoints de sistema responden (§9) |
+| `build` | El paquete se construye y el wheel contiene lo que debe (Sprint 3.0) |
+| `dependencies` | `pip-audit` — vulnerabilidades conocidas, con excepciones explícitas en [`accepted-vulnerabilities.json`](../security/accepted-vulnerabilities.json) |
 | `tests` | Suite completa con cobertura ≥95% sobre `teaf/` (§1) |
 | `benchmarks` | Sin regresiones de rendimiento frente a la baseline ([BENCHMARKS.md](../BENCHMARKS.md)) |
 
 Dos matices que no son evidentes y que conviene no "simplificar" más adelante:
 
 - **`mypy` se invoca como `python -m mypy`, no como `mypy`.** El ejecutable suelto no resuelve los tipos de FastAPI/Starlette y los degrada a `Any`, lo que deja pasar errores reales — en Sprint 2.9.1 ocultaba, entre otros, una referencia a un `otel_metrics.Gauge` que no existe.
-- **`startup` es la única puerta que ejecuta el framework.** Las otras nueve lo analizan. Un fallo de cableado —un `lifespan` que lanza, un router que no se registra— no lo detecta ningún análisis estático, y es precisamente el fallo que aparece en producción.
+- **`startup` es la única puerta que ejecuta el framework.** Las demás lo analizan. Un fallo de cableado —un `lifespan` que lanza, un router que no se registra— no lo detecta ningún análisis estático, y es precisamente el fallo que aparece en producción.
+- **`build` es la única puerta que mira el artefacto distribuible.** Las demás trabajan sobre el árbol de fuentes, donde `import teaf` funciona porque el directorio actual está en `sys.path`. Eso oculta una clase entera de fallos —un paquete nuevo que no entra en el wheel, un fichero de datos sin declarar— que no rompen ninguna prueba, solo la instalación de quien consume TEAF. Se evaluó además una puerta `imports` de validación de importación y **se descartó por duplicada**: importar el paquete es precondición de `startup`, que ya lo ejecuta.
 
 Lo que **no** cubre el script y sigue siendo responsabilidad humana: los puntos 3 a 8 y 10 (documentación, ADR, roadmap, changelog, secretos, Docker, OpenAPI) y el checklist del punto 11.
 

@@ -130,6 +130,16 @@ Este documento justifica cada elección tecnológica oficial del framework: por 
 
 **Trade-offs aceptados**: Argon2 consume más CPU/memoria por diseño (esa es la propiedad de seguridad deseada) — se configura el coste vía `Settings` para poder ajustarlo por entorno.
 
+## Caché distribuida — Redis vía `redis-py` (Sprint 3.0, ADR-012) — **extra opcional**
+
+**Por qué**: los almacenes de rate limiting, cuotas e idempotencia son por proceso, así que con varias réplicas cada una lleva su propia cuenta y un límite de 100 peticiones por minuto con 4 réplicas son 400 en la práctica. Es lo que bloquea el escalado horizontal de cualquier aplicación construida sobre TEAF. Redis aporta expiración nativa por clave con precisión de milisegundos (`PSETEX`/`PTTL`), cliente asíncrono maduro (`redis.asyncio`), licencia MIT y servicio gestionado en Azure (Azure Cache for Redis), coherente con el destino de producción de [ADR-005](adr/ADR-005-cloud-ready.md).
+
+**Es opcional, no obligatoria**: se declara como `[project.optional-dependencies]` (`pip install "teaf[redis]"`) y el import ocurre dentro de `connect()`, nunca en la cabecera del módulo — importar TEAF no requiere tener `redis` instalado. Sin configurar, no se construye el módulo, no se importa el paquete y el camino de la petición es idéntico; verificado con benchmarks, no solo afirmado.
+
+**Alternativas consideradas**: PostgreSQL, que ya está en el stack (descartado: un contador de rate limiting se escribe en cada petición, y llevar eso a la base transaccional acopla el camino caliente de *toda* petición a la salud del almacén de negocio); Memcached (sin expiración por clave en milisegundos ni tipos útiles para ventanas deslizantes); Hazelcast/Ignite (peso operativo desproporcionado). Detalle completo en [ADR-012](adr/ADR-012-redis-optional-infrastructure.md).
+
+**Trade-offs aceptados**: una dependencia más cuyos CVEs hay que seguir; dos caminos de código que probar en cada almacén (memoria y Redis); y `RedisQuotaStore.consume` es un read-modify-write no atómico que admite un ligero exceso sobre la cuota con varias réplicas — documentado en su docstring y en [CACHE.md §10](../modules/cache/CACHE.md), no escondido.
+
 ## UI — Material UI
 
 **Por qué**: sistema de diseño maduro y accesible por defecto, con amplia cobertura de componentes empresariales (tablas, formularios, navegación), personalizable vía theming (`frontend/src/theme/`) para mantener identidad visual consistente entre todas las aplicaciones TORUS.

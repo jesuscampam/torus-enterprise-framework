@@ -1,20 +1,24 @@
 # Revisión de seguridad y de dependencias — v0.9.1-alpha
 
-> **Estado tras Sprint 2.9.2 (v0.9.2-alpha).** Este documento conserva la revisión original
+> **Estado tras Sprint 3.0 (v0.10.0-alpha).** Este documento conserva la revisión original
 > —lo que se encontró y por qué— y anota el desenlace de cada hallazgo. Resumen:
 >
 > | Hallazgo | Estado |
 > |---|---|
-> | H-1 · Cabeceras de seguridad sin implementar | ✅ **Resuelto** — `SecurityHeadersMiddleware` ([ADR-010](architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) |
-> | H-2 · `trust_forwarded_headers` inseguro por defecto | ⚠️ **Mitigado, no cerrado** — valor por defecto intacto, aviso al arrancar y pruebas anti-spoofing |
-> | H-3 · Comentario obsoleto sobre secretos | ✅ **Resuelto** |
+> | H-1 · Cabeceras de seguridad sin implementar | ✅ **Resuelto** en 2.9.2 — `SecurityHeadersMiddleware` ([ADR-010](architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) |
+> | H-2 · `trust_forwarded_headers` inseguro por defecto | ✅ **Cerrado en 3.0** — `api_trusted_proxies` ([ADR-011](architecture/adr/ADR-011-trusted-proxy-architecture.md)). Estuvo mitigado, no cerrado, durante 2.9.2 |
+> | H-3 · Comentario obsoleto sobre secretos | ✅ **Resuelto** en 2.9.2 |
 > | H-4 · `pydantic` declarada sin uso directo | ℹ️ **Sin acción** — es deliberado |
-> | Laguna · Sin auditoría de vulnerabilidades | ✅ **Cerrada** — `pip-audit` es puerta de calidad, y **encontró avisos reales** |
+> | Laguna · Sin auditoría de vulnerabilidades | ✅ **Cerrada** en 2.9.2 — `pip-audit` es puerta de calidad, y **encontró avisos reales** |
+> | 7 CVE de `starlette` aceptadas por no poder actualizar | ✅ **Cerradas en 3.0** — `fastapi` 0.141.1 / `starlette` 1.4.1. `accepted-vulnerabilities.json` queda **vacío** |
 >
-> La última fila importa más que las otras: esta revisión concluyó «versiones recientes, ningún
-> aviso conocido». Al ejecutar la herramienta por primera vez aparecieron 6 avisos en `pyjwt` y 7
-> en `starlette`. La conclusión original era conocimiento, no verificación, y era incorrecta.
-> Detalle en la sección «Dependencias» al final.
+> La fila de la auditoría de dependencias importa más que las otras: esta revisión concluyó
+> «versiones recientes, ningún aviso conocido». Al ejecutar la herramienta por primera vez
+> aparecieron 6 avisos en `pyjwt` y 7 en `starlette`. La conclusión original era conocimiento, no
+> verificación, y era incorrecta. Detalle en la sección «Dependencias».
+>
+> La revisión propia de Sprint 3.0 está al final, en
+> [«Revisión de Sprint 3.0»](#revisión-de-sprint-30-v0100-alpha).
 
 Revisión completa realizada en Sprint 2.9.1 sobre la plataforma de seguridad (Sprint 2.7,
 [ADR-007](architecture/adr/ADR-007-enterprise-security.md)), la de protección de APIs (Sprint 2.9,
@@ -231,3 +235,120 @@ ejecución para que no se conviertan en deuda invisible.
 2. Añadir `pip-audit` y su puerta de calidad, cerrando la laguna de vulnerabilidades conocidas.
 3. Decidir el valor por defecto de `trust_forwarded_headers` (H-2).
 4. Corregir el comentario obsoleto (H-3) — trivial, solo documentación.
+
+---
+
+# Revisión de Sprint 3.0 (v0.10.0-alpha)
+
+Revisión propia del sprint, sobre las cuatro superficies que ha tocado: cabeceras de reenvío,
+credenciales y conexiones de Redis, secretos y mensajes de error de JWT, y CVEs transitivas.
+
+## Resumen
+
+| Área | Resultado |
+|---|---|
+| Spoofing e inyección de cabeceras | ✅ Cerrado con `api_trusted_proxies` ([ADR-011](architecture/adr/ADR-011-trusted-proxy-architecture.md)) |
+| Credenciales de Redis | ✅ Sin secretos en código; TLS verificado por defecto |
+| Fugas de conexión de Redis | ✅ Ninguna conexión sobrevive al apagado — verificado contra un Redis real |
+| Secretos débiles de JWT | ✅ Mínimo por algoritmo, validado al arrancar |
+| Mensajes de error de JWT | ✅ No revelan el secreto |
+| CVEs transitivas | ✅ `pip-audit` limpio, **0 excepciones aceptadas** |
+
+**Ningún hallazgo abierto.** Dos limitaciones conocidas, ambas documentadas y en el backlog — no
+son hallazgos porque son decisiones tomadas a conciencia, no descuidos.
+
+## 1. Spoofing e inyección de cabeceras
+
+**Antes**: `X-Forwarded-For` se creía viniera de donde viniera. Un cliente que rotase la cabecera
+estrenaba cubo de rate limiting en cada petición.
+
+**Ahora**: la confianza se decide contra la **IP de la conexión TCP**, el único dato de la petición
+que el cliente no puede falsificar. Verificado en
+[`tests/unit/test_forwarded_headers_trust.py`](../tests/unit/test_forwarded_headers_trust.py) con
+los cinco casos del modelo de amenaza: spoofing directo, proxy de confianza, proxy no confiable,
+cadena de varios proxies y lista vacía.
+
+Dos propiedades que conviene destacar porque son fáciles de implementar mal:
+
+- **La cadena se recorre de derecha a izquierda.** Tomar la entrada más a la izquierda —la lectura
+  ingenua— es leer exactamente el trozo que un atacante puede anteponer. Es un fallo real que TEAF
+  tenía.
+- **Falla cerrado**: una entrada inválida en la lista aborta el arranque. Una lista de confianza
+  con una errata descartada en silencio da una falsa sensación de protección.
+
+**Riesgo residual**: sin configurar `api_trusted_proxies`, el comportamiento es el de v0.9.2-alpha.
+El sprint aporta la posibilidad de configurarlo correctamente, no un valor por defecto distinto —
+el razonamiento sigue siendo el de [ADR-010 §4](architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)
+y se documenta en [SECURITY-CONFIGURATION.md](security/SECURITY-CONFIGURATION.md).
+
+## 2. Credenciales y conexiones de Redis
+
+**Credenciales**: ninguna en código. La URL —que suele llevarlas embebidas— se toma de
+`CACHE_REDIS_URL` o de un gestor de secretos. `RedisCacheConfiguration.url` tiene un valor por
+defecto local (`redis://localhost:6379/0`) sin credenciales, que es inservible en producción a
+propósito: no hay forma de desplegar con una credencial por defecto.
+
+**Verificado**: `grep` sobre el árbol confirma que ninguna URL con credenciales entra en el
+repositorio, y el campo está marcado `sensitive=True` en el manifiesto del módulo, de modo que no
+se emite en `runtime.manifest.json` ni en `/runtime/configuration`.
+
+**TLS**: `tls_verify` es `True` por defecto. Solo se pasa a la conexión cuando la URL es
+`rediss://`, porque `ssl_cert_reqs` únicamente lo acepta `SSLConnection` — pasarlo sobre
+`redis://` reventaba con `TypeError`, lo que se corrigió en este sprint (ver *Fixed* del
+CHANGELOG). Desactivar la verificación queda documentado como algo que solo tiene sentido contra un
+Redis de desarrollo con certificado autofirmado.
+
+**Fugas de conexión**: el criterio de bloqueo del sprint era que ninguna conexión sobreviviera al
+apagado. Verificado de tres formas:
+
+1. `CacheModule.dispose()` llama a `provider.disconnect()`, simétrico con `start()`.
+2. `disconnect()` es idempotente y suelta el cliente (`self._client = None`), de modo que un
+   segundo apagado no falla ni deja el objeto en un estado ambiguo.
+3. [`tests/integration/test_cache_redis.py`](../tests/integration/test_cache_redis.py) lo comprueba
+   **contra un Redis real**: `health_check()` devuelve `False` tras `disconnect()`.
+
+Los tres almacenes distribuidos **no abren conexiones propias**: reciben un `CacheProvider` cuyo
+ciclo de vida lleva el módulo. Es lo que hace que solo haya un sitio del que preocuparse.
+
+## 3. Secretos y mensajes de error de JWT
+
+**Mínimo derivado del algoritmo**, no inventado: RFC 7518 §3.2 exige que la clave HMAC sea al menos
+del tamaño de la salida del hash. Se valida **al arrancar** —en `Settings` y en
+`JWTProvider.__init__`—, nunca durante una petición.
+
+**Los mensajes de error no revelan el secreto.** Comprobado explícitamente en
+[`tests/unit/test_jwt_secret_policy.py`](../tests/unit/test_jwt_secret_policy.py) y también desde
+el lado del consumidor en la aplicación de referencia: el mensaje nombra algoritmo, longitud
+recibida y longitud exigida. Un error que filtrase el secreto a los logs sería peor que el propio
+secreto débil.
+
+**Ruptura asumida**: una aplicación con un secreto por debajo del mínimo deja de arrancar. Es
+deliberado. Seguir aceptándolo en silencio sería debilitar la política para mantener
+compatibilidad, que es justo lo que un cierre de hallazgo de seguridad no debe hacer.
+
+## 4. CVEs transitivas
+
+`python scripts/check_dependency_audit.py` → **0 vulnerabilidades, 0 excepciones aceptadas**.
+
+Las 7 entradas de `starlette` que Sprint 2.9.2 tuvo que aceptar —bloqueadas por el pin
+`starlette<0.42.0` de `fastapi 0.115.6`— desaparecen con la actualización a `fastapi 0.141.1` /
+`starlette 1.4.1`. Las entradas se **eliminan** del fichero en vez de dejarse marcadas como
+aceptadas: una excepción caducada es deuda invisible, porque la próxima vulnerabilidad de ese
+paquete pasaría desapercibida bajo una justificación que ya no aplica.
+
+`redis` entra en el árbol de dependencias como extra opcional y queda dentro del alcance de la
+puerta: sus futuras CVEs harán fallar la auditoría igual que las de cualquier otra.
+
+## Limitaciones conocidas (no son hallazgos)
+
+| Limitación | Por qué se acepta |
+|---|---|
+| `RedisQuotaStore.consume` no es atómico: dos réplicas concurrentes admiten un ligero exceso sobre la cuota | Documentado en su docstring, en [CACHE.md §10](modules/cache/CACHE.md) y en el backlog. Un exceso ocasional acotado es un problema mucho menor que una cuota multiplicada por el número de réplicas. Resolverlo exige un script Lua o `INCRBYFLOAT` con semántica distinta — cambio de diseño, no arreglo |
+| Sin `api_trusted_proxies` configurado, las cabeceras de reenvío se siguen creyendo | Invertir el valor por defecto rompería silenciosamente todo despliegue correcto tras un proxy ([ADR-010 §4](architecture/adr/ADR-010-security-headers-and-forwarded-trust.md), [ADR-011 §5](architecture/adr/ADR-011-trusted-proxy-architecture.md)) |
+
+## Recomendaciones para Sprint 3.1
+
+1. Hacer atómico `RedisQuotaStore.consume`.
+2. Revisar si, con `api_trusted_proxies` ya disponible y documentado, procede invertir el valor por
+   defecto de `trust_forwarded_headers` en una versión mayor — con guía de migración.
+3. Soportar `Forwarded` (RFC 7239) además de `X-Forwarded-For`.

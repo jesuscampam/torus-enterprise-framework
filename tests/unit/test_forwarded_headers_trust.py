@@ -23,7 +23,11 @@ import asyncio
 import logging
 
 from starlette.requests import Request
-from teaf._internal.api.middleware.context import build_request_context, resolve_client_ip
+from teaf._internal.api.middleware.context import (
+    TrustedProxies,
+    build_request_context,
+    resolve_client_ip,
+)
 from teaf.api import ApiGateway, ProtectionScope, RateLimiter, RateLimitRule
 
 #: IP de la conexión TCP real — la que un atacante no puede falsificar.
@@ -212,3 +216,166 @@ def test_running_migrations_does_not_silence_the_framework_loggers() -> None:
 
     assert logger.disabled is False
     assert any("forwarded_headers_trusted" in m for m in _avisos_al_instalar(trust=True))
+
+
+# -- trusted_proxies (Sprint 3.0, ADR-011) ------------------------------------------------
+
+PROXY_DE_CONFIANZA = "10.0.0.5"
+RED_DE_CONFIANZA = ("10.0.0.0/8",)
+#: Conexión **fuera** de la red de confianza. No puede ser ``CONEXION_REAL``
+#: (10.0.0.1), que cae dentro de 10.0.0.0/8 y por tanto sería un proxy de
+#: confianza: usarla haría pasar las pruebas por el motivo equivocado.
+CLIENTE_DIRECTO = "198.51.100.20"
+
+
+def _ip_resuelta(
+    cabeceras: dict[str, str],
+    *,
+    desde: str | None,
+    proxies: tuple[str, ...] = RED_DE_CONFIANZA,
+) -> str | None:
+    return resolve_client_ip(
+        _request(cabeceras, client=desde), trusted_proxies=TrustedProxies.parse(proxies)
+    )
+
+
+def test_caso_1_cliente_directo_no_puede_falsificar_su_ip() -> None:
+    """Caso 1 del §11: la conexión no viene de un proxy conocido."""
+    assert _ip_resuelta({"X-Forwarded-For": IP_AFIRMADA}, desde=CLIENTE_DIRECTO) == CLIENTE_DIRECTO
+
+
+def test_caso_2_desde_proxy_de_confianza_se_usa_la_ip_original() -> None:
+    """Caso 2: la cabecera sí es creíble cuando la escribe un proxy nuestro."""
+    assert _ip_resuelta({"X-Forwarded-For": IP_AFIRMADA}, desde=PROXY_DE_CONFIANZA) == IP_AFIRMADA
+
+
+def test_caso_3_proxy_no_confiable_no_altera_la_identidad() -> None:
+    """Caso 3: un proxy real, pero fuera de la lista, no puede reescribir la identidad."""
+    assert _ip_resuelta({"X-Forwarded-For": IP_AFIRMADA}, desde="203.0.113.7") == "203.0.113.7"
+
+
+def test_caso_4_cadena_de_varios_proxies_devuelve_el_cliente_real() -> None:
+    """Caso 4: se recorre de derecha a izquierda saltando los proxies de confianza."""
+    cadena = f"{IP_AFIRMADA}, 10.0.0.9, 10.0.0.8"
+    assert _ip_resuelta({"X-Forwarded-For": cadena}, desde=PROXY_DE_CONFIANZA) == IP_AFIRMADA
+
+
+def test_caso_4b_una_entrada_prefijada_por_el_atacante_no_se_lee() -> None:
+    """La propiedad de seguridad del recorrido inverso, aislada.
+
+    El atacante envía ``X-Forwarded-For: <mentira>`` y el proxy le añade su
+    IP real a la derecha. Leer por la izquierda —lo que hace el modo
+    heredado— devolvería la mentira; recorrer desde la derecha devuelve la
+    IP real que escribió el proxy.
+    """
+    cadena = f"1.2.3.4, {IP_AFIRMADA}"
+    assert _ip_resuelta({"X-Forwarded-For": cadena}, desde=PROXY_DE_CONFIANZA) == IP_AFIRMADA
+
+
+def test_caso_5_configuracion_vacia_cae_al_comportamiento_heredado() -> None:
+    """Caso 5: sin proxies configurados manda ``trust_forwarded_headers``."""
+    peticion = _request({"X-Forwarded-For": IP_AFIRMADA})
+    vacio = TrustedProxies.parse(())
+    assert resolve_client_ip(peticion, trust_forwarded_headers=True, trusted_proxies=vacio) == (
+        IP_AFIRMADA
+    )
+    assert resolve_client_ip(peticion, trust_forwarded_headers=False, trusted_proxies=vacio) == (
+        CONEXION_REAL
+    )
+
+
+def test_una_cadena_enteramente_de_confianza_cae_a_la_conexion() -> None:
+    """Si todas las entradas son proxies, no hay cliente que extraer: manda la conexión."""
+    cadena = "10.0.0.9, 10.0.0.8"
+    assert _ip_resuelta({"X-Forwarded-For": cadena}, desde=PROXY_DE_CONFIANZA) == (
+        PROXY_DE_CONFIANZA
+    )
+
+
+def test_x_real_ip_tambien_se_respeta_desde_un_proxy_de_confianza() -> None:
+    assert _ip_resuelta({"X-Real-IP": IP_AFIRMADA}, desde=PROXY_DE_CONFIANZA) == IP_AFIRMADA
+
+
+def test_ip_suelta_como_proxy_de_confianza() -> None:
+    assert (
+        _ip_resuelta(
+            {"X-Forwarded-For": IP_AFIRMADA}, desde="192.168.1.10", proxies=("192.168.1.10",)
+        )
+        == IP_AFIRMADA
+    )
+
+
+def test_ipv6_soportado_en_redes_y_direcciones() -> None:
+    proxies = TrustedProxies.parse(("2001:db8::/32",))
+    assert proxies.trusts("2001:db8::1") is True
+    assert proxies.trusts("2001:dead::1") is False
+
+
+def test_entradas_invalidas_se_descartan_sin_romper_el_arranque() -> None:
+    """Fallar cerrado: una entrada mal escrita se ignora, nunca amplía la confianza."""
+    proxies = TrustedProxies.parse(("no-es-una-ip", "", "10.0.0.0/8", "999.999.999.999"))
+    assert len(proxies.networks) == 1
+    assert proxies.trusts("10.1.2.3") is True
+
+
+def test_trusted_proxies_vacio_es_falsy() -> None:
+    assert not TrustedProxies.parse(())
+    assert TrustedProxies.parse(("10.0.0.0/8",))
+
+
+def test_spoofing_no_esquiva_el_limitador_desde_un_cliente_directo() -> None:
+    """El efecto real sobre el limitador, que es lo que importa de todo esto."""
+
+    async def _run() -> list[bool]:
+        limiter = RateLimiter(
+            [RateLimitRule(name="por-ip", limit=2, window_seconds=60.0, scope=ProtectionScope.IP)]
+        )
+        proxies = TrustedProxies.parse(RED_DE_CONFIANZA)
+        aceptadas: list[bool] = []
+        for n in range(5):
+            contexto = build_request_context(
+                _request({"X-Forwarded-For": f"203.0.113.{n}"}, client=CLIENTE_DIRECTO),
+                trusted_proxies=proxies,
+            )
+            aceptadas.append(await limiter.acquire(contexto) is None)
+        return aceptadas
+
+    assert asyncio.run(_run()) == [True, True, False, False, False]
+
+
+def test_configuracion_del_modulo_propaga_los_proxies_al_gateway() -> None:
+    """De ``Settings`` a ``ApiGateway``, que es el camino que usa una aplicación real."""
+    from teaf._internal.api.module.configuration import ApiProtectionConfiguration  # noqa: PLC0415
+
+    config = ApiProtectionConfiguration.from_mapping(
+        {"api_trusted_proxies": "10.0.0.0/8, 192.168.1.10"}
+    )
+    assert config.trusted_proxies == ("10.0.0.0/8", "192.168.1.10")
+
+    gateway = ApiGateway(trusted_proxies=config.trusted_proxies)
+    assert gateway.trusted_proxies.trusts("10.1.2.3") is True
+    assert gateway.trusted_proxies.trusts("192.168.1.10") is True
+    assert gateway.trusted_proxies.trusts(CLIENTE_DIRECTO) is False
+
+
+def test_install_no_avisa_cuando_hay_proxies_de_confianza() -> None:
+    """Con ``trusted_proxies`` el riesgo está resuelto: seguir avisando sería ruido."""
+    registros: list[str] = []
+
+    class _Captura(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            registros.append(record.getMessage())
+
+    logger = logging.getLogger("teaf.api.gateway")
+    handler = _Captura()
+    logger.addHandler(handler)
+    logger.setLevel(logging.WARNING)
+    try:
+        ApiGateway(
+            rate_limiter=RateLimiter([RateLimitRule(name="r", limit=10, window_seconds=60.0)]),
+            trust_forwarded_headers=True,
+            trusted_proxies=("10.0.0.0/8",),
+        ).install(_AppFalsa())
+    finally:
+        logger.removeHandler(handler)
+    assert not [m for m in registros if "forwarded_headers_trusted" in m]

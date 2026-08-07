@@ -7,7 +7,54 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.9.2-alpha](#092-alpha---2026-08-07).
+Sin cambios todavía sobre [0.10.0-alpha](#0100-alpha---2026-08-07).
+
+## [0.10.0-alpha] - 2026-08-07
+
+Sprint 3.0 — **Infraestructura de producción y modernización del runtime**. Cierra los cuatro pendientes que la línea 2.9 dejó explícitamente aplazados. Sin funcionalidad de negocio nueva: el sprint no hace TEAF más grande, sino más seguro, portable y auditable.
+
+**Ruptura de API pública**: `PUBLIC_API_VERSION` sube de `1.0.0` a `2.0.0`. Un único cambio incompatible, sin consumidores reales posibles — ver *Changed*. Superficie: 192 → **199 símbolos**, 0 eliminados, 0 renombrados.
+
+### Added
+
+- **Módulo de caché distribuida** ([ADR-012](docs/architecture/adr/ADR-012-redis-optional-infrastructure.md)) — quinto módulo construido sobre el [Module SDK](docs/sdk/SDK.md), calcado del patrón de `DatabaseModule`. Desbloquea el escalado horizontal: los almacenes en memoria son por proceso, así que con 4 réplicas un límite de 100 req/min son 400 en la práctica, una cuota diaria se cuadruplica y **un reintento idempotente que caiga en otra réplica se ejecuta dos veces**.
+  - `CacheProvider` (`teaf/_internal/contracts/cache.py`), espejo deliberado de `DatabaseProvider`: `connect`/`disconnect`/`health_check` más `get`/`set(ttl)`/`delete`/`ttl`/`ping`.
+  - `InMemoryCacheProvider` — el **valor por defecto**, sin infraestructura desplegada, con purga amortizada que acota la memoria.
+  - `RedisCacheProvider` — tras el extra opcional `pip install "teaf[redis]"`. **El import de `redis` es perezoso, dentro de `connect()`**: importar TEAF nunca requiere el paquete, que es lo que hace la dependencia realmente opcional y no opcional sobre el papel.
+  - `CacheModule` abre el pool en `start()` y lo cierra en `dispose()`. Que exista el módulo no es burocracia: es lo único que garantiza que la conexión se cierre.
+  - **Coste cero sin configurar**, verificado con benchmarks y no solo afirmado: no se construye el módulo, no se importa `redis`, y el camino de la petición es idéntico.
+- **Los tres almacenes Redis pasan de preparados a implementados**: `RedisRateLimitStore`, `RedisQuotaStore` y `RedisIdempotencyStore` dejan de lanzar `NotImplementedError`. Se apoyan en `CacheProvider`, no en un cliente propio, para que el ciclo de vida de la conexión viva en un solo sitio. Punto de cableado: `ApiProtectionModule(cache_provider=...)`.
+- **`api_trusted_proxies`** ([ADR-011](docs/architecture/adr/ADR-011-trusted-proxy-architecture.md)) — **cierra H-2**, que 2.9.2 solo pudo mitigar. Lista de IPs o redes CIDR (IPv4 e IPv6) de las que se acepta información de reenvío, comprobada contra la **IP de la conexión TCP**, que es el único dato que el cliente no puede falsificar.
+  - Separa dos preguntas que el `trust_forwarded_headers` binario confundía en una: *¿hay un proxy delante?* y *¿viene **esta** petición de él?*
+  - **La cadena `X-Forwarded-For` se recorre de derecha a izquierda.** Cada salto añade por la derecha, así que las entradas de la izquierda las pudo escribir el cliente: tomar la primera —la lectura ingenua, y la que hacía TEAF— es leer justo el trozo que el atacante controla.
+  - **Falla cerrado**: una entrada inválida aborta el arranque. Una lista de confianza con una errata descartada en silencio es peor que no tener lista.
+  - Los CIDR se parsean **al construir**, no por petición. Sin dependencias nuevas: `ipaddress` es librería estándar.
+- **Longitud mínima del secreto JWT**, derivada del algoritmo según RFC 7518 §3.2 (HS256 ≥ 32 bytes, HS384 ≥ 48, HS512 ≥ 64). Se valida **al arrancar** en `Settings` y en `JWTProvider.__init__`, nunca durante una petición. El mensaje nombra algoritmo, longitud recibida y exigida, y **nunca el secreto**.
+- **`teaf.cache`** — nueva fachada pública con 7 símbolos (`CacheProvider`, `CacheModule`, `CacheConfiguration`, `CacheBackend`, `InMemoryCacheProvider`, `RedisCacheProvider`, `RedisCacheConfiguration`). Se exporta el módulo, a diferencia de `DatabaseModule`/`SecurityModule`, por el mismo motivo que `ApiProtectionModule`: todo su valor está en que alguien abra la conexión al arrancar y la cierre al apagar.
+- [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md) — matriz de compatibilidad de dependencias, y [`docs/modules/cache/CACHE.md`](docs/modules/cache/CACHE.md).
+- **Pruebas de integración contra un Redis real** ([`tests/integration/test_cache_redis.py`](tests/integration/test_cache_redis.py)), que se **omiten** cuando no hay servidor para que la suite siga siendo ejecutable en cualquier máquina.
+
+### Changed
+
+- **`fastapi` 0.115.6 → 0.141.1** (`starlette` 0.41.3 → 1.4.1). Antes del upgrade se verificó estáticamente que TEAF **no usa ninguna API eliminada en starlette 1.0**: usa `lifespan=` y `app.add_exception_handler`, cero `on_event`/`on_startup`/`add_event_handler`. `httpx` solo es un extra de starlette, así que no fuerza httpx 2.
+- **Ruptura de API pública** (`PUBLIC_API_VERSION` 1.0.0 → 2.0.0): los constructores de los tres almacenes Redis pasan de `(url, prefix)` a recibir un `CacheProvider`. **No puede romper a ningún consumidor**, porque hasta v0.9.2-alpha lanzaban `NotImplementedError` incondicionalmente: no existe una llamada que antes funcionara y ahora falle. La MAJOR sube igualmente porque [VERSIONING.md §5](docs/public-api/VERSIONING.md) manda subirla cuando el contrato cambia de forma incompatible, no cuando además duela. Tabla de migración en [MIGRATION-GUIDE.md §6](docs/public-api/MIGRATION-GUIDE.md#6-cuando-public_api_version-suba-de-major).
+- **Ruptura de configuración asumida**: una aplicación con un secreto JWT por debajo del mínimo **deja de arrancar** al actualizar. Es intencionado — ese secreto era vulnerable a fuerza bruta, y seguir aceptándolo en silencio sería debilitar la política para mantener compatibilidad.
+- `trust_forwarded_headers` queda **deprecado de hecho, no eliminado**: sigue funcionando igual y configurar `api_trusted_proxies` **silencia su aviso de arranque**, porque el aviso deja de describir un riesgo real.
+- `HTTP_422_UNPROCESSABLE_ENTITY` → `HTTP_422_UNPROCESSABLE_CONTENT` (renombrado en starlette 1.x; el código de estado no cambia).
+
+### Fixed
+
+- **El proveedor de Redis estaba roto para toda URL `redis://`** — es decir, para el backend por defecto. Se pasaba `ssl_cert_reqs` incondicionalmente a `from_url`, pero solo lo acepta `SSLConnection`: sobre una URL sin TLS reventaba con `TypeError` en la **primera operación**, no al conectar, porque `from_url` es perezoso. Lo destapó la suite de integración contra un Redis real; ninguna prueba con doble en memoria podía verlo. Corregido y fijado con una prueba unitaria que no necesita servidor.
+
+### Security
+
+- **`docs/security/accepted-vulnerabilities.json` queda vacío.** Las 7 vulnerabilidades de `starlette` que 2.9.2 tuvo que aceptar —porque `fastapi 0.115.6` fijaba `starlette<0.42.0`— desaparecen con el upgrade. Las entradas se **borran** en vez de dejarse marcadas como aceptadas: una excepción que ya no aplica es deuda invisible.
+- Revisión de seguridad del sprint en [SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md): spoofing e inyección de cabeceras, credenciales y fugas de conexión de Redis, secretos débiles y mensajes de error de JWT.
+
+### Known limitations
+
+- **`RedisQuotaStore.consume` es un read-modify-write no atómico**: dos réplicas concurrentes pueden permitir un ligero exceso sobre la cuota. Documentado en su docstring, en [CACHE.md §10](docs/modules/cache/CACHE.md) y en el [backlog](docs/roadmap/BACKLOG.md). Se deja implementado y dicho, en vez de no ofrecer cuotas compartidas: un exceso ocasional acotado es un problema mucho menor que una cuota multiplicada por el número de réplicas.
+- **Sigue sin haber un valor por defecto seguro** para las cabeceras de reenvío: sin configurar `api_trusted_proxies`, el comportamiento es idéntico a v0.9.2-alpha. El sprint aporta la posibilidad de configurarlo correctamente, no un valor por defecto distinto — el razonamiento de [ADR-010 §4](docs/architecture/adr/ADR-010-security-headers-and-forwarded-trust.md) sigue vigente.
 
 ## [0.9.2-alpha] - 2026-08-07
 

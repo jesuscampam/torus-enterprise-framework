@@ -136,6 +136,15 @@ from teaf.api import (
     parse_accept_encoding,
 )
 from teaf.application import Application
+from teaf.cache import (
+    CacheBackend,
+    CacheConfiguration,
+    CacheModule,
+    CacheProvider,
+    InMemoryCacheProvider,
+    RedisCacheConfiguration,
+    RedisCacheProvider,
+)
 from teaf.capabilities import CapabilityCategory, CapabilityRegistry
 from teaf.configuration import Configuration, get_configuration
 from teaf.events import Event, EventBus
@@ -454,4 +463,13 @@ __all__ = [
     "build_request_context",
     "get_algorithm",
     "parse_accept_encoding",
+    # -- Caché distribuida (Sprint 3.0, ADR-012) — ver ``teaf/cache.py`` para
+    # -- por qué se exporta el módulo y no solo el contrato.
+    "CacheBackend",
+    "CacheConfiguration",
+    "CacheModule",
+    "CacheProvider",
+    "InMemoryCacheProvider",
+    "RedisCacheConfiguration",
+    "RedisCacheProvider",
 ]

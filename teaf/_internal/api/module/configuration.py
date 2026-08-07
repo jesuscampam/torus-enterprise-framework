@@ -171,6 +171,8 @@ class ApiProtectionConfiguration:
     #: sin un proxy que las reescriba, las cabeceras ``X-Forwarded-For`` las
     #: controla el cliente y falsearlas saltaría cualquier límite por IP.
     trust_forwarded_headers: bool = True
+    #: Redes de proxy de confianza (IP o CIDR). Ver ADR-011.
+    trusted_proxies: tuple[str, ...] = ()
 
     @property
     def algorithm(self) -> RateLimitAlgorithm:
@@ -395,6 +397,9 @@ class ApiProtectionConfiguration:
             ),
             audit_logging_sink_enabled=_coerce_bool(
                 _lookup(values, "audit_logging_sink_enabled"), defaults.audit_logging_sink_enabled
+            ),
+            trusted_proxies=_coerce_tuple(
+                _lookup(values, "trusted_proxies"), defaults.trusted_proxies
             ),
             trust_forwarded_headers=_coerce_bool(
                 _lookup(values, "trust_forwarded_headers"), defaults.trust_forwarded_headers

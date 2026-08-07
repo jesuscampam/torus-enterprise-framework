@@ -368,6 +368,12 @@
             "default": "True"
           },
           {
+            "name": "trusted_proxies",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
             "name": "validate_responses",
             "kind": "KEYWORD_ONLY",
             "required": false,
@@ -1306,6 +1312,12 @@
             "kind": "POSITIONAL_OR_KEYWORD",
             "required": false,
             "default": "True"
+          },
+          {
+            "name": "trusted_proxies",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "()"
           }
         ]
       },
@@ -1373,6 +1385,12 @@
           },
           {
             "name": "compression_providers",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "cache_provider",
             "kind": "KEYWORD_ONLY",
             "required": false,
             "default": "None"
@@ -2303,6 +2321,549 @@
         "parameters": [
           {
             "name": "data",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      }
+    }
+  },
+  "CacheBackend": {
+    "kind": "class",
+    "methods": {
+      "__init__": {
+        "parameters": [
+          {
+            "name": "args",
+            "kind": "VAR_POSITIONAL",
+            "required": false,
+            "default": null
+          },
+          {
+            "name": "kwds",
+            "kind": "VAR_KEYWORD",
+            "required": false,
+            "default": null
+          }
+        ]
+      },
+      "capitalize": {
+        "parameters": []
+      },
+      "casefold": {
+        "parameters": []
+      },
+      "center": {
+        "parameters": [
+          {
+            "name": "width",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "fillchar",
+            "kind": "POSITIONAL_ONLY",
+            "required": false,
+            "default": "' '"
+          }
+        ]
+      },
+      "encode": {
+        "parameters": [
+          {
+            "name": "encoding",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "'utf-8'"
+          },
+          {
+            "name": "errors",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "'strict'"
+          }
+        ]
+      },
+      "expandtabs": {
+        "parameters": [
+          {
+            "name": "tabsize",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "8"
+          }
+        ]
+      },
+      "isalnum": {
+        "parameters": []
+      },
+      "isalpha": {
+        "parameters": []
+      },
+      "isascii": {
+        "parameters": []
+      },
+      "isdecimal": {
+        "parameters": []
+      },
+      "isdigit": {
+        "parameters": []
+      },
+      "isidentifier": {
+        "parameters": []
+      },
+      "islower": {
+        "parameters": []
+      },
+      "isnumeric": {
+        "parameters": []
+      },
+      "isprintable": {
+        "parameters": []
+      },
+      "isspace": {
+        "parameters": []
+      },
+      "istitle": {
+        "parameters": []
+      },
+      "isupper": {
+        "parameters": []
+      },
+      "join": {
+        "parameters": [
+          {
+            "name": "iterable",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "ljust": {
+        "parameters": [
+          {
+            "name": "width",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "fillchar",
+            "kind": "POSITIONAL_ONLY",
+            "required": false,
+            "default": "' '"
+          }
+        ]
+      },
+      "lower": {
+        "parameters": []
+      },
+      "lstrip": {
+        "parameters": [
+          {
+            "name": "chars",
+            "kind": "POSITIONAL_ONLY",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "partition": {
+        "parameters": [
+          {
+            "name": "sep",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "removeprefix": {
+        "parameters": [
+          {
+            "name": "prefix",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "removesuffix": {
+        "parameters": [
+          {
+            "name": "suffix",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "replace": {
+        "parameters": [
+          {
+            "name": "old",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "new",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "count",
+            "kind": "POSITIONAL_ONLY",
+            "required": false,
+            "default": "-1"
+          }
+        ]
+      },
+      "rjust": {
+        "parameters": [
+          {
+            "name": "width",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "fillchar",
+            "kind": "POSITIONAL_ONLY",
+            "required": false,
+            "default": "' '"
+          }
+        ]
+      },
+      "rpartition": {
+        "parameters": [
+          {
+            "name": "sep",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "rsplit": {
+        "parameters": [
+          {
+            "name": "sep",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "maxsplit",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "-1"
+          }
+        ]
+      },
+      "rstrip": {
+        "parameters": [
+          {
+            "name": "chars",
+            "kind": "POSITIONAL_ONLY",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "split": {
+        "parameters": [
+          {
+            "name": "sep",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "maxsplit",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "-1"
+          }
+        ]
+      },
+      "splitlines": {
+        "parameters": [
+          {
+            "name": "keepends",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "False"
+          }
+        ]
+      },
+      "strip": {
+        "parameters": [
+          {
+            "name": "chars",
+            "kind": "POSITIONAL_ONLY",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "swapcase": {
+        "parameters": []
+      },
+      "title": {
+        "parameters": []
+      },
+      "translate": {
+        "parameters": [
+          {
+            "name": "table",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "upper": {
+        "parameters": []
+      },
+      "zfill": {
+        "parameters": [
+          {
+            "name": "width",
+            "kind": "POSITIONAL_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      }
+    }
+  },
+  "CacheConfiguration": {
+    "kind": "class",
+    "methods": {
+      "__init__": {
+        "parameters": [
+          {
+            "name": "enabled",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "False"
+          },
+          {
+            "name": "backend",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "<CacheBackend.MEMORY: 'memory'>"
+          },
+          {
+            "name": "redis",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "<factory>"
+          }
+        ]
+      },
+      "from_mapping": {
+        "parameters": [
+          {
+            "name": "values",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      }
+    }
+  },
+  "CacheModule": {
+    "kind": "class",
+    "methods": {
+      "__init__": {
+        "parameters": [
+          {
+            "name": "configuration",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "bootstrap": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "configure": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "dispose": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "get_manifest": {
+        "parameters": []
+      },
+      "initialize": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "ready": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "register": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "shutdown": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "start": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "stop": {
+        "parameters": [
+          {
+            "name": "context",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      }
+    }
+  },
+  "CacheProvider": {
+    "kind": "class",
+    "methods": {
+      "__init__": {
+        "parameters": [
+          {
+            "name": "args",
+            "kind": "VAR_POSITIONAL",
+            "required": false,
+            "default": null
+          },
+          {
+            "name": "kwargs",
+            "kind": "VAR_KEYWORD",
+            "required": false,
+            "default": null
+          }
+        ]
+      },
+      "connect": {
+        "parameters": []
+      },
+      "delete": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "disconnect": {
+        "parameters": []
+      },
+      "get": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "health_check": {
+        "parameters": []
+      },
+      "ping": {
+        "parameters": []
+      },
+      "set": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "value",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "ttl_seconds",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "ttl": {
+        "parameters": [
+          {
+            "name": "key",
             "kind": "POSITIONAL_OR_KEYWORD",
             "required": true,
             "default": null
@@ -6339,6 +6900,81 @@
       }
     }
   },
+  "InMemoryCacheProvider": {
+    "kind": "class",
+    "methods": {
+      "__init__": {
+        "parameters": []
+      },
+      "connect": {
+        "parameters": []
+      },
+      "delete": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "disconnect": {
+        "parameters": []
+      },
+      "get": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "health_check": {
+        "parameters": []
+      },
+      "ping": {
+        "parameters": []
+      },
+      "purge_expired": {
+        "parameters": []
+      },
+      "set": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "value",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "ttl_seconds",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "ttl": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      }
+    }
+  },
   "InMemoryIdempotencyStore": {
     "kind": "class",
     "methods": {
@@ -6371,6 +7007,9 @@
             "default": null
           }
         ]
+      },
+      "purge_expired": {
+        "parameters": []
       },
       "put": {
         "parameters": [
@@ -6428,6 +7067,9 @@
             "default": null
           }
         ]
+      },
+      "purge_expired": {
+        "parameters": []
       },
       "release": {
         "parameters": [
@@ -11773,22 +12415,153 @@
       }
     }
   },
-  "RedisIdempotencyStore": {
+  "RedisCacheConfiguration": {
     "kind": "class",
     "methods": {
       "__init__": {
         "parameters": [
           {
             "name": "url",
-            "kind": "KEYWORD_ONLY",
+            "kind": "POSITIONAL_OR_KEYWORD",
             "required": false,
             "default": "'redis://localhost:6379/0'"
           },
           {
-            "name": "prefix",
-            "kind": "KEYWORD_ONLY",
+            "name": "key_prefix",
+            "kind": "POSITIONAL_OR_KEYWORD",
             "required": false,
             "default": "'teaf'"
+          },
+          {
+            "name": "connect_timeout_seconds",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "5.0"
+          },
+          {
+            "name": "operation_timeout_seconds",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "5.0"
+          },
+          {
+            "name": "max_connections",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "10"
+          },
+          {
+            "name": "tls_verify",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "True"
+          }
+        ]
+      },
+      "validated": {
+        "parameters": []
+      }
+    }
+  },
+  "RedisCacheProvider": {
+    "kind": "class",
+    "methods": {
+      "__init__": {
+        "parameters": [
+          {
+            "name": "configuration",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "connect": {
+        "parameters": []
+      },
+      "delete": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "disconnect": {
+        "parameters": []
+      },
+      "get": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "health_check": {
+        "parameters": []
+      },
+      "key": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "ping": {
+        "parameters": []
+      },
+      "set": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "value",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          },
+          {
+            "name": "ttl_seconds",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          }
+        ]
+      },
+      "ttl": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      }
+    }
+  },
+  "RedisIdempotencyStore": {
+    "kind": "class",
+    "methods": {
+      "__init__": {
+        "parameters": [
+          {
+            "name": "provider",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
           }
         ]
       },
@@ -11803,6 +12576,16 @@
         ]
       },
       "get": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "key": {
         "parameters": [
           {
             "name": "key",
@@ -11830,16 +12613,10 @@
       "__init__": {
         "parameters": [
           {
-            "name": "url",
-            "kind": "KEYWORD_ONLY",
-            "required": false,
-            "default": "'redis://localhost:6379/0'"
-          },
-          {
-            "name": "prefix",
-            "kind": "KEYWORD_ONLY",
-            "required": false,
-            "default": "'teaf'"
+            "name": "provider",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
           }
         ]
       },
@@ -11860,6 +12637,16 @@
           {
             "name": "ttl_seconds",
             "kind": "KEYWORD_ONLY",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "key": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
             "required": true,
             "default": null
           }
@@ -11909,20 +12696,24 @@
       "__init__": {
         "parameters": [
           {
-            "name": "url",
-            "kind": "KEYWORD_ONLY",
-            "required": false,
-            "default": "'redis://localhost:6379/0'"
-          },
-          {
-            "name": "prefix",
-            "kind": "KEYWORD_ONLY",
-            "required": false,
-            "default": "'teaf'"
+            "name": "provider",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
           }
         ]
       },
       "get": {
+        "parameters": [
+          {
+            "name": "key",
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "required": true,
+            "default": null
+          }
+        ]
+      },
+      "key": {
         "parameters": [
           {
             "name": "key",
@@ -14651,6 +15442,12 @@
         "kind": "KEYWORD_ONLY",
         "required": false,
         "default": "True"
+      },
+      {
+        "name": "trusted_proxies",
+        "kind": "KEYWORD_ONLY",
+        "required": false,
+        "default": "None"
       }
     ]
   },

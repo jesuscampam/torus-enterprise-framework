@@ -4,66 +4,17 @@
     "Las consume scripts/check_dependency_audit.py: cualquier aviso que NO esté",
     "aquí hace fallar la puerta de calidad. Aceptar no es silenciar — la puerta",
     "las lista en cada ejecución y este fichero se revisa al abrir cada Sprint.",
-    "Contexto completo y análisis de explotabilidad: docs/SECURITY-REVIEW.md."
+    "Contexto completo y análisis de explotabilidad: docs/SECURITY-REVIEW.md.",
+    "",
+    "Sprint 3.0: la lista quedó VACÍA. Las 7 entradas de starlette que aceptó",
+    "Sprint 2.9.2 estaban bloqueadas por el pin 'starlette<0.42.0' de",
+    "fastapi 0.115.6; al actualizar a fastapi 0.141.1 + starlette 1.4.1 las",
+    "correcciones quedaron disponibles y las entradas se ELIMINAN en vez de",
+    "mantenerse 'aceptadas'. Una excepción que ya no aplica y sigue en la lista",
+    "es deuda invisible: la próxima vulnerabilidad de ese paquete pasaría",
+    "desapercibida bajo una justificación caducada."
   ],
   "reviewed": "2026-08-07",
-  "sprint": "2.9.2",
-  "accepted": [
-    {
-      "package": "starlette",
-      "id": "PYSEC-2026-161",
-      "affected_version": "0.41.3",
-      "target_version": "1.0.1",
-      "severity": "baja",
-      "justification": "Inyección en la parte de host de request.url por falta de validación de la cabecera Host. El enrutado de TEAF se resuelve por ruta, no por host; request.url solo se usa para validar longitud de URL en RequestValidator. Transitiva vía fastapi 0.115.6, que fija starlette<0.42.0: corregirla exige actualizar FastAPI (Sprint 3.0)."
-    },
-    {
-      "package": "starlette",
-      "id": "PYSEC-2026-248",
-      "affected_version": "0.41.3",
-      "target_version": "1.3.0",
-      "severity": "baja",
-      "justification": "Una ruta que no empieza por '/' desplaza la autoridad al reconstruir request.url. Mismo alcance y mismo bloqueo que PYSEC-2026-161."
-    },
-    {
-      "package": "starlette",
-      "id": "PYSEC-2026-249",
-      "affected_version": "0.41.3",
-      "target_version": "1.3.1",
-      "severity": "media",
-      "justification": "request.form() ignora max_fields/max_part_size para application/x-www-form-urlencoded. TEAF no llama a request.form() en ninguna ruta propia; afecta solo a aplicaciones que parseen formularios, que pueden acotar el tamaño con RequestValidator (api_validation_max_request_bytes). Bloqueada por el pin de FastAPI."
-    },
-    {
-      "package": "starlette",
-      "id": "PYSEC-2026-1941",
-      "affected_version": "0.41.3",
-      "target_version": "0.47.2",
-      "severity": "media",
-      "justification": "Parsear multipart con ficheros grandes bloquea el hilo principal. TEAF no parsea multipart en ninguna ruta propia. Bloqueada por el pin de FastAPI."
-    },
-    {
-      "package": "starlette",
-      "id": "PYSEC-2026-1942",
-      "affected_version": "0.41.3",
-      "target_version": "0.49.1",
-      "severity": "media",
-      "justification": "Cabecera Range manipulada provoca coste cuadrático en FileResponse (denegación de servicio por CPU). TEAF no sirve ficheros: no monta StaticFiles ni devuelve FileResponse en ninguna ruta propia. Bloqueada por el pin de FastAPI."
-    },
-    {
-      "package": "starlette",
-      "id": "PYSEC-2026-2280",
-      "affected_version": "0.41.3",
-      "target_version": "1.1.0",
-      "severity": "media",
-      "justification": "HTTPEndpoint resuelve el manejador con getattr sobre el método HTTP en minúsculas, sin restringirlo a verbos conocidos. TEAF construye sus rutas con routers de FastAPI, no con HTTPEndpoint. Bloqueada por el pin de FastAPI."
-    },
-    {
-      "package": "starlette",
-      "id": "PYSEC-2026-2281",
-      "affected_version": "0.41.3",
-      "target_version": "1.1.0",
-      "severity": "baja",
-      "justification": "SSRF en StaticFiles a través de rutas UNC, exclusivo de Windows. TEAF no usa StaticFiles y su objetivo de despliegue es Linux (contenedor / Azure App Service). Bloqueada por el pin de FastAPI."
-    }
-  ]
+  "sprint": "3.0",
+  "accepted": []
 }

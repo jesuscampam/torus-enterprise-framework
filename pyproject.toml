@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "teaf"
-version = "0.9.2-alpha"
+version = "0.10.0-alpha"
 description = "TORUS Enterprise Application Framework — a modular, API-first, Cloud-ready and AI-ready Python framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,7 +24,7 @@ classifiers = [
 # desarrollo local/CI vía `pip install -r requirements.txt`) — ambos fijan
 # las mismas versiones exactas, ver docs/architecture/STACK.md.
 dependencies = [
-    "fastapi==0.115.6",
+    "fastapi==0.141.1",
     "uvicorn[standard]==0.34.0",
     "pydantic==2.10.4",
     "pydantic-settings==2.7.0",
@@ -57,6 +57,12 @@ Changelog = "https://github.com/jesuscampam/torus-enterprise-framework/blob/main
 # ADR-006), un subpaquete de `teaf` — no un paquete de nivel superior
 # independiente, precisamente para no poder colisionar con un posible
 # paquete `backend/` propio de una aplicación consumidora.
+[project.optional-dependencies]
+# Caché distribuida (Sprint 3.0, ADR-012). Opcional a propósito: TEAF
+# funciona sin ella con los almacenes en memoria, y el import de
+# ``redis`` es perezoso para que no instalarla nunca rompa el arranque.
+redis = ["redis>=5.0,<7.0"]
+
 [tool.setuptools.packages.find]
 include = ["teaf*"]
 exclude = ["tests*", "examples*"]
@@ -109,6 +115,16 @@ python_version = "3.11"
 packages = ["teaf"]
 strict = true
 ignore_missing_imports = true
+
+# ``redis`` es un extra opcional (Sprint 3.0, ADR-012): puede no estar
+# instalado en el entorno de tipado, y exigir sus stubs para comprobar tipos
+# obligaría a instalarlo — justo lo contrario de que sea opcional. El
+# aislamiento está acotado a providers/cache/redis.py, que expone hacia fuera
+# el contrato tipado ``CacheProvider``.
+[[tool.mypy.overrides]]
+module = ["redis.*", "redis"]
+ignore_missing_imports = true
+follow_untyped_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

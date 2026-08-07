@@ -33,7 +33,7 @@ _PROBLEM_BASE_URI = "https://teaf.torus/errors"
 #: Código HTTP asociado a cada categoría de excepción de negocio. Se resuelve
 #: por el tipo más específico primero; ApplicationException es el fallback.
 _STATUS_BY_EXCEPTION_TYPE: dict[type[ApplicationException], int] = {
-    ValidationException: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    ValidationException: status.HTTP_422_UNPROCESSABLE_CONTENT,
     BusinessException: status.HTTP_409_CONFLICT,
     AuthenticationException: status.HTTP_401_UNAUTHORIZED,
     AuthorizationException: status.HTTP_403_FORBIDDEN,
@@ -122,12 +122,12 @@ async def _handle_validation_error(request: Request, exc: RequestValidationError
     problem = _build_problem_detail(
         error_code="validation-error",
         title="ValidationError",
-        http_status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        http_status=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail="El payload de la petición no cumple el contrato esperado.",
         instance_path=request.url.path,
     )
     problem["errors"] = exc.errors()
-    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=problem)
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content=problem)
 
 
 async def _handle_http_exception(request: Request, exc: StarletteHTTPException) -> JSONResponse:

@@ -23,6 +23,15 @@ _FACADE_MODULES: dict[str, set[str]] = {
     "teaf.capabilities": {"CapabilityCategory", "CapabilityRegistry"},
     "teaf.health": {"Health"},
     "teaf.configuration": {"Configuration", "get_configuration"},
+    "teaf.cache": {
+        "CacheBackend",
+        "CacheConfiguration",
+        "CacheModule",
+        "CacheProvider",
+        "InMemoryCacheProvider",
+        "RedisCacheConfiguration",
+        "RedisCacheProvider",
+    },
 }
 
 

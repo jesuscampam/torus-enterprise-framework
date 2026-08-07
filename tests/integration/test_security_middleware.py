@@ -31,8 +31,8 @@ from teaf.security import (
 
 
 def _build_app(*, event_bus: EventBus | None = None):
-    jwt_provider = JWTProvider(secret="test-secret")
-    api_key_provider = ApiKeyProvider(secret="test-secret")
+    jwt_provider = JWTProvider(secret="test-secret-with-at-least-32-bytes!!")
+    api_key_provider = ApiKeyProvider(secret="test-secret-with-at-least-32-bytes!!")
     registry = IdentityProviderRegistry(
         [
             AnonymousIdentityProvider(),

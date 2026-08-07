@@ -14,6 +14,8 @@ from teaf import Application
 from teaf._internal.api.module.configuration import build_quota_rules, build_rate_limit_rules
 from teaf._internal.api.module.manifest import API_PROTECTION_EVENTS
 from teaf._internal.contracts.api import CompressionProvider
+from teaf._internal.contracts.cache import CacheProvider
+from teaf._internal.providers.cache.memory import InMemoryCacheProvider
 from teaf.api import (
     MIDDLEWARE_ORDER,
     ApiAudit,
@@ -448,10 +450,25 @@ def test_an_empty_rule_sequence_disables_the_subsystem_explicitly() -> None:
 @pytest.mark.parametrize(
     "provider_class", [RedisRateLimitStore, RedisQuotaStore, RedisIdempotencyStore]
 )
-def test_the_redis_providers_fail_loudly_instead_of_pretending(
+def test_the_redis_providers_are_implemented_over_the_cache_contract(
     provider_class: type,
 ) -> None:
-    """Están preparados, no implementados: construirlos debe decirlo, nunca
-    fingir un almacenamiento que no existe."""
-    with pytest.raises(NotImplementedError, match="preparado pero no implementado"):
+    """Sprint 3.0 los implementa: hasta 2.9.2 lanzaban ``NotImplementedError``.
+
+    Lo que se fija aquí es la frontera: cada almacén se construye sobre un
+    ``CacheProvider`` —no sobre un cliente de Redis propio—, de modo que el
+    ciclo de vida de la conexión vive en un solo sitio (el módulo de caché) y
+    estos objetos no abren ninguna. La lógica de cada uno se prueba en
+    ``tests/unit/test_cache_module.py``.
+    """
+    store = provider_class(InMemoryCacheProvider())
+    assert isinstance(store.provider, CacheProvider)
+
+
+@pytest.mark.parametrize(
+    "provider_class", [RedisRateLimitStore, RedisQuotaStore, RedisIdempotencyStore]
+)
+def test_the_redis_providers_require_a_cache_provider(provider_class: type) -> None:
+    """Sin proveedor no hay almacén: construirlos "por si acaso" no debe colar."""
+    with pytest.raises(TypeError):
         provider_class()

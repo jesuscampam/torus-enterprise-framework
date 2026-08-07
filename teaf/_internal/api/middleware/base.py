@@ -22,7 +22,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from teaf._internal.api.middleware.context import build_request_context
+from teaf._internal.api.middleware.context import TrustedProxies, build_request_context
 from teaf._internal.api.models import ApiRequestContext
 from teaf._internal.core.exceptions import ApplicationException
 from teaf._internal.middleware.exception_handler import build_problem_response
@@ -77,6 +77,7 @@ class ApiProtectionMiddleware(BaseHTTPMiddleware):
         event_bus: EventBus | None = None,
         event_bus_provider: Callable[[], EventBus | None] | None = None,
         trust_forwarded_headers: bool = True,
+        trusted_proxies: TrustedProxies | None = None,
     ) -> None:
         """``event_bus_provider`` existe por una razón de orden de arranque:
         ``ApiGateway.install()`` debe ejecutarse **antes** de que arranque el
@@ -93,6 +94,7 @@ class ApiProtectionMiddleware(BaseHTTPMiddleware):
         self._event_bus = event_bus
         self._event_bus_provider = event_bus_provider
         self._trust_forwarded_headers = trust_forwarded_headers
+        self._trusted_proxies = trusted_proxies
 
     @property
     def event_bus(self) -> EventBus | None:
@@ -113,7 +115,9 @@ class ApiProtectionMiddleware(BaseHTTPMiddleware):
         if isinstance(cached, ApiRequestContext):
             return cached
         context = build_request_context(
-            request, trust_forwarded_headers=self._trust_forwarded_headers
+            request,
+            trust_forwarded_headers=self._trust_forwarded_headers,
+            trusted_proxies=self._trusted_proxies,
         )
         request.state.api_request_context = context
         return context

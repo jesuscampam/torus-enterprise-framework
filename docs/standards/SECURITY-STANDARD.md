@@ -13,6 +13,7 @@ Este documento define las prácticas de seguridad obligatorias del framework, en
   - **Access token**: de vida corta (recomendado 15 minutos), usado en cada petición vía header `Authorization: Bearer <token>`.
   - **Refresh token**: de vida más larga, almacenado de forma segura (httpOnly cookie o almacenamiento seguro del cliente), usado exclusivamente para obtener nuevos access tokens.
 - Los tokens se firman con algoritmos asimétricos (RS256) o HMAC con secreto robusto (HS256) gestionado vía secretos de entorno, nunca hardcodeado.
+- **La clave HMAC cumple el mínimo que exige su algoritmo** (RFC 7518 §3.2: al menos el tamaño de la salida del hash). Es obligatorio y se verifica **al arrancar**, no en cada petición: HS256 ≥ 32 bytes, HS384 ≥ 48, HS512 ≥ 64. Un secreto por debajo del mínimo impide que la aplicación arranque — validado en `Settings` y en `JWTProvider.__init__` (Sprint 3.0). El mensaje de error nombra algoritmo, longitud recibida y longitud exigida, y **nunca el secreto**. Los algoritmos asimétricos (RS\*/ES\*/PS\*) no aplican: la clave es un PEM. Ver [SECURITY-CONFIGURATION.md](../security/SECURITY-CONFIGURATION.md).
 - La revocación de sesión se implementa mediante lista de revocación o rotación de refresh tokens; un refresh token usado más de una vez se considera comprometido y revoca toda la cadena de sesión.
 
 ## 2. Autorización (RBAC)

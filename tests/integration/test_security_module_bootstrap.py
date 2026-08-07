@@ -115,7 +115,8 @@ def test_security_module_with_custom_role_catalog() -> None:
     from teaf._internal.modules.security.configuration import SecurityConfiguration
 
     configuration = SecurityConfiguration(
-        jwt_secret="test-secret", roles={"admin": frozenset({"users:delete"})}
+        jwt_secret="test-secret-with-at-least-32-bytes!!",
+        roles={"admin": frozenset({"users:delete"})},
     )
     module = SecurityModule(configuration)
     app = Application(modules=[module])

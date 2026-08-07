@@ -50,11 +50,13 @@ from teaf._internal.api.providers.memory import (
     InMemoryRateLimitStore,
     LoggingAuditSink,
 )
+from teaf._internal.api.providers.redis import RedisRateLimitStore
 from teaf._internal.api.quotas.manager import QuotaManager
 from teaf._internal.api.ratelimit.limiter import RateLimiter
 from teaf._internal.api.validation.validator import RequestValidationPolicy, RequestValidator
 from teaf._internal.api.versioning.negotiator import ApiVersioningPolicy, ApiVersionNegotiator
 from teaf._internal.contracts.api import AuditSink, CompressionProvider
+from teaf._internal.contracts.cache import CacheProvider
 from teaf._internal.contracts.telemetry import Meter
 from teaf._internal.runtime.event_bus import Event
 from teaf._internal.sdk.context import ModuleContext
@@ -74,6 +76,7 @@ class ApiProtectionModule(ModuleBase):
         quota_rules: Sequence[QuotaRule] | None = None,
         audit_sinks: Sequence[AuditSink] = (),
         compression_providers: Sequence[CompressionProvider] | None = None,
+        cache_provider: CacheProvider | None = None,
         meter: Meter | None = None,
     ) -> None:
         """Los argumentos por palabra clave son la vía para lo que no cabe en
@@ -94,7 +97,17 @@ class ApiProtectionModule(ModuleBase):
         rules = (
             build_rate_limit_rules(config) if rate_limit_rules is None else tuple(rate_limit_rules)
         )
-        self.rate_limit_store = InMemoryRateLimitStore()
+        # Con ``cache_provider`` los tres almacenes pasan a ser distribuidos y
+        # el estado se comparte entre réplicas; sin él siguen siendo por
+        # proceso, que es el comportamiento de siempre. Es el único punto del
+        # subsistema donde se elige, y no cambia ninguna firma: ADR-009 diseñó
+        # los contratos precisamente para que esto no requiriera rediseño.
+        self.cache_provider = cache_provider
+        self.rate_limit_store = (
+            RedisRateLimitStore(cache_provider)
+            if cache_provider is not None
+            else InMemoryRateLimitStore()
+        )
         self.rate_limiter = RateLimiter(
             rules, store=self.rate_limit_store, enabled=config.rate_limit_enabled
         )
@@ -168,6 +181,7 @@ class ApiProtectionModule(ModuleBase):
             idempotency=self.idempotency if config.idempotency_enabled else None,
             audit=self.audit if config.audit_enabled else None,
             trust_forwarded_headers=config.trust_forwarded_headers,
+            trusted_proxies=config.trusted_proxies,
             validate_responses=config.validation_validate_responses,
         )
 
@@ -243,4 +257,7 @@ class ApiProtectionModule(ModuleBase):
         se consulta), así que un barrido explícito al apagar evita arrastrar
         claves muertas si el proceso se reinicia en caliente.
         """
-        self.rate_limit_store.purge_expired()
+        # Solo el almacén en memoria necesita el barrido: en Redis la
+        # expiración la lleva el propio servidor con el TTL de cada clave.
+        if isinstance(self.rate_limit_store, InMemoryRateLimitStore):
+            self.rate_limit_store.purge_expired()

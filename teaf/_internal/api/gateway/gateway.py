@@ -18,7 +18,7 @@ servidor.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -28,6 +28,7 @@ from teaf._internal.api.cors.policy import CorsPolicy
 from teaf._internal.api.idempotency.manager import IdempotencyManager
 from teaf._internal.api.middleware.audit import ApiAuditMiddleware
 from teaf._internal.api.middleware.compression import CompressionMiddleware
+from teaf._internal.api.middleware.context import TrustedProxies
 from teaf._internal.api.middleware.cors import CorsMiddleware
 from teaf._internal.api.middleware.idempotency import IdempotencyMiddleware
 from teaf._internal.api.middleware.quota import QuotaMiddleware, quota_headers
@@ -121,6 +122,7 @@ class ApiGateway:
         audit: ApiAudit | None = None,
         event_bus: EventBus | None = None,
         trust_forwarded_headers: bool = True,
+        trusted_proxies: TrustedProxies | Sequence[str] | None = None,
         validate_responses: bool = False,
     ) -> None:
         self.rate_limiter = rate_limiter
@@ -133,6 +135,14 @@ class ApiGateway:
         self.audit = audit
         self.event_bus = event_bus
         self.trust_forwarded_headers = trust_forwarded_headers
+        #: Se compila una sola vez aquí, no por petición (ver ``TrustedProxies``).
+        #: Acepta también una secuencia de cadenas por comodidad de quien
+        #: construya el gateway a mano.
+        self.trusted_proxies = (
+            trusted_proxies
+            if isinstance(trusted_proxies, TrustedProxies)
+            else TrustedProxies.parse(trusted_proxies or ())
+        )
         self.validate_responses = validate_responses
 
     def _middleware_specs(self) -> dict[str, tuple[type, dict[str, Any]]]:
@@ -144,7 +154,11 @@ class ApiGateway:
         if self.audit is not None:
             specs["audit"] = (
                 ApiAuditMiddleware,
-                {"audit": self.audit, "trust_forwarded_headers": self.trust_forwarded_headers},
+                {
+                    "audit": self.audit,
+                    "trust_forwarded_headers": self.trust_forwarded_headers,
+                    "trusted_proxies": self.trusted_proxies,
+                },
             )
         if self.compression is not None:
             specs["compression"] = (CompressionMiddleware, {"negotiator": self.compression})
@@ -161,6 +175,7 @@ class ApiGateway:
                 {
                     "limiter": self.rate_limiter,
                     "trust_forwarded_headers": self.trust_forwarded_headers,
+                    "trusted_proxies": self.trusted_proxies,
                 },
             )
         if self.quota_manager is not None:
@@ -169,6 +184,7 @@ class ApiGateway:
                 {
                     "manager": self.quota_manager,
                     "trust_forwarded_headers": self.trust_forwarded_headers,
+                    "trusted_proxies": self.trusted_proxies,
                 },
             )
         if self.idempotency is not None:
@@ -232,8 +248,14 @@ class ApiGateway:
         acepta el riesgo en silencio**: lo dice al arrancar, una sola vez, y
         solo cuando hay algún middleware que realmente usa la IP del cliente.
         Ver ADR-010 y docs/SECURITY-REVIEW.md (H-2).
+
+        Desde Sprint 3.0 (ADR-011) el aviso **desaparece en cuanto se
+        configura ``trusted_proxies``**: ahí ya no se confía a ciegas sino
+        solo en proxies conocidos, que es justo lo que el aviso pedía
+        resolver. Seguir avisando entonces sería ruido, y el ruido es lo que
+        acaba haciendo que nadie lea los avisos.
         """
-        if not self.trust_forwarded_headers:
+        if self.trusted_proxies or not self.trust_forwarded_headers:
             return
         afectados = tuple(name for name in ("rate_limit", "quota", "audit") if name in installed)
         if not afectados:

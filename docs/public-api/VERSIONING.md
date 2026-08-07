@@ -10,7 +10,7 @@ Cinco números de versión independientes, cada uno respondiendo una pregunta de
 | `SDK_VERSION` | ¿Qué versión del Module SDK usa un autor de módulos? | `teaf/_internal/sdk/__init__.py` | `1.0.0` |
 | `RUNTIME_VERSION` | ¿Qué versión de la Runtime API consume el SDK? | `teaf/_internal/runtime/__init__.py` | `1.0.0` |
 | `MODULE_SPEC_VERSION` | ¿Qué forma debe tener un `ModuleManifest` válido? | `teaf/_internal/sdk/specification.py` (`SPEC_VERSION`) | `1.0` |
-| `PUBLIC_API_VERSION` | ¿Qué versión de la superficie `teaf.*` es esta? | `teaf/version.py` (nace aquí) | `1.0.0` |
+| `PUBLIC_API_VERSION` | ¿Qué versión de la superficie `teaf.*` es esta? | `teaf/version.py` (nace aquí) | `2.0.0` |
 
 ```python
 from teaf import Version
@@ -41,7 +41,7 @@ Cada número evoluciona a un ritmo distinto y protege a un consumidor distinto:
 | Runtime API | `v1` (`RUNTIME_VERSION = "1.0.0"`) — sin cambios incompatibles todavía. |
 | SDK | `v1` (`SDK_VERSION = "1.0.0"`) — sin cambios incompatibles todavía. |
 | Module Specification | `v1` (`MODULE_SPEC_VERSION = "1.0"`) — las diez secciones fijadas en Sprint 2.5 (ver [MODULE-SPECIFICATION.md](../sdk/MODULE-SPECIFICATION.md)). |
-| Public API | `v1` (`PUBLIC_API_VERSION = "1.0.0"`) — los símbolos de `teaf/__init__.py` fijados en este Sprint (ver [PUBLIC-API.md](PUBLIC-API.md)). |
+| Public API | `v2` (`PUBLIC_API_VERSION = "2.0.0"`) — los 192 símbolos de `teaf/__init__.py` (ver [PUBLIC-API.md](PUBLIC-API.md)). Sube de MAJOR en Sprint 3.0 por el constructor de los tres almacenes Redis; ver [MIGRATION-GUIDE.md §6](MIGRATION-GUIDE.md#6-cuando-public_api_version-suba-de-major). |
 
 Un manifiesto declara compatibilidad con una constraint (`">=1.0"`, `"~=1.2"`, `"1.0.0"`...) contra `RUNTIME_VERSION`/`SDK_VERSION` — exactamente el mismo mecanismo que ya usa `ModuleBase._check_compatibility` internamente (`teaf/_internal/sdk/module_base.py`) para `runtime_compatibility`/`sdk_compatibility` en cada `bootstrap()`.
 

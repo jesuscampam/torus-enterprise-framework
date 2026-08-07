@@ -1,6 +1,7 @@
-# Benchmarks — baseline de v0.9.1-alpha
+# Benchmarks — baseline de v0.10.0-alpha
 
-Baseline oficial de la suite [`benchmarks/`](../benchmarks/README.md), fijada en Sprint 2.9.1.
+Baseline oficial de la suite [`benchmarks/`](../benchmarks/README.md), fijada en Sprint 2.9.1 y
+**regenerada en Sprint 3.0** — ver [«Por qué se regeneró en Sprint 3.0»](#por-qué-se-regeneró-en-sprint-30).
 Sirve para dos cosas: dar una cifra a «¿cuánto cuesta esto?» y hacer fallar la puerta de calidad
 cuando una versión posterior lo empeore.
 
@@ -21,15 +22,33 @@ usa la comparación contra baseline (ver más abajo).
 
 ## Arranque
 
-| Benchmark | Mediana | Mínimo | Memoria pico |
-|---|---:|---:|---:|
-| `Application()` (construcción) | 2.93 ms | 2.77 ms | 192.1 KiB |
-| Arranque ASGI completo (construcción + startup + shutdown) | 7.60 ms | 5.63 ms | 242.4 KiB |
-| Bootstrap de un módulo (`Application(modules=[...])` + ciclo completo) | 7.68 ms | 6.03 ms | 243.9 KiB |
+| Benchmark | Mediana | Mínimo | Memoria pico | v0.9.1-alpha (mínimo) |
+|---|---:|---:|---:|---:|
+| `Application()` (construcción) | 1.85 ms | 1.73 ms | 129.7 KiB | 2.77 ms |
+| Arranque ASGI completo (construcción + startup + shutdown) | 4.10 ms | 3.80 ms | 171.7 KiB | 5.63 ms |
+| Bootstrap de un módulo (`Application(modules=[...])` + ciclo completo) | 4.12 ms | 3.91 ms | 173.8 KiB | 6.03 ms |
 
 Estas tres son las cifras que más se notan en desarrollo: las paga cada arranque del servidor y
 cada prueba que construye una aplicación. **Sprint 2.9.1 las redujo entre 2.9× y 5.5×** — el
-detalle de cómo está en [PERFORMANCE.md](PERFORMANCE.md).
+detalle de cómo está en [PERFORMANCE.md](PERFORMANCE.md). **Sprint 3.0 las vuelve a reducir entre
+un 33 % y un 38 %**, y la memoria de construcción un 32 % (192.1 → 129.7 KiB), sin que el sprint
+tocase el camino de arranque.
+
+### Por qué se regeneró en Sprint 3.0
+
+La desviación es de **mejora**, no de regresión, y tiene una causa única y comprobable: el salto de
+`starlette` 0.41.3 a **1.4.1** (vía `fastapi` 0.141.1). Es la única variable que cambia en el
+camino de construcción de una `Application` — Sprint 3.0 no tocó el arranque, y las piezas nuevas
+(caché, proxies de confianza) **no se construyen si no se configuran**, que es justo lo que estas
+cifras confirman: si el módulo de caché costase algo sin configurar, aparecería aquí.
+
+Se regenera la baseline en vez de conservar la antigua porque una baseline holgada deja de
+detectar: con las cifras de 2.9.1, una regresión futura que devolviera el arranque a 2.77 ms
+pasaría inadvertida. Fijar las nuevas mantiene la puerta tan estricta como antes respecto al
+estado real del framework.
+
+Ningún benchmark empeoró. La suite completa se ejecutó dos veces con el mismo resultado antes de
+regenerar.
 
 ## Runtime y módulos
 

@@ -14,10 +14,12 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from teaf._internal.config.environment import Environment, get_environment
 from teaf._internal.core.logging import LogFormat
+from teaf._internal.security.tokens.jwt_policy import describe_secret_violation
 
 
 class Settings(BaseSettings):
@@ -104,6 +106,26 @@ class Settings(BaseSettings):
     secret_rotation_enabled: bool = False
     secret_rotation_interval_days: int = 90
 
+    @model_validator(mode="after")
+    def _validate_jwt_secret(self) -> Settings:
+        """Rechaza un secreto JWT más corto de lo que exige RFC 7518 §3.2.
+
+        Se valida aquí —al construir la configuración, antes de que la
+        aplicación arranque— y no al firmar el primer token: un secreto
+        débil es un error de despliegue, y el momento de descubrirlo es el
+        arranque, no la primera petición autenticada en producción.
+
+        ``jwt_secret=None`` sigue significando «JWT sin configurar» y no
+        valida nada: una aplicación que no use JWT no tiene por qué
+        declarar un secreto. La misma política se aplica en
+        ``JWTTokenProvider.__init__`` para quien lo construya a mano, que es
+        la otra vía por la que un secreto llega al framework (Sprint 3.0).
+        """
+        violation = describe_secret_violation(self.jwt_secret, self.jwt_algorithm)
+        if violation is not None:
+            raise ValueError(violation)
+        return self
+
     # -- Cabeceras de seguridad HTTP (Sprint 2.9.2, ADR-010) -----------------------------
     #
     # Las consume ``SecurityHeadersMiddleware``
@@ -125,6 +147,30 @@ class Settings(BaseSettings):
     #: un frontend: una aplicación que sirva HTML propio debe sustituirlo por
     #: la política de su frontend (ver SECURITY-STANDARD.md §7).
     security_content_security_policy: str = "default-src 'none'; frame-ancestors 'none'"
+
+    # -- Caché distribuida (Sprint 3.0, ADR-012) -----------------------------------------
+    #
+    # Mismo criterio que el resto: superficie de configuración por entorno,
+    # desacoplada de ``CacheConfiguration``/``CacheModule``
+    # (``teaf/_internal/modules/cache/configuration.py``), que la reconoce por
+    # el prefijo ``cache_`` vía ``from_mapping(settings.model_dump())``.
+    #
+    # Desactivada por defecto: TEAF debe arrancar sin infraestructura.
+
+    cache_enabled: bool = False
+    #: ``memory`` (un proceso, sin infraestructura) o ``redis`` (compartida
+    #: entre réplicas — requiere el extra ``teaf[redis]``).
+    cache_backend: str = "memory"
+    #: URL de conexión. ``rediss://`` activa TLS. **Contiene credenciales**:
+    #: debe venir de una variable de entorno o de un gestor de secretos.
+    cache_redis_url: str = "redis://localhost:6379/0"
+    cache_key_prefix: str = "teaf"
+    cache_connect_timeout_seconds: float = 5.0
+    cache_operation_timeout_seconds: float = 5.0
+    cache_max_connections: int = 10
+    #: Verificación del certificado TLS. Desactivarla expone la conexión a un
+    #: intermediario; solo tiene sentido contra un Redis de desarrollo.
+    cache_tls_verify: bool = True
 
     # -- Observabilidad (Sprint 2.8, ADR-008) --------------------------------------------
     #
@@ -237,7 +283,17 @@ class Settings(BaseSettings):
     #: ``False`` cuando la aplicación se expone directamente a internet: sin un
     #: proxy que las reescriba, ``X-Forwarded-For`` la controla el cliente y
     #: falsearla saltaría cualquier límite por IP (ver docs/api/RATE-LIMITING.md).
+    #: **Deprecado en Sprint 3.0** a favor de ``api_trusted_proxies`` (ADR-011).
+    #: Se mantiene por compatibilidad y solo se consulta cuando
+    #: ``api_trusted_proxies`` está vacío.
     api_trust_forwarded_headers: bool = True
+    #: Redes de proxy cuyas cabeceras de reenvío son creíbles, separadas por
+    #: comas: ``API_TRUSTED_PROXIES="10.0.0.0/8,192.168.1.10"``. Acepta IPs
+    #: sueltas y CIDR, IPv4 e IPv6. Configurarlo desactiva
+    #: ``api_trust_forwarded_headers``: se pasa de confiar a ciegas a confiar
+    #: solo en proxies conocidos, que es lo que impide la falsificación de
+    #: ``X-Forwarded-For`` (ver docs/security/SECURITY-CONFIGURATION.md).
+    api_trusted_proxies: str = ""
 
 
 class DevelopmentSettings(Settings):

@@ -200,6 +200,14 @@ _EXPECTED_ALL = {
     "build_request_context",
     "get_algorithm",
     "parse_accept_encoding",
+    # -- Caché distribuida (Sprint 3.0, ADR-012).
+    "CacheBackend",
+    "CacheConfiguration",
+    "CacheModule",
+    "CacheProvider",
+    "InMemoryCacheProvider",
+    "RedisCacheConfiguration",
+    "RedisCacheProvider",
 }
 
 

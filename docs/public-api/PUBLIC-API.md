@@ -130,11 +130,28 @@ ApiGateway(
 
 Ver los 7 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-protección-de-apis-sprint-29-adr-009).
 
-## 9. Qué NO expone `teaf`
+## 9. Caché distribuida (`teaf.cache`, Sprint 3.0)
 
-Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule`, `SecurityModule` ni `ObservabilityModule` (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad/observabilidad a partir de las piezas públicas de `teaf.security`/`teaf.observability`, ver secciones 6-7). La **única excepción** es `ApiProtectionModule` (sección 8), por los motivos allí documentados. Tampoco se exponen, `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+Siete símbolos que permiten compartir estado entre réplicas: `CacheProvider` (el contrato), `CacheModule`, `CacheConfiguration`, `CacheBackend`, `InMemoryCacheProvider`, `RedisCacheProvider` y `RedisCacheConfiguration`. Documentación completa en [docs/modules/cache/CACHE.md](../modules/cache/CACHE.md).
 
-## 10. Documentos relacionados
+Una aplicación de **una sola instancia no necesita nada de aquí**: el backend por defecto es en memoria y TEAF arranca sin infraestructura desplegada. En cuanto hay varias réplicas, los almacenes en memoria de la protección de APIs pasan a ser por proceso y un límite de 100 req/min con 4 réplicas son 400 en la práctica.
+
+```python
+from teaf import ApiProtectionModule, Application, CacheBackend, CacheConfiguration, CacheModule
+
+cache = CacheModule(CacheConfiguration(backend=CacheBackend.REDIS))
+app = Application(modules=[cache, ApiProtectionModule(cache_provider=cache.provider)])
+```
+
+`RedisCacheProvider` requiere el extra opcional `pip install "teaf[redis]"`; el import es perezoso, así que construirlo sin el paquete no falla — falla al conectar, con un mensaje que dice qué instalar.
+
+**Segunda excepción documentada a la regla de la sección 10**: `CacheModule` se expone, por el mismo motivo que `ApiProtectionModule`. Todo el valor de la caché distribuida está en que alguien abra la conexión al arrancar y la cierre al apagar; obligar a recomponer ese ciclo de vida en cada aplicación no desacopla nada, solo reparte conexiones que nadie cierra. Ver [ADR-012](../architecture/adr/ADR-012-redis-optional-infrastructure.md) §4.
+
+## 10. Qué NO expone `teaf`
+
+Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts` (más allá de `CacheProvider`), `teaf._internal.providers` (más allá de los de caché) o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule`, `SecurityModule` ni `ObservabilityModule` (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad/observabilidad a partir de las piezas públicas de `teaf.security`/`teaf.observability`, ver secciones 6-7). Las **dos únicas excepciones** son `ApiProtectionModule` (sección 8) y `CacheModule` (sección 9), por los motivos allí documentados. Tampoco se exponen, `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+
+## 11. Documentos relacionados
 
 | Documento | Contenido |
 |---|---|

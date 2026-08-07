@@ -16,6 +16,7 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 | [Configuration](../../teaf/_internal/config/README.md) | Configuración tipada por entorno, carga de secretos | Documentado | Core | V1 | 🟢 Alto | 🔴 Alta |
 | [Database](../modules/database/DATABASE.md) | Persistencia empresarial: SQLAlchemy 2.x, Unit of Work, Repository Pattern, migraciones Alembic — primer módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/database/` + `teaf/_internal/providers/database/`) | Core | V1 | 🟢 Alto | 🔴 Alta |
 | [API Protection](../api/API-PROTECTION.md) | Protección y gobernanza de APIs: rate limiting (4 algoritmos), cuotas, CORS, versionado, validación de borde, compresión, idempotencia y auditoría — cuarto módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/api/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
+| [Cache](../modules/cache/CACHE.md) | Almacén clave-valor con expiración, en memoria o sobre Redis (extra opcional) — estado compartido entre réplicas para rate limiting, cuotas e idempotencia; quinto módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/cache/` + `teaf/_internal/providers/cache/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
 | Services | Casos de uso / Service Layer | Documentado (`teaf/_internal/services/`) | Repository | V1 | 🟢 Alto | 🔴 Alta |
 | Repository | Repository Pattern sobre `models/` | Documentado (`teaf/_internal/repository/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
 | Models | Entidades ORM | Documentado (`teaf/_internal/models/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
@@ -57,4 +58,4 @@ La columna "Dependencias" refleja el **grafo estático oficial de dependencias e
 
 1. Todo módulo nuevo se agrega primero aquí (con su ficha completa) antes de crear la carpeta correspondiente — sigue [`/templates/module-template.md`](../../templates/module-template.md).
 2. Al pasar de "Planeado" a "Documentado", enlaza el `README.md` real de la carpeta creada.
-3. Cuando exista código ejecutable, el estado pasa a `Implementado` — usado por primera vez en Sprint 2.6 para el módulo Database, y después para Security (2.7), Observability (2.8) y API Protection (2.9).
+3. Cuando exista código ejecutable, el estado pasa a `Implementado` — usado por primera vez en Sprint 2.6 para el módulo Database, y después para Security (2.7), Observability (2.8), API Protection (2.9) y Cache (3.0).

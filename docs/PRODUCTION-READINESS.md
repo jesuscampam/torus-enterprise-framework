@@ -1,20 +1,23 @@
-# Preparación para producción — v0.9.2-alpha
+# Preparación para producción — v0.10.0-alpha
 
-> **Actualizado en Sprint 2.9.2.** El veredicto de más abajo era el de v0.9.1-alpha y su condición
-> **ya se ha cumplido**: H-1 está resuelto (las cabeceras de seguridad se implementan y se
-> verifican) y la auditoría de dependencias es una puerta de calidad. El estado vigente:
+> **Actualizado en Sprint 3.0.** Los cuatro pendientes que condicionaban esta evaluación **se han
+> cerrado**. El estado vigente:
 >
-> | Punto | v0.9.1-alpha | v0.9.2-alpha |
-> |---|---|---|
-> | Cabeceras de seguridad HTTP | ❌ Declaradas, no implementadas | ✅ Implementadas + 31 pruebas |
-> | Auditoría de vulnerabilidades | ❌ Nunca ejecutada | ✅ Puerta de calidad; `pyjwt` actualizado, 7 avisos aceptados y documentados |
-> | `trust_forwarded_headers` | ⚠️ Riesgo silencioso | ⚠️ Riesgo documentado, con aviso al arrancar y pruebas anti-spoofing |
-> | Puertas de calidad | 10/10 | **11/11** |
-> | Pruebas | 1.126 · 98% | **1.170 · 98%** |
+> | Punto | v0.9.1-alpha | v0.9.2-alpha | v0.10.0-alpha |
+> |---|---|---|---|
+> | Cabeceras de seguridad HTTP | ❌ Declaradas, no implementadas | ✅ Implementadas + 31 pruebas | ✅ Sin cambios |
+> | Auditoría de vulnerabilidades | ❌ Nunca ejecutada | ✅ Puerta de calidad; 7 avisos aceptados | ✅ **0 avisos, 0 excepciones aceptadas** |
+> | `trust_forwarded_headers` | ⚠️ Riesgo silencioso | ⚠️ Riesgo documentado, con aviso al arrancar | ✅ **Cerrado** con `api_trusted_proxies` ([ADR-011](architecture/adr/ADR-011-trusted-proxy-architecture.md)) |
+> | Escalado horizontal | ❌ Almacenes por proceso | ❌ Igual | ✅ **Desbloqueado** — almacenes distribuidos sobre Redis ([ADR-012](architecture/adr/ADR-012-redis-optional-infrastructure.md)) |
+> | Longitud del secreto JWT | ❌ Sin política | ❌ Igual | ✅ Mínimo por algoritmo, validado al arrancar |
+> | Puertas de calidad | 10/10 | 11/11 | **12/12** (nueva: `build`) |
+> | Pruebas | 1.126 · 98% | 1.170 · 98% | **1.263 · 98%** |
 >
-> Sigue **pendiente para Sprint 3.0**: los proveedores Redis (necesarios para escalar
-> horizontalmente con límites reales), la actualización de FastAPI que desbloquee los avisos de
-> `starlette`, y la lista de proxies de confianza. La lista completa está al final.
+> **Qué falta ya no es deuda de la línea 2.9**, sino alcance de sprints siguientes: observabilidad
+> completa (3.1), gestión empresarial de secretos (3.2), EventBus distribuido (3.3) y resiliencia
+> avanzada (3.4). Dos limitaciones conocidas quedan documentadas y en el backlog: la cuota
+> distribuida no es atómica, y sin configurar `api_trusted_proxies` el comportamiento de las
+> cabeceras de reenvío sigue siendo el de v0.9.2-alpha.
 
 ---
 

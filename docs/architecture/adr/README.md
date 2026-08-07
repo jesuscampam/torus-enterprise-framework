@@ -27,6 +27,8 @@ No crees un ADR para decisiones de implementación local que no afecten al frame
 | [ADR-008](ADR-008-enterprise-observability-stack.md) | Enterprise Observability Stack | Aceptado |
 | [ADR-009](ADR-009-enterprise-api-protection.md) | Enterprise API Protection — Rate Limiting, Quotas y gobernanza de APIs | Aceptado |
 | [ADR-010](ADR-010-security-headers-and-forwarded-trust.md) | Reparto de responsabilidad de seguridad de borde entre TEAF y el proxy | Aceptado |
+| [ADR-011](ADR-011-trusted-proxy-architecture.md) | Arquitectura de proxies de confianza para la resolución de la IP del cliente | Aceptado |
+| [ADR-012](ADR-012-redis-optional-infrastructure.md) | Redis como infraestructura opcional para estado compartido entre réplicas | Aceptado |
 
 ## Plantilla
 

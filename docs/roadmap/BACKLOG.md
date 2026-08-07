@@ -84,17 +84,16 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 | Developer Experience | CLI/generador de proyectos (`teaf new app`) | 🟢 | Épicas 1-3 |
 | Documentación | Portal de documentación navegable generado desde `docs/` | 🟢 | — |
 
-### Pendiente para Sprint 3.0 (cierre de la línea 2.9)
+### Cerrado en Sprint 3.0
 
-Estado tras Sprint 2.9.2, que cerró H-1, H-3 y la laguna de auditoría de dependencias. Lo que queda condiciona la declaración de v1.0-beta (ver [PRODUCTION-READINESS.md](../PRODUCTION-READINESS.md)).
+Los cuatro puntos que la línea 2.9 dejó aplazados quedan resueltos. Ninguno de ellos sigue condicionando la declaración de v1.0-beta (ver [PRODUCTION-READINESS.md](../PRODUCTION-READINESS.md)).
 
-| Feature | Historia | Prioridad | Dependencias |
-|---|---|---|---|
-| Protección de APIs | Implementar los proveedores Redis (rate limiting, cuotas, idempotencia). **Requisito para escalar horizontalmente**: hoy los almacenes son por proceso, así que un límite de 100 req/min con 4 réplicas son 400 en la práctica | 🔴 | ADR nuevo (`redis-py`) |
-| Dependencias | Actualizar FastAPI para desbloquear las 7 vulnerabilidades aceptadas de `starlette` (`fastapi 0.115.6` fija `starlette<0.42.0`). Ver [accepted-vulnerabilities.json](../security/accepted-vulnerabilities.json) | 🔴 | Cambio mayor de FastAPI |
-| Seguridad | Lista de proxies de confianza (`trusted_proxies`) en sustitución del `trust_forwarded_headers` binario — solución completa de H-2 ([ADR-010](../architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) | 🟡 | Sprint 2.9.2 |
-| Seguridad | Longitud mínima del secreto JWT. Hoy no se impone; lo destapó el `InsecureKeyLengthWarning` de pyjwt 2.13.0. Imponerla cambia configuraciones que hoy funcionan | 🟢 | Sprint 2.9.2 |
-| Aplicación de referencia | Corregir `test_task_module_appears_in_runtime_info` (espera `>= 8` módulos, obtiene 6 desde que los Sprints 2.7/2.8 retiraron los placeholders). Corresponde a su propio repositorio | 🟢 | — |
+| Historia | Desenlace |
+|---|---|
+| Proveedores Redis de rate limiting, cuotas e idempotencia | ✅ Implementados sobre `CacheProvider` ([ADR-012](../architecture/adr/ADR-012-redis-optional-infrastructure.md)). Desbloquea el escalado horizontal |
+| Actualizar FastAPI para cerrar las 7 vulnerabilidades de `starlette` | ✅ `fastapi 0.141.1` / `starlette 1.4.1`. [accepted-vulnerabilities.json](../security/accepted-vulnerabilities.json) queda **vacío**: no hay ninguna vulnerabilidad aceptada |
+| Lista de proxies de confianza (`trusted_proxies`) — cierre de H-2 | ✅ `api_trusted_proxies` con verificación de la IP de conexión y lectura de la cadena de derecha a izquierda ([ADR-011](../architecture/adr/ADR-011-trusted-proxy-architecture.md)) |
+| Longitud mínima del secreto JWT | ✅ Derivada del algoritmo (RFC 7518 §3.2), validada en `Settings` y en `JWTProvider.__init__` |
 
 #### Cerrado en Sprint 2.9.2
 
@@ -103,7 +102,27 @@ Estado tras Sprint 2.9.2, que cerró H-1, H-3 y la laguna de auditoría de depen
 | `SecurityHeadersMiddleware` (H-1) | ✅ Implementado + 31 pruebas ([ADR-010](../architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) |
 | `pip-audit` como puerta de calidad | ✅ Puerta `dependencies`; encontró 13 avisos reales y `pyjwt` se actualizó |
 | Comentario obsoleto sobre secretos (H-3) | ✅ Corregido |
-| Valor por defecto de `trust_forwarded_headers` (H-2) | ⚠️ Mitigado (aviso + pruebas anti-spoofing), no cerrado — ver fila de `trusted_proxies` |
+| Valor por defecto de `trust_forwarded_headers` (H-2) | ⚠️ Mitigado en 2.9.2 (aviso + pruebas anti-spoofing); **cerrado en 3.0** con `api_trusted_proxies` |
+
+### Pendiente tras Sprint 3.0
+
+| Feature | Historia | Prioridad | Dependencias |
+|---|---|---|---|
+| Caché | `RedisQuotaStore.consume` es un read-modify-write **no atómico**: dos réplicas concurrentes pueden permitir un ligero exceso sobre la cuota. Resolverlo exige un script Lua o `INCRBYFLOAT` con semántica distinta de la del contrato actual — es un cambio de diseño, no un arreglo. Documentado en su docstring y en [CACHE.md §10](../modules/cache/CACHE.md) | 🟡 | Sprint 3.0 |
+| Seguridad | Soportar la cabecera `Forwarded` (RFC 7239) además de `X-Forwarded-For`. Es el estándar formal, pero hoy ningún proxy mayoritario (nginx, Azure Front Door, AWS ALB, Cloudflare) la emite por defecto | 🟢 | [ADR-011](../architecture/adr/ADR-011-trusted-proxy-architecture.md) |
+| Aplicación de referencia | Corregir `test_task_module_appears_in_runtime_info` (espera `>= 8` módulos, obtiene 6 desde que los Sprints 2.7/2.8 retiraron los placeholders). Corresponde a su propio repositorio | 🟢 | — |
+
+### Fuera del alcance de Sprint 3.0 — sprints siguientes
+
+Declarado explícitamente para que no se implemente por adelantado:
+
+| Sprint | Alcance |
+|---|---|
+| 3.1 | Observabilidad completa (más allá de la base de Sprint 2.8) |
+| 3.2 | Gestión empresarial de secretos / Vault |
+| 3.3 | EventBus distribuido sobre Redis Streams |
+| 3.4 | Resiliencia avanzada: retry, circuit breaker, bulkhead |
+| Futuro | Messaging, multi-tenancy, workflows, CLI, UI administrativa |
 
 ---
 

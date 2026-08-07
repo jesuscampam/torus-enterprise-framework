@@ -18,12 +18,14 @@ from typing import Any
 import jwt as pyjwt
 
 from teaf._internal.contracts.security import TokenProvider
+from teaf._internal.core.exceptions import ConfigurationException
 from teaf._internal.security.exceptions import (
     TokenException,
     TokenExpiredException,
     TokenRevokedException,
 )
 from teaf._internal.security.models import Claims, Identity, TokenPair
+from teaf._internal.security.tokens.jwt_policy import describe_secret_violation
 
 _ACCESS_TYPE = "access"
 _REFRESH_TYPE = "refresh"
@@ -89,7 +91,20 @@ class JWTTokenProvider(TokenProvider):
         ``clock_skew_seconds`` tolera diferencias de reloj entre instancias al
         validar ``exp``/``nbf``. ``algorithm`` acepta cualquiera soportado por
         PyJWT (``HS256`` con ``secret`` simétrico, ``RS256``/``ES256`` con
-        ``secret`` como clave privada/pública PEM)."""
+        ``secret`` como clave privada/pública PEM).
+
+        Desde Sprint 3.0 el secreto se valida **aquí, al construir**, contra
+        la longitud mínima que exige RFC 7518 §3.2 para el algoritmo elegido
+        (ver ``jwt_policy``). Es deliberado que falle en la construcción y no
+        al firmar: un secreto débil es un error de despliegue, y descubrirlo
+        en la primera petición autenticada —en producción— es demasiado
+        tarde. Solo aplica a los algoritmos HMAC; para claves PEM no hay
+        longitud mínima que medir.
+        """
+        violation = describe_secret_violation(secret, algorithm)
+        if violation is not None:
+            raise ConfigurationException(violation)
+
         self._secret = secret
         self._algorithm = algorithm
         self._issuer = issuer

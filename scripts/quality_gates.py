@@ -98,6 +98,15 @@ GATES: tuple[Gate, ...] = (
         command=[sys.executable, "scripts/check_runtime_startup.py"],
     ),
     Gate(
+        name="build",
+        description=(
+            "El paquete se construye y el wheel contiene lo que debe. Es la única puerta "
+            "que mira el artefacto distribuible y no el árbol de fuentes (Sprint 3.0)."
+        ),
+        command=[sys.executable, "scripts/check_package_build.py"],
+        slow=True,
+    ),
+    Gate(
         name="dependencies",
         description=(
             "pip-audit — vulnerabilidades conocidas en las dependencias. Falla ante cualquier "

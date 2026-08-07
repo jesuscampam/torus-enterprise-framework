@@ -32,7 +32,7 @@ from teaf.security import (
 
 
 def _build_app():
-    jwt_provider = JWTProvider(secret="test-secret")
+    jwt_provider = JWTProvider(secret="test-secret-with-at-least-32-bytes!!")
     registry = IdentityProviderRegistry(
         [AnonymousIdentityProvider(), JWTIdentityProvider(token_provider=jwt_provider)]
     )

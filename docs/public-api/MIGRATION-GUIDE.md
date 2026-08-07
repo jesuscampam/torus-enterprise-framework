@@ -85,4 +85,33 @@ No hagas `from teaf._internal.xxx import Yyy` como solución temporal. En su lug
 
 ## 6. Cuando `PUBLIC_API_VERSION` suba de MAJOR
 
-Todavía no ha ocurrido (`PUBLIC_API_VERSION = "1.0.0"`, ver [VERSIONING.md](VERSIONING.md)). Cuando ocurra, esta sección se ampliará con la tabla de cambios incompatibles concretos de esa versión — mismo criterio que ya sigue `CHANGELOG.md` para `FRAMEWORK_VERSION` (Keep a Changelog + SemVer), aplicado específicamente a los símbolos de `teaf/__init__.py`.
+Ha ocurrido una vez. El criterio es el mismo que ya sigue `CHANGELOG.md` para `FRAMEWORK_VERSION` (Keep a Changelog + SemVer), aplicado a los símbolos de `teaf/__init__.py`: se listan aquí los cambios incompatibles concretos de cada MAJOR, con su equivalente nuevo.
+
+### `1.0.0` → `2.0.0` (Sprint 3.0, TEAF v0.10.0-alpha)
+
+Un único cambio incompatible, en los tres almacenes distribuidos de la plataforma de protección de APIs:
+
+| Símbolo | Antes (≤ v0.9.2-alpha) | Ahora (≥ v0.10.0-alpha) |
+|---|---|---|
+| `teaf.RedisRateLimitStore` | `RedisRateLimitStore(url=..., prefix=...)` | `RedisRateLimitStore(provider)` |
+| `teaf.RedisQuotaStore` | `RedisQuotaStore(url=..., prefix=...)` | `RedisQuotaStore(provider)` |
+| `teaf.RedisIdempotencyStore` | `RedisIdempotencyStore(url=..., prefix=...)` | `RedisIdempotencyStore(provider)` |
+
+`provider` es un `CacheProvider` (`teaf._internal.contracts.cache`), normalmente el que expone el módulo de caché. Las **operaciones no cambian**: `get`/`put`/`reset`, `consume`/`peek`/`release` y `store`/`fetch`/`delete` conservan su firma, y el registro en el contenedor de dependencias es el mismo.
+
+**Ningún consumidor real puede romperse.** Hasta v0.9.2-alpha estas tres clases eran contratos preparados y su constructor lanzaba `NotImplementedError` incondicionalmente, así que no existe una llamada que antes funcionara y ahora falle. La MAJOR sube igualmente porque [VERSIONING.md §5](VERSIONING.md#5-relación-con-el-versionado-semántico-del-framework) manda subirla cuando el contrato cambia de forma incompatible, sin excepciones por conveniencia.
+
+**Migración.** Si tenía código escrito contra la firma antigua —necesariamente muerto, porque no llegaba a construirse—, sustituya la URL por el proveedor de caché:
+
+```python
+# Antes: cada almacén abría su propia conexión, que nadie cerraba.
+store = RedisRateLimitStore(url="redis://localhost:6379/0", prefix="rl")
+
+# Ahora: la conexión la abre y la cierra el módulo de caché, en un solo sitio.
+from teaf._internal.modules.cache.module import CacheModule
+
+module = CacheModule(CacheConfiguration(backend=CacheBackend.REDIS))
+store = RedisRateLimitStore(module.provider)
+```
+
+En la práctica no hace falta construirlos a mano: `ApiProtectionModule(cache_provider=...)` los elige por usted. El porqué del cambio está en [ADR-012](../architecture/adr/ADR-012-redis-optional-infrastructure.md) §5.

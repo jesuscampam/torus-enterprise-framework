@@ -49,7 +49,7 @@ def test_anonymous_provider_supports_is_always_true_as_the_fallback_provider() -
 
 
 def test_jwt_identity_provider_delegates_verification_to_the_token_provider() -> None:
-    token_provider = JWTProvider(secret="test-secret")
+    token_provider = JWTProvider(secret="test-secret-with-at-least-32-bytes!!")
     provider = JWTIdentityProvider(token_provider=token_provider)
     identity = Identity(id="alice", provider_id="jwt", claims=Claims(sub="alice"))
     pair = asyncio.run(token_provider.issue(identity))
@@ -61,7 +61,9 @@ def test_jwt_identity_provider_delegates_verification_to_the_token_provider() ->
 
 
 def test_jwt_identity_provider_supports_requires_a_token() -> None:
-    provider = JWTIdentityProvider(token_provider=JWTProvider(secret="test-secret"))
+    provider = JWTIdentityProvider(
+        token_provider=JWTProvider(secret="test-secret-with-at-least-32-bytes!!")
+    )
     assert provider.supports(AuthenticationCredentials(scheme="jwt", token="x")) is True
     assert provider.supports(AuthenticationCredentials(scheme="jwt")) is False
 
@@ -171,7 +173,9 @@ def test_ldap_provider_default_connection_factory_is_ldap3_connection() -> None:
 
 
 def test_registry_resolves_by_exact_scheme_match() -> None:
-    jwt_provider = JWTIdentityProvider(token_provider=JWTProvider(secret="test-secret"))
+    jwt_provider = JWTIdentityProvider(
+        token_provider=JWTProvider(secret="test-secret-with-at-least-32-bytes!!")
+    )
     registry = IdentityProviderRegistry([AnonymousIdentityProvider(), jwt_provider])
 
     resolved = registry.resolve(AuthenticationCredentials(scheme="jwt", token="x"))
@@ -179,7 +183,9 @@ def test_registry_resolves_by_exact_scheme_match() -> None:
 
 
 def test_registry_resolve_returns_none_when_nothing_matches_without_fallback() -> None:
-    jwt_provider = JWTIdentityProvider(token_provider=JWTProvider(secret="test-secret"))
+    jwt_provider = JWTIdentityProvider(
+        token_provider=JWTProvider(secret="test-secret-with-at-least-32-bytes!!")
+    )
     registry = IdentityProviderRegistry([jwt_provider])
     resolved = registry.resolve(
         AuthenticationCredentials(scheme="ldap", username="a", password="b")
@@ -214,6 +220,8 @@ def test_registry_unregister_of_unknown_provider_does_not_raise() -> None:
 
 def test_registry_providers_property_lists_all_in_registration_order() -> None:
     anonymous = AnonymousIdentityProvider()
-    jwt_provider = JWTIdentityProvider(token_provider=JWTProvider(secret="test-secret"))
+    jwt_provider = JWTIdentityProvider(
+        token_provider=JWTProvider(secret="test-secret-with-at-least-32-bytes!!")
+    )
     registry = IdentityProviderRegistry([anonymous, jwt_provider])
     assert registry.providers == (anonymous, jwt_provider)
