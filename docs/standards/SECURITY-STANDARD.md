@@ -62,6 +62,25 @@ TEAF exige mitigación explícita, a nivel de framework, de:
 
 Toda respuesta HTTP incluye, como mínimo: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (o CSP equivalente), `Content-Security-Policy` apropiada para el frontend servido.
 
+**Lo implementa el framework**, no el proxy: desde Sprint 2.9.2, `SecurityHeadersMiddleware` (`teaf/_internal/middleware/security_headers.py`) las emite en toda respuesta, gobernado por `Settings` y instalado siempre por `create_app`. El reparto de responsabilidad con el proxy inverso / WAF está decidido en [ADR-010](../architecture/adr/ADR-010-security-headers-and-forwarded-trust.md).
+
+| Cabecera | Valor por defecto | Configuración | Cuándo se emite |
+|---|---|---|---|
+| `X-Content-Type-Options` | `nosniff` | — | Siempre |
+| `X-Frame-Options` | `DENY` | `security_frame_options` (vacío la omite) | Siempre |
+| `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` | `security_content_security_policy` | Salvo en `/docs` y `/redoc` |
+| `Strict-Transport-Security` | `max-age=31536000` | `security_hsts_max_age_seconds` (`0` la omite) | **Solo sobre HTTPS** (RFC 6797 §7.2) |
+
+`security_headers_enabled: bool = True` las activa todas; a `False` no se emite ninguna.
+
+Tres matices que hay que conocer antes de confiar en esta tabla:
+
+- **HSTS solo viaja sobre HTTPS**, como exige RFC 6797 §7.2. Detrás de un proxy que termina TLS, la aplicación debe recibir el esquema correcto (uvicorn `--proxy-headers`), o no se emitirá.
+- **La CSP no se aplica a `/docs` ni `/redoc`**: Swagger UI y ReDoc cargan sus propios recursos y `default-src 'none'` los dejaría en blanco. El resto de cabeceras sí se aplican también ahí.
+- **La CSP por defecto es la de una API JSON, no la de un frontend.** Una aplicación TEAF que sirva HTML propio **debe** sustituirla por la política de su frontend; la de por defecto le impedirá cargar cualquier recurso.
+
+El middleware **nunca sobrescribe** una cabecera que la aplicación o el proxy ya hayan establecido, así que añadirlas también en el borde no genera conflicto.
+
 ## 8. Logging de auditoría
 
 - Toda acción de autenticación (login, logout, fallo de login), cambio de permisos, y operación destructiva (baja lógica, eliminación) se registra en un log de auditoría inmutable, correlacionado con el usuario y el `correlationId` (ver `LOGGING-STANDARD.md`).

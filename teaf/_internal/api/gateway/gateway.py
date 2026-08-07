@@ -39,6 +39,7 @@ from teaf._internal.api.quotas.manager import QuotaManager
 from teaf._internal.api.ratelimit.limiter import RateLimiter
 from teaf._internal.api.validation.validator import RequestValidator
 from teaf._internal.api.versioning.negotiator import ApiVersionNegotiator
+from teaf._internal.core.logging import get_logger
 from teaf._internal.runtime.event_bus import EventBus
 
 #: Orden de **ejecución** de la cadena, del más externo al más interno.
@@ -201,6 +202,7 @@ class ApiGateway:
         """
         specs = self._middleware_specs()
         installed = tuple(name for name in MIDDLEWARE_ORDER if name in specs)
+        self._warn_if_forwarded_headers_are_trusted(installed)
         # Se registran del más interno al más externo porque Starlette ejecuta
         # los middlewares en orden inverso al de registro.
         for name in reversed(installed):
@@ -213,6 +215,47 @@ class ApiGateway:
                 middleware_class, event_bus_provider=lambda: self.event_bus, **options
             )
         return installed
+
+    def _warn_if_forwarded_headers_are_trusted(self, installed: tuple[str, ...]) -> None:
+        """Avisa una vez si se va a confiar en cabeceras que el cliente controla.
+
+        ``X-Forwarded-For`` la falsifica cualquier cliente. Detrás de un proxy
+        que la **reescriba**, confiar en ella es correcto y necesario —sin eso,
+        todo el tráfico compartiría la IP del balanceador y cualquier límite
+        por IP se volvería global—. Expuesta directamente a internet, en
+        cambio, basta con enviar una IP distinta en cada petición para saltarse
+        el limitador entero.
+
+        El framework no puede distinguir los dos despliegues, así que no
+        cambia el valor por defecto —hacerlo rompería silenciosamente a quien
+        hoy está bien desplegado, que es el caso mayoritario— pero **tampoco
+        acepta el riesgo en silencio**: lo dice al arrancar, una sola vez, y
+        solo cuando hay algún middleware que realmente usa la IP del cliente.
+        Ver ADR-010 y docs/SECURITY-REVIEW.md (H-2).
+        """
+        if not self.trust_forwarded_headers:
+            return
+        afectados = tuple(name for name in ("rate_limit", "quota", "audit") if name in installed)
+        if not afectados:
+            return
+        get_logger("teaf.api.gateway").warning(
+            "forwarded_headers_trusted",
+            extra={
+                "context": {
+                    "middlewares": list(afectados),
+                    "riesgo": (
+                        "La IP del cliente se toma de X-Forwarded-For/X-Real-IP, que el "
+                        "cliente puede falsificar. Correcto detrás de un proxy que las "
+                        "reescriba; inseguro si la aplicación está expuesta directamente "
+                        "a internet."
+                    ),
+                    "accion": (
+                        "Si no hay un proxy de confianza delante, configure "
+                        "trust_forwarded_headers=False (API_TRUST_FORWARDED_HEADERS=false)."
+                    ),
+                }
+            },
+        )
 
     async def evaluate(self, context: ApiRequestContext) -> GatewayDecision:
         """Aplica limitación y cuotas a ``context``, sin pasar por HTTP.

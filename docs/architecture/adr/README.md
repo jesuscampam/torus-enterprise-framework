@@ -26,6 +26,7 @@ No crees un ADR para decisiones de implementación local que no afecten al frame
 | [ADR-007](ADR-007-enterprise-security-stack.md) | Enterprise Security Stack | Aceptado |
 | [ADR-008](ADR-008-enterprise-observability-stack.md) | Enterprise Observability Stack | Aceptado |
 | [ADR-009](ADR-009-enterprise-api-protection.md) | Enterprise API Protection — Rate Limiting, Quotas y gobernanza de APIs | Aceptado |
+| [ADR-010](ADR-010-security-headers-and-forwarded-trust.md) | Reparto de responsabilidad de seguridad de borde entre TEAF y el proxy | Aceptado |
 
 ## Plantilla
 

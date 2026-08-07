@@ -64,7 +64,7 @@ Sprint 2.9.1 borró 7 módulos de código muerto. Ninguno era alcanzable desde `
 - `teaf/_internal/providers/telemetry/{logger,metrics,tracer}_provider.py`
 
 Los segundos ya los declaraba muertos
-[ADR-008](architecture/adr/ADR-008-enterprise-observability.md) («todos abstractos, ninguno
+[ADR-008](architecture/adr/ADR-008-enterprise-observability-stack.md) («todos abstractos, ninguno
 instanciado en ningún sitio»). Que su eliminación no moviera el contador de 192 símbolos es
 precisamente la evidencia de que el límite público estaba bien puesto.
 

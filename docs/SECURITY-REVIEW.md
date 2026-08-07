@@ -1,5 +1,21 @@
 # Revisión de seguridad y de dependencias — v0.9.1-alpha
 
+> **Estado tras Sprint 2.9.2 (v0.9.2-alpha).** Este documento conserva la revisión original
+> —lo que se encontró y por qué— y anota el desenlace de cada hallazgo. Resumen:
+>
+> | Hallazgo | Estado |
+> |---|---|
+> | H-1 · Cabeceras de seguridad sin implementar | ✅ **Resuelto** — `SecurityHeadersMiddleware` ([ADR-010](architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) |
+> | H-2 · `trust_forwarded_headers` inseguro por defecto | ⚠️ **Mitigado, no cerrado** — valor por defecto intacto, aviso al arrancar y pruebas anti-spoofing |
+> | H-3 · Comentario obsoleto sobre secretos | ✅ **Resuelto** |
+> | H-4 · `pydantic` declarada sin uso directo | ℹ️ **Sin acción** — es deliberado |
+> | Laguna · Sin auditoría de vulnerabilidades | ✅ **Cerrada** — `pip-audit` es puerta de calidad, y **encontró avisos reales** |
+>
+> La última fila importa más que las otras: esta revisión concluyó «versiones recientes, ningún
+> aviso conocido». Al ejecutar la herramienta por primera vez aparecieron 6 avisos en `pyjwt` y 7
+> en `starlette`. La conclusión original era conocimiento, no verificación, y era incorrecta.
+> Detalle en la sección «Dependencias» al final.
+
 Revisión completa realizada en Sprint 2.9.1 sobre la plataforma de seguridad (Sprint 2.7,
 [ADR-007](architecture/adr/ADR-007-enterprise-security.md)), la de protección de APIs (Sprint 2.9,
 [ADR-009](architecture/adr/ADR-009-enterprise-api-protection.md)) y el árbol de dependencias.
@@ -171,6 +187,41 @@ entorno, así que **no se ha contrastado el árbol contra una base de datos de v
 Las versiones fijadas son recientes y ninguna tiene un aviso conocido a la fecha de esta revisión,
 pero eso es conocimiento, no una verificación. Es la mayor laguna de esta revisión y se recomienda
 cerrarla añadiendo `pip-audit` a `requirements-dev.txt` y una puerta de calidad que lo ejecute.
+
+### Actualización Sprint 2.9.2 — la laguna se cerró, y el párrafo anterior era falso
+
+Se añadió `pip-audit` y una puerta de calidad
+([`scripts/check_dependency_audit.py`](../scripts/check_dependency_audit.py)). La primera
+ejecución encontró **13 avisos distintos en 2 paquetes**, no cero:
+
+| Paquete | Avisos | Desenlace |
+|---|---|---|
+| `pyjwt` 2.10.1 | 6 | ✅ **Corregido** — actualizado a **2.13.0** |
+| `starlette` 0.41.3 | 7 | ⏳ **Aceptados y documentados** — bloqueados por el pin de FastAPI |
+
+**`pyjwt`** era dependencia directa de la que depende toda la plataforma de seguridad de TEAF, así
+que se actualizó. Los avisos incluían un bypass de la lista blanca de algoritmos
+(PYSEC-2026-176), confusión HMAC/JWK (PYSEC-2026-179) y falta de validación de `crit`
+(PYSEC-2026-120). El análisis de explotabilidad mostró que el código de TEAF los mitigaba ya por
+su cuenta —pasa `signing_key.key` en vez del `PyJWK`, fija `algorithms=["RS256"]` y no usa
+`PyJWKClient`—, pero eso protege a TEAF, no necesariamente a las aplicaciones que lo usan.
+Actualizar era lo correcto. La suite completa pasa sin cambios de código.
+
+Efecto lateral útil: 2.13.0 introduce `InsecureKeyLengthWarning`, que es la mitigación que el
+propio informe de PYSEC-2025-183 pedía. Aparece en las pruebas porque sus fixtures usan secretos
+de 11 bytes. **TEAF no impone longitud mínima al secreto JWT** — hallazgo nuevo, de severidad
+baja, anotado en el backlog: imponerla cambiaría configuraciones que hoy funcionan.
+
+**`starlette`** es transitiva: `fastapi 0.115.6` fija `starlette<0.42.0`, así que ninguna
+corrección es alcanzable sin actualizar FastAPI, lo que es un cambio mayor y quedó fuera del
+alcance de un Sprint de cierre. Los 7 avisos se aceptan **explícitamente**, con severidad,
+versión objetivo y análisis de aplicabilidad, en
+[`docs/security/accepted-vulnerabilities.json`](security/accepted-vulnerabilities.json). Ninguno
+alcanza código de TEAF: cinco dependen de funcionalidad que el framework no usa (`StaticFiles`,
+`FileResponse`, `HTTPEndpoint`, parseo de formularios y multipart) y uno es exclusivo de Windows.
+
+La puerta **falla ante cualquier aviso que no esté en esa lista**, y lista los aceptados en cada
+ejecución para que no se conviertan en deuda invisible.
 
 ## Recomendaciones, por orden
 

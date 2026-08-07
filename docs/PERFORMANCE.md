@@ -61,7 +61,7 @@ comprobaron contra el código sin arreglar: fallan, que es lo que las hace valer
 
 Eliminados 7 módulos sin ningún uso: `shared/{collections,dates,strings,validation}.py` y
 `providers/telemetry/{logger,metrics,tracer}_provider.py`. Estos últimos los declaraba muertos
-[ADR-008](architecture/adr/ADR-008-enterprise-observability.md) —«todos abstractos, ninguno
+[ADR-008](architecture/adr/ADR-008-enterprise-observability-stack.md) —«todos abstractos, ninguno
 instanciado en ningún sitio»— y además colisionaban por nombre con el `TracerProvider` real de
 OpenTelemetry, que es una confusión cara de pagar cuando alguien lee el import equivocado.
 

@@ -37,6 +37,7 @@ from teaf._internal.developer.runtime_api import DeveloperRuntimeAPI
 from teaf._internal.middleware.exception_handler import register_exception_handlers
 from teaf._internal.middleware.logging import RequestLoggingMiddleware
 from teaf._internal.middleware.request_id import RequestIdMiddleware
+from teaf._internal.middleware.security_headers import SecurityHeadersMiddleware
 from teaf._internal.monitoring.health import create_health_router
 from teaf._internal.monitoring.info import create_info_router
 from teaf._internal.runtime.api import create_runtime_router
@@ -49,7 +50,7 @@ from teaf._internal.shared.constants import DEFAULT_SERVICE_NAME
 #: Versión del propio framework TEAF (no de una aplicación construida sobre
 #: él). Se actualiza junto con CHANGELOG.md en cada release (ver
 #: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
-FRAMEWORK_VERSION = "0.9.1-alpha"
+FRAMEWORK_VERSION = "0.9.2-alpha"
 
 #: Raíz del repositorio, para escribir ``runtime.manifest.json`` (ver
 #: Sprint 2.4, ítem 9) siempre en el mismo lugar sin depender del directorio
@@ -87,10 +88,14 @@ def _configuration_summary(settings: Settings) -> Mapping[str, object]:
     """Resumen serializable y no sensible de la configuración activa.
 
     Expuesto vía ``GET /runtime/configuration`` y ``runtime.manifest.json``.
-    Ningún campo de ``Settings`` actual es un secreto (ver
-    ``backend/config/settings.py``) — si un Sprint futuro añade credenciales
-    reales, deberá excluirlas explícitamente de este resumen antes de
-    exponerlas.
+
+    Es una **lista blanca**, y esa es la propiedad que lo hace seguro:
+    ``Settings`` sí contiene secretos desde Sprint 2.7 (``jwt_secret``,
+    ``api_key_hash_secret``, ``azure_ad_client_secret``), y ninguno aparece
+    aquí porque hay que añadir un campo explícitamente para exponerlo, no
+    excluirlo explícitamente para protegerlo. Un campo nuevo en ``Settings``
+    —secreto o no— queda fuera por omisión. Verificado con valores centinela
+    sobre los 12 endpoints de sistema (ver docs/SECURITY-REVIEW.md, H-3).
     """
     return {
         "appName": settings.app_name,
@@ -213,6 +218,16 @@ def create_app(
     # para que el correlation-id ya esté disponible al loguear la petición.
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(RequestIdMiddleware)
+    # El más externo de los tres, a propósito: así sus cabeceras alcanzan
+    # también a las respuestas de error, que se generan en capas más
+    # internas (``register_exception_handlers``). Ver ADR-010.
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        enabled=settings.security_headers_enabled,
+        hsts_max_age_seconds=settings.security_hsts_max_age_seconds,
+        frame_options=settings.security_frame_options,
+        content_security_policy=settings.security_content_security_policy,
+    )
 
     register_exception_handlers(app)
 

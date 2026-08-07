@@ -84,17 +84,26 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 | Developer Experience | CLI/generador de proyectos (`teaf new app`) | 🟢 | Épicas 1-3 |
 | Documentación | Portal de documentación navegable generado desde `docs/` | 🟢 | — |
 
-### Hallazgos abiertos de la revisión de seguridad (Sprint 2.9.1)
+### Pendiente para Sprint 3.0 (cierre de la línea 2.9)
 
-Detectados y documentados en [SECURITY-REVIEW.md](../SECURITY-REVIEW.md); **no corregidos** porque el Sprint 2.9.1 tenía prohibido añadir funcionalidad o cambiar comportamiento. Condicionan la declaración de v1.0-beta (ver [PRODUCTION-READINESS.md](../PRODUCTION-READINESS.md)).
+Estado tras Sprint 2.9.2, que cerró H-1, H-3 y la laguna de auditoría de dependencias. Lo que queda condiciona la declaración de v1.0-beta (ver [PRODUCTION-READINESS.md](../PRODUCTION-READINESS.md)).
 
 | Feature | Historia | Prioridad | Dependencias |
 |---|---|---|---|
-| Seguridad | `SecurityHeadersMiddleware`: implementar las cabeceras que SECURITY-STANDARD.md §7 exige y que hoy `Settings` promete sin activar (H-1) | 🔴 | Épica 2 |
-| Seguridad | Añadir `pip-audit` a CI como puerta de calidad — el árbol de dependencias no se ha contrastado nunca contra una base de vulnerabilidades | 🔴 | — |
-| Seguridad | Decidir el valor por defecto de `trust_forwarded_headers`, o sustituirlo por una lista de proxies de confianza (H-2) | 🟡 | Sprint 2.9 |
-| Protección de APIs | Implementar los proveedores Redis (rate limiting, cuotas, idempotencia) — requisito para escalar horizontalmente con límites reales | 🟡 | ADR nuevo (`redis-py`) |
-| Documentación | Corregir el comentario obsoleto sobre secretos en `_configuration_summary` (H-3) | 🟢 | — |
+| Protección de APIs | Implementar los proveedores Redis (rate limiting, cuotas, idempotencia). **Requisito para escalar horizontalmente**: hoy los almacenes son por proceso, así que un límite de 100 req/min con 4 réplicas son 400 en la práctica | 🔴 | ADR nuevo (`redis-py`) |
+| Dependencias | Actualizar FastAPI para desbloquear las 7 vulnerabilidades aceptadas de `starlette` (`fastapi 0.115.6` fija `starlette<0.42.0`). Ver [accepted-vulnerabilities.json](../security/accepted-vulnerabilities.json) | 🔴 | Cambio mayor de FastAPI |
+| Seguridad | Lista de proxies de confianza (`trusted_proxies`) en sustitución del `trust_forwarded_headers` binario — solución completa de H-2 ([ADR-010](../architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) | 🟡 | Sprint 2.9.2 |
+| Seguridad | Longitud mínima del secreto JWT. Hoy no se impone; lo destapó el `InsecureKeyLengthWarning` de pyjwt 2.13.0. Imponerla cambia configuraciones que hoy funcionan | 🟢 | Sprint 2.9.2 |
+| Aplicación de referencia | Corregir `test_task_module_appears_in_runtime_info` (espera `>= 8` módulos, obtiene 6 desde que los Sprints 2.7/2.8 retiraron los placeholders). Corresponde a su propio repositorio | 🟢 | — |
+
+#### Cerrado en Sprint 2.9.2
+
+| Historia | Desenlace |
+|---|---|
+| `SecurityHeadersMiddleware` (H-1) | ✅ Implementado + 31 pruebas ([ADR-010](../architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) |
+| `pip-audit` como puerta de calidad | ✅ Puerta `dependencies`; encontró 13 avisos reales y `pyjwt` se actualizó |
+| Comentario obsoleto sobre secretos (H-3) | ✅ Corregido |
+| Valor por defecto de `trust_forwarded_headers` (H-2) | ⚠️ Mitigado (aviso + pruebas anti-spoofing), no cerrado — ver fila de `trusted_proxies` |
 
 ---
 

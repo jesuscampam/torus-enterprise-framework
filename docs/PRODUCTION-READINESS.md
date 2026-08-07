@@ -1,4 +1,24 @@
-# Preparación para producción — v0.9.1-alpha
+# Preparación para producción — v0.9.2-alpha
+
+> **Actualizado en Sprint 2.9.2.** El veredicto de más abajo era el de v0.9.1-alpha y su condición
+> **ya se ha cumplido**: H-1 está resuelto (las cabeceras de seguridad se implementan y se
+> verifican) y la auditoría de dependencias es una puerta de calidad. El estado vigente:
+>
+> | Punto | v0.9.1-alpha | v0.9.2-alpha |
+> |---|---|---|
+> | Cabeceras de seguridad HTTP | ❌ Declaradas, no implementadas | ✅ Implementadas + 31 pruebas |
+> | Auditoría de vulnerabilidades | ❌ Nunca ejecutada | ✅ Puerta de calidad; `pyjwt` actualizado, 7 avisos aceptados y documentados |
+> | `trust_forwarded_headers` | ⚠️ Riesgo silencioso | ⚠️ Riesgo documentado, con aviso al arrancar y pruebas anti-spoofing |
+> | Puertas de calidad | 10/10 | **11/11** |
+> | Pruebas | 1.126 · 98% | **1.170 · 98%** |
+>
+> Sigue **pendiente para Sprint 3.0**: los proveedores Redis (necesarios para escalar
+> horizontalmente con límites reales), la actualización de FastAPI que desbloquee los avisos de
+> `starlette`, y la lista de proxies de confianza. La lista completa está al final.
+
+---
+
+# Preparación para producción — v0.9.1-alpha (revisión original)
 
 Estado real de TEAF frente a un despliegue en producción: qué está listo, qué falta y qué hay que
 resolver **fuera** del framework. Es el documento que se lee antes de decidir si se declara

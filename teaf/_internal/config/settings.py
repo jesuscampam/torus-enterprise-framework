@@ -104,10 +104,27 @@ class Settings(BaseSettings):
     secret_rotation_enabled: bool = False
     secret_rotation_interval_days: int = 90
 
-    # Cabeceras de seguridad HTTP
+    # -- Cabeceras de seguridad HTTP (Sprint 2.9.2, ADR-010) -----------------------------
+    #
+    # Las consume ``SecurityHeadersMiddleware``
+    # (``teaf/_internal/middleware/security_headers.py``), que ``create_app``
+    # instala siempre. Hasta Sprint 2.9.2 estos campos existían sin que nadie
+    # los leyera: prometían una protección inexistente. Ver
+    # [SECURITY-STANDARD.md §7](../../../docs/standards/SECURITY-STANDARD.md).
+
     security_headers_enabled: bool = True
+    #: ``max-age`` de ``Strict-Transport-Security``, en segundos (por defecto, un año).
+    #: La cabecera **solo se emite sobre HTTPS**, como exige RFC 6797 §7.2.
     security_hsts_max_age_seconds: int = 31_536_000
+    #: Valor de ``X-Frame-Options``. Cadena vacía omite la cabecera (la
+    #: directiva ``frame-ancestors`` de la CSP la sustituye en navegadores
+    #: modernos, y ``X-Frame-Options`` solo sigue ahí por los antiguos).
     security_frame_options: str = "DENY"
+    #: ``Content-Security-Policy``. El valor por defecto es el correcto para
+    #: una API JSON —prohíbe cargar cualquier recurso y ser embebida—, no para
+    #: un frontend: una aplicación que sirva HTML propio debe sustituirlo por
+    #: la política de su frontend (ver SECURITY-STANDARD.md §7).
+    security_content_security_policy: str = "default-src 'none'; frame-ancestors 'none'"
 
     # -- Observabilidad (Sprint 2.8, ADR-008) --------------------------------------------
     #

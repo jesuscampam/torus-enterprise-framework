@@ -98,6 +98,16 @@ GATES: tuple[Gate, ...] = (
         command=[sys.executable, "scripts/check_runtime_startup.py"],
     ),
     Gate(
+        name="dependencies",
+        description=(
+            "pip-audit — vulnerabilidades conocidas en las dependencias. Falla ante cualquier "
+            "aviso no aceptado explícitamente en docs/security/accepted-vulnerabilities.json "
+            "(Sprint 2.9.2)."
+        ),
+        command=[sys.executable, "scripts/check_dependency_audit.py"],
+        slow=True,
+    ),
+    Gate(
         name="tests",
         description=f"Suite completa con cobertura ≥{MINIMUM_COVERAGE}% sobre teaf/.",
         command=[

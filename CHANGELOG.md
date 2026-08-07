@@ -7,7 +7,45 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.9.1-alpha](#091-alpha---2026-08-07).
+Sin cambios todavía sobre [0.9.2-alpha](#092-alpha---2026-08-07).
+
+## [0.9.2-alpha] - 2026-08-07
+
+Sprint 2.9.2 — **Contrato de seguridad, puerta de release y cierre de la línea 2.9**. Cierra los tres pendientes que dejó abiertos Sprint 2.9.1. Sin funcionalidad de producto nueva.
+
+**API pública sin rupturas**: 192 símbolos, 0 eliminados, 0 renombrados, 0 firmas rotas.
+
+### Added
+
+- **`SecurityHeadersMiddleware`** ([ADR-010](docs/architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) — resuelve **H-1**. [SECURITY-STANDARD.md §7](docs/standards/SECURITY-STANDARD.md) exigía cuatro cabeceras y `Settings` declaraba tres campos para gobernarlas, pero **no existía nada que las emitiera**: un `security_headers_enabled: bool = True` que no activaba nada comunicaba una protección inexistente. Ahora `create_app` lo instala siempre y emite `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy` y `Strict-Transport-Security`, gobernados por los campos que ya existían.
+  - Middleware **ASGI puro**, no `BaseHTTPMiddleware`: solo intercepta `http.response.start`, así que no materializa el cuerpo ni rompe el streaming. Coste medido: **ninguno** (memoria de construcción 192.1 → 192.4 KiB, arranque sin regresión).
+  - **HSTS solo sobre HTTPS**, como exige RFC 6797 §7.2 — emitirla sobre HTTP la ignoran los navegadores y en desarrollo puede fijar `localhost` en HTTPS durante un año.
+  - **La CSP no se aplica a `/docs` ni `/redoc`**: la política por defecto (`default-src 'none'`) dejaría Swagger UI en blanco, y un desarrollador que se lo encuentre así desactivará el middleware entero. Excepción acotada y documentada.
+  - Nunca sobrescribe una cabecera ya presente: un proxy que también las añada no entra en conflicto.
+  - **31 pruebas** que comprueban **valores reales** — incluidas respuestas de error, OpenAPI sin regresión y cuerpos byte a byte idénticos con el middleware activo y desactivado.
+- **Campo nuevo** `security_content_security_policy` en `Settings` (aditivo). Su valor por defecto es el de una API JSON; una aplicación que sirva HTML propio debe sustituirlo.
+- **Puerta de calidad `dependencies`** — cierra la laguna que Sprint 2.9.1 dejó documentada. `python -m pip_audit` sobre `requirements.txt`, con **excepciones explícitas y justificadas** en [`docs/security/accepted-vulnerabilities.json`](docs/security/accepted-vulnerabilities.json) (identificador, severidad, versión afectada, versión objetivo, justificación). Falla ante cualquier aviso no listado y lista los aceptados en cada ejecución, para que no se conviertan en deuda invisible. Las puertas pasan de 10 a **11**.
+- **Pruebas anti-spoofing de cabeceras de reenvío** (13): demuestran de forma ejecutable que con `trust_forwarded_headers=False` un atacante **no** puede repartirse entre cubetas de rate limiting inventando IPs, y que con `True` sí — que es exactamente el riesgo de H-2.
+- [`docs/security/SECURITY-CONFIGURATION.md`](docs/security/SECURITY-CONFIGURATION.md) — riesgo, valor por defecto y despliegue recomendado de `security_headers_enabled` y `api_trust_forwarded_headers`.
+
+### Fixed
+
+- **Ejecutar migraciones dejaba mudo al framework entero.** `database/migrations/env.py` llamaba a `logging.config.fileConfig()`, cuyo valor por defecto es `disable_existing_loggers=True`. Como `DatabaseInstaller` permite ejecutar migraciones dentro del proceso de la aplicación, arrancar con migraciones **desactivaba todos los loggers ya creados** — logging de peticiones, auditoría ([SECURITY-STANDARD.md §8](docs/standards/SECURITY-STANDARD.md)) y avisos de seguridad incluidos. El fallo es silencioso por naturaleza: nada falla, simplemente dejan de aparecer registros. Se descubrió porque desactivaba el logger del aviso de `trust_forwarded_headers`; 78 loggers quedaban desactivados en una ejecución completa de la suite. Corregido y fijado con una prueba de regresión.
+- **`pyjwt` 2.10.1 → 2.13.0**: corrige **6 vulnerabilidades conocidas**, entre ellas un bypass de la lista blanca de algoritmos (PYSEC-2026-176) y confusión HMAC/JWK (PYSEC-2026-179). El análisis mostró que el código de TEAF ya las mitigaba por su cuenta, pero eso protege a TEAF, no a las aplicaciones construidas sobre él.
+- **H-3**: comentario obsoleto en `_configuration_summary` que afirmaba que ningún campo de `Settings` es un secreto — falso desde Sprint 2.7. No había fuga (el resumen es una lista blanca), solo prosa desactualizada que describía la protección al revés.
+
+### Changed
+
+- [SECURITY-STANDARD.md §7](docs/standards/SECURITY-STANDARD.md) documenta ahora la implementación **real**: tabla de cabeceras, valores por defecto, configuración y las tres excepciones que hay que conocer. Ya no promete lo que el framework no hace.
+- `trust_forwarded_headers` **mantiene su valor por defecto `True`** — invertirlo rompería silenciosamente a quien esté correctamente desplegado detrás de un proxy, convirtiendo su límite por IP en un límite global. Pero deja de ser silencioso: `ApiGateway.install()` avisa al arrancar cuando la confianza está activa y hay algún middleware que usa la IP del cliente. La solución completa (lista de proxies de confianza) queda en el backlog de Sprint 3.0.
+
+### Security
+
+Estado tras este Sprint en [SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md): **H-1 y H-3 resueltos**, **H-2 mitigado y documentado**, laguna de auditoría de dependencias **cerrada**.
+
+Conviene decir explícitamente lo que esa última reveló: la revisión de Sprint 2.9.1 concluyó «versiones recientes, ningún aviso conocido». Al ejecutar `pip-audit` por primera vez aparecieron **13 avisos** en dos paquetes. Aquella conclusión era conocimiento, no verificación, y era incorrecta — que es precisamente el motivo por el que esta puerta existe ahora.
+
+**Hallazgo nuevo (baja)**: TEAF no impone longitud mínima al secreto JWT. Lo destapó el `InsecureKeyLengthWarning` que introduce pyjwt 2.13.0. Imponerla cambiaría configuraciones que hoy funcionan; queda en el backlog.
 
 ## [0.9.1-alpha] - 2026-08-07
 
@@ -42,7 +80,7 @@ Sprint 2.9.1 — **Hardening, rendimiento y preparación para producción**. Sin
 
 ### Removed
 
-- **7 módulos de código muerto**, ninguno alcanzable desde `teaf.*`: `shared/{collections,dates,strings,validation}.py` y `providers/telemetry/{logger,metrics,tracer}_provider.py`. Estos últimos ya los declaraba muertos [ADR-008](docs/architecture/adr/ADR-008-enterprise-observability.md) («todos abstractos, ninguno instanciado en ningún sitio») y además colisionaban por nombre con el `TracerProvider` real de OpenTelemetry.
+- **7 módulos de código muerto**, ninguno alcanzable desde `teaf.*`: `shared/{collections,dates,strings,validation}.py` y `providers/telemetry/{logger,metrics,tracer}_provider.py`. Estos últimos ya los declaraba muertos [ADR-008](docs/architecture/adr/ADR-008-enterprise-observability-stack.md) («todos abstractos, ninguno instanciado en ningún sitio») y además colisionaban por nombre con el `TracerProvider` real de OpenTelemetry.
 - `is_valid_uuid` de `shared/identifiers.py` — sin uso.
 
 ### Security
