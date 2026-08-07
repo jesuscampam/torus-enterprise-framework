@@ -8,7 +8,7 @@ from teaf._internal.sdk.templates import MODULE_TEMPLATES, get_template
 
 def test_all_eight_categories_have_a_template() -> None:
     assert set(MODULE_TEMPLATES) == set(ModuleCategory)
-    assert len(MODULE_TEMPLATES) == 8
+    assert len(MODULE_TEMPLATES) == 9
 
 
 def test_get_template_returns_matching_category() -> None:

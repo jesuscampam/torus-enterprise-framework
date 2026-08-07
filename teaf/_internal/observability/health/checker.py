@@ -1,4 +1,4 @@
-"""``CompositeHealthChecker`` — agrega múltiples ``HealthCheck``/``ModuleHealth`` en un ``HealthReport``.
+"""``CompositeHealthChecker`` — agrega ``HealthCheck``/``ModuleHealth`` en un ``HealthReport``.
 
 Un ``HealthCheck`` sin ``check`` (``None``) o cuyo ``check()`` lance una
 excepción cuenta como ``CapabilityHealth.UNHEALTHY`` — un módulo que no

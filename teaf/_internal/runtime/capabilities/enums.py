@@ -18,6 +18,8 @@ class CapabilityCategory(str, Enum):
     NOTIFICATION = "notification"
     SCHEDULER = "scheduler"
     OBSERVABILITY = "observability"
+    #: Protección y gobernanza de APIs (Sprint 2.9, ADR-009).
+    API = "api"
     INTEGRATION = "integration"
     UTILITY = "utility"
     CUSTOM = "custom"

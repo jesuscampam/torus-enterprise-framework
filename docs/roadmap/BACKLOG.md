@@ -34,7 +34,10 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 | Seguridad | Autenticación JWT (access + refresh) en `security/` | 🔴 | Épica 1 |
 | Seguridad | Autorización RBAC (roles, permisos) | 🔴 | Autenticación JWT |
 | Seguridad | Hashing de credenciales (bcrypt/argon2) | 🔴 | Autenticación JWT |
-| Middlewares | Correlation-id, logging de requests, rate limiting | 🔴 | Épica 1 |
+| Middlewares | Correlation-id, logging de requests | 🔴 | Épica 1 |
+| Protección de APIs | Rate limiting: ventana fija/deslizante, cubo de tokens/con fuga, por usuario/API Key/tenant/IP/endpoint/rol (entregado en Sprint 2.9, [ADR-009](../architecture/adr/ADR-009-enterprise-api-protection.md)) | 🔴 | Middlewares |
+| Protección de APIs | Cuotas de consumo por período, ancho de banda, payload y concurrencia | 🔴 | Rate limiting |
+| Protección de APIs | CORS, versionado de API, validación de borde, compresión, idempotencia y auditoría de API | 🔴 | Middlewares |
 | Middlewares | Manejo centralizado de errores (RFC 7807) | 🔴 | Middlewares base |
 | Observabilidad | Instrumentación OpenTelemetry (trazas y métricas) en `monitoring/` | 🔴 | Épica 1 |
 | Observabilidad | Exportación compatible con Azure Monitor | 🟡 | Instrumentación OpenTelemetry |

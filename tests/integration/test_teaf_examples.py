@@ -277,4 +277,12 @@ def test_discovered_at_least_the_expected_examples() -> None:
         "health-checks",
         "prometheus-metrics",
         "opentelemetry-otlp",
+        # -- Plataforma de protección de APIs (Sprint 2.9, ADR-009).
+        "rate-limiting",
+        "quota-management",
+        "api-versioning",
+        "cors-policy",
+        "response-compression",
+        "idempotent-requests",
+        "api-audit",
     }

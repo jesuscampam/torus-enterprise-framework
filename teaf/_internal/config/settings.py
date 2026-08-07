@@ -133,6 +133,95 @@ class Settings(BaseSettings):
     observability_prometheus_prefix: str = ""
     observability_metrics_export_interval_millis: int = 60_000
 
+    # -- Protección de APIs (Sprint 2.9, ADR-009) ----------------------------------------
+    #
+    # Mismo criterio que las dos secciones anteriores: superficie de
+    # configuración por entorno, desacoplada de ``ApiProtectionConfiguration``/
+    # ``ApiProtectionModule`` (``teaf/_internal/api/module/configuration.py``).
+    # La diferencia con Seguridad/Observabilidad es que aquí los nombres sí
+    # coinciden campo a campo con los de esa configuración, salvo por el
+    # prefijo ``api_``: ``ApiProtectionConfiguration.from_mapping`` lo
+    # reconoce, así que ``from_mapping(settings.model_dump())`` funciona sin
+    # transformar nada.
+    #
+    # Las listas viajan como cadenas separadas por comas porque una variable
+    # de entorno no puede ser otra cosa (``API_CORS_ALLOW_ORIGINS=
+    # "https://a.com,https://b.com"``); ``_coerce_tuple`` las convierte.
+
+    # Rate limiting
+    api_rate_limit_enabled: bool = True
+    api_rate_limit_requests: int = 1_000
+    api_rate_limit_window_seconds: float = 60.0
+    api_rate_limit_algorithm: str = "fixed_window"
+    api_rate_limit_scope: str = "ip"
+    api_rate_limit_burst: int = 0
+
+    # Quotas — cada límite a 0 significa "sin cuota de ese tipo".
+    api_quotas_enabled: bool = False
+    api_quota_scope: str = "tenant"
+    api_quota_requests_per_minute: int = 0
+    api_quota_requests_per_hour: int = 0
+    api_quota_requests_per_day: int = 0
+    api_quota_requests_per_month: int = 0
+    api_quota_bandwidth_bytes_per_day: int = 0
+    api_quota_max_payload_bytes: int = 0
+    api_quota_max_concurrent_requests: int = 0
+
+    # CORS — sin orígenes declarados, CORS queda desactivado.
+    api_cors_allow_origins: str = ""
+    api_cors_allow_origin_patterns: str = ""
+    api_cors_allow_methods: str = "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS"
+    api_cors_allow_headers: str = ""
+    api_cors_expose_headers: str = ""
+    api_cors_allow_credentials: bool = False
+    api_cors_max_age_seconds: int = 600
+
+    # Versionado
+    api_versioning_enabled: bool = True
+    api_versioning_supported: str = "v1"
+    api_versioning_default: str = "v1"
+    api_versioning_strategies: str = "uri,header,media_type"
+    api_versioning_header: str = "X-API-Version"
+    api_versioning_media_type_vendor: str = "teaf"
+    api_versioning_strict: bool = True
+
+    # Validación de peticiones
+    api_validation_enabled: bool = True
+    api_validation_max_request_bytes: int = 10 * 1024 * 1024
+    api_validation_max_response_bytes: int = 50 * 1024 * 1024
+    api_validation_validate_responses: bool = False
+    api_validation_allowed_content_types: str = ""
+    api_validation_required_headers: str = ""
+    api_validation_blocked_user_agents: str = ""
+    api_validation_allowed_user_agents: str = ""
+    api_validation_require_user_agent: bool = False
+    api_validation_max_url_length: int = 8_000
+
+    # Compresión
+    api_compression_enabled: bool = True
+    api_compression_minimum_size_bytes: int = 500
+    api_compression_gzip_enabled: bool = True
+    api_compression_gzip_level: int = 6
+    api_compression_brotli_enabled: bool = True
+    api_compression_brotli_quality: int = 4
+
+    # Idempotencia
+    api_idempotency_enabled: bool = False
+    api_idempotency_ttl_seconds: float = 86_400.0
+    api_idempotency_header: str = "Idempotency-Key"
+    api_idempotency_methods: str = "POST,PATCH"
+
+    # Auditoría de API
+    api_audit_enabled: bool = True
+    api_audit_memory_sink_enabled: bool = True
+    api_audit_memory_sink_limit: int = 1_000
+    api_audit_logging_sink_enabled: bool = False
+
+    #: ``False`` cuando la aplicación se expone directamente a internet: sin un
+    #: proxy que las reescriba, ``X-Forwarded-For`` la controla el cliente y
+    #: falsearla saltaría cualquier límite por IP (ver docs/api/RATE-LIMITING.md).
+    api_trust_forwarded_headers: bool = True
+
 
 class DevelopmentSettings(Settings):
     environment: Environment = Environment.DEVELOPMENT
@@ -174,6 +263,10 @@ class ProductionSettings(Settings):
     #: Rotación de secretos activada por defecto en producción (ver
     #: SECURITY-STANDARD.md) — el resto de entornos la dejan desactivada.
     secret_rotation_enabled: bool = True
+    #: La auditoría de API va al log estructurado en producción (Sprint 2.9):
+    #: es donde un agente de logs puede recogerla y retenerla, a diferencia
+    #: del destino en memoria, que se pierde al reiniciar el proceso.
+    api_audit_logging_sink_enabled: bool = True
 
 
 _SETTINGS_BY_ENVIRONMENT: dict[Environment, type[Settings]] = {

@@ -7,17 +7,20 @@ Qué namespaces son públicos y cuáles son privados, y cómo se verifica. Ver [
 | Namespace | Estado | Uso permitido |
 |---|---|---|
 | `teaf` | **Público** | Cualquier consumidor externo, cualquier ejemplo de `examples/`. Único punto de entrada soportado. |
+| `teaf.security`, `teaf.observability`, `teaf.api` (y el resto de fachadas de `teaf/`: `application`, `runtime`, `modules`, `services`, `events`, `configuration`, `capabilities`, `health`, `version`) | **Público** | Igual que `teaf`: cada una agrupa una plataforma o una capa, y todo lo que exportan se reexporta también desde `teaf` — `from teaf import ApiGateway` y `from teaf.api import ApiGateway` son equivalentes. |
 | `teaf._internal` (y todo lo que cuelga: `teaf._internal.core`, `teaf._internal.config`, `teaf._internal.runtime`, `teaf._internal.sdk`, `teaf._internal.contracts`, `teaf._internal.providers`, `teaf._internal.modules`, `teaf._internal.middleware`, `teaf._internal.monitoring`, ...) | **Privado** | Solo dentro de este repositorio: las propias fachadas de `teaf/`, y las pruebas de caja blanca del framework (`tests/`) que necesitan verificar la implementación interna. Movido desde el antiguo paquete de nivel superior `backend/` en el Sprint 2.6.2 (ver [ADR-006](../architecture/adr/ADR-006-internal-namespace-refactor.md)). |
 
 ```python
 # Correcto — cualquier consumidor externo:
 from teaf import Application, Module, ModuleBuilder
 from teaf.security import JWTProvider, SecurityMiddleware, authorize   # también válido: from teaf import ...
+from teaf.api import ApiGateway, RateLimiter, RateLimitRule            # también válido: from teaf import ...
 
 # Incorrecto — nunca fuera de este repositorio, ni en examples/:
 from teaf._internal.core.application import create_app
 from teaf._internal.sdk.module_base import ModuleBase
 from teaf._internal.security.tokens.jwt_provider import JWTTokenProvider
+from teaf._internal.api.ratelimit.limiter import RateLimiter
 ```
 
 No hay una lista de excepciones: si un símbolo de `teaf/_internal/` es genuinamente útil para un consumidor externo, la corrección es exponerlo desde la fachada correspondiente de `teaf/` (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)) — nunca "solo por esta vez" importar `teaf._internal.*` directamente desde fuera.

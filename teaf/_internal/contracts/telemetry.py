@@ -86,7 +86,7 @@ class Tracer(ABC):
         attributes: Mapping[str, object] | None = None,
         links: Sequence[Span] = (),
     ) -> AbstractContextManager[Span]:
-        """Abre un span llamado ``name`` (hijo del span activo, si lo hay), cerrado al salir del contexto.
+        """Abre un span ``name`` (hijo del span activo, si lo hay), cerrado al salir del contexto.
 
         ``links`` referencia spans de otras trazas causalmente relacionados
         (p. ej. un job en background disparado por esta petición) — sin

@@ -8,6 +8,8 @@ error — ninguna otra capa formatea errores por su cuenta.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -40,6 +42,16 @@ _STATUS_BY_EXCEPTION_TYPE: dict[type[ApplicationException], int] = {
 
 
 def _resolve_http_status(exc: ApplicationException) -> int:
+    """Código HTTP de ``exc``: el declarado por la excepción, si lo hay; si no, por categoría.
+
+    ``ApplicationException.http_status`` (``None`` salvo que una subclase lo
+    fije) tiene prioridad para que una jerarquía definida fuera de ``core/``
+    pueda usar códigos que este archivo no conoce — p. ej. 429/413/415/409 de
+    ``teaf/_internal/api/exceptions.py`` (Sprint 2.9) — sin que ``middleware/``
+    tenga que importar ese subsistema ni ningún otro.
+    """
+    if exc.http_status is not None:
+        return exc.http_status
     for exception_type, http_status in _STATUS_BY_EXCEPTION_TYPE.items():
         if isinstance(exc, exception_type):
             return http_status
@@ -57,6 +69,37 @@ def _build_problem_detail(
         "instance": instance_path,
         "correlationId": get_correlation_id(),
     }
+
+
+def build_problem_response(
+    exc: ApplicationException,
+    *,
+    instance_path: str,
+    headers: Mapping[str, str] | None = None,
+) -> JSONResponse:
+    """Construye la respuesta RFC 7807 de ``exc``, fuera del ciclo de manejadores de FastAPI.
+
+    Necesario para los middlewares que rechazan una petición **antes** de
+    llamar a ``call_next``: en Starlette, ``ExceptionMiddleware`` (donde
+    viven los manejadores registrados con ``app.add_exception_handler``) es
+    más *interno* que cualquier middleware de usuario, así que una excepción
+    lanzada en el ``dispatch`` de uno de ellos nunca los alcanza. Los
+    middlewares de ``teaf/_internal/api/middleware/`` (Sprint 2.9) usan esta
+    función para emitir exactamente el mismo formato de error que emitiría
+    el manejador centralizado, en vez de inventarse un cuerpo propio.
+
+    ``headers`` añade cabeceras específicas del rechazo (``Retry-After``,
+    ``X-RateLimit-*``) sin que esta función necesite conocerlas.
+    """
+    http_status = _resolve_http_status(exc)
+    problem = _build_problem_detail(
+        error_code=exc.error_code,
+        title=exc.__class__.__name__,
+        http_status=http_status,
+        detail=exc.message,
+        instance_path=instance_path,
+    )
+    return JSONResponse(status_code=http_status, content=problem, headers=dict(headers or {}))
 
 
 async def _handle_application_exception(

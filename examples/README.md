@@ -46,3 +46,17 @@ Cada uno construye sus proveedores de OpenTelemetry directamente (`TracerProvide
 | [`health-checks/`](health-checks/) | `/health`/`/ready` agregando el `ModuleHealth` real de varios módulos vía `CompositeHealthChecker`. | `python examples/health-checks/main.py` |
 | [`prometheus-metrics/`](prometheus-metrics/) | Métricas expuestas en formato Prometheus (`GET /metrics`, modelo *pull*) con `PrometheusExporter`. | `python examples/prometheus-metrics/main.py` |
 | [`opentelemetry-otlp/`](opentelemetry-otlp/) | Exportar trazas y métricas vía OTLP/HTTP a un Collector real — el camino hacia Jaeger/Datadog/Grafana/etc. | `python examples/opentelemetry-otlp/main.py` |
+
+## Plataforma de protección de APIs (Sprint 2.9, ADR-009)
+
+Cada uno construye un `ApiGateway` con los subsistemas que necesita y lo instala con una sola llamada (`gateway.install(app)`), que monta los middlewares en el orden correcto. A diferencia de las dos plataformas anteriores, `ApiProtectionModule` **sí** se expone públicamente (ver [PUBLIC-API.md, sección 8](../docs/public-api/PUBLIC-API.md) y [ADR-009](../docs/architecture/adr/ADR-009-enterprise-api-protection.md)).
+
+| Carpeta | Qué demuestra | Ejecutar |
+|---|---|---|
+| [`rate-limiting/`](rate-limiting/) | Los cuatro algoritmos (ventana fija/deslizante, cubo de tokens/con fuga), las dimensiones de agrupación y las cabeceras `X-RateLimit-*`. | `python examples/rate-limiting/main.py` |
+| [`quota-management/`](quota-management/) | Las cuatro magnitudes de cuota: peticiones por período, ancho de banda, payload y concurrencia. | `python examples/quota-management/main.py` |
+| [`api-versioning/`](api-versioning/) | Versionado por URI, cabecera y tipo de medio, con versión por defecto y deprecación (`Deprecation`/`Sunset`). | `python examples/api-versioning/main.py` |
+| [`cors-policy/`](cors-policy/) | Comodines de subdominio, credenciales, comprobación previa y cabeceras CORS en respuestas de error. | `python examples/cors-policy/main.py` |
+| [`response-compression/`](response-compression/) | GZip (estándar) y Brotli (paquete opcional), negociación por `Accept-Encoding` y umbral mínimo. | `python examples/response-compression/main.py` |
+| [`idempotent-requests/`](idempotent-requests/) | Reintentos que reproducen la respuesta original, y conflicto al reutilizar una clave con otro cuerpo. | `python examples/idempotent-requests/main.py` |
+| [`api-audit/`](api-audit/) | Qué se registra de cada petición (aceptada, rechazada, fallida) y cómo se cruza con las trazas. | `python examples/api-audit/main.py` |

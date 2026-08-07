@@ -24,6 +24,17 @@ class ApplicationException(Exception):
     #: Código de error por defecto; las subclases lo sobrescriben.
     default_error_code: str = "application-error"
 
+    #: Código HTTP con el que ``middleware/exception_handler.py`` debe
+    #: responder a esta excepción. ``None`` (por defecto) significa "resolver
+    #: por categoría", el comportamiento original: las cuatro subclases de
+    #: este archivo se mapean por tipo en ``_STATUS_BY_EXCEPTION_TYPE``.
+    #: Existe como punto de extensión declarativo para jerarquías definidas
+    #: fuera de ``core/`` que necesitan códigos no cubiertos aquí — lo usa la
+    #: plataforma de protección de APIs (Sprint 2.9: 429/413/415/409, ver
+    #: ``teaf/_internal/api/exceptions.py``) — y evita que ``middleware/``
+    #: tenga que importar cada subsistema para conocer sus excepciones.
+    http_status: int | None = None
+
     def __init__(self, message: str, *, error_code: str | None = None) -> None:
         super().__init__(message)
         self.message = message

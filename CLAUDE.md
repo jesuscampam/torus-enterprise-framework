@@ -50,6 +50,7 @@ Resumen operativo — el detalle completo vive en cada estándar, léelo antes d
 |---|---|
 | [CODING-STANDARD.md](docs/standards/CODING-STANDARD.md) | Siempre: estilo, principios SOLID/DRY/KISS, testing, checklist de revisión. |
 | [API-STANDARD.md](docs/standards/API-STANDARD.md) | Antes de tocar `teaf/_internal/api/` o `teaf/_internal/schemas/`. |
+| [docs/api/API-PROTECTION.md](docs/api/API-PROTECTION.md) | Antes de tocar la plataforma de protección de APIs (`teaf/_internal/api/`, Sprint 2.9): rate limiting, cuotas, CORS, versionado, validación, compresión, idempotencia y auditoría. |
 | [DATABASE-STANDARD.md](docs/standards/DATABASE-STANDARD.md) | Antes de tocar `teaf/_internal/database/`, `teaf/_internal/models/`, `teaf/_internal/repository/` o `database/migrations/`. |
 | [SECURITY-STANDARD.md](docs/standards/SECURITY-STANDARD.md) | Antes de tocar `teaf/_internal/security/` o cualquier dato sensible. |
 | [LOGGING-STANDARD.md](docs/standards/LOGGING-STANDARD.md) | Antes de emitir logs, métricas o trazas. |

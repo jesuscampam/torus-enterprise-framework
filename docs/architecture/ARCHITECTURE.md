@@ -65,7 +65,7 @@ TEAF aplica Clean Architecture con Domain-Driven Design ligero. Las flechas indi
 
 | Capa | Responsabilidad | No debe contener |
 |---|---|---|
-| `api/` | Exponer contratos HTTP versionados (routers/controladores), (de)serialización vía `schemas/`. | Lógica de negocio ni acceso directo a datos. |
+| `api/` | Doble responsabilidad desde el Sprint 2.9: exponer contratos HTTP versionados (routers/controladores, (de)serialización vía `schemas/`) **y** la plataforma de protección y gobernanza de APIs — rate limiting, cuotas, CORS, versionado, validación de borde, compresión, idempotencia y auditoría (ver [ADR-009](adr/ADR-009-enterprise-api-protection.md) y [docs/api/API-PROTECTION.md](../api/API-PROTECTION.md)). | Lógica de negocio ni acceso directo a datos. |
 | `core/` | Kernel del framework: bootstrap de la aplicación, contenedor de inyección de dependencias, excepciones base, ciclo de vida. | Reglas de negocio específicas de una aplicación. |
 | `services/` | Casos de uso de aplicación: orquesta repositorios, aplica reglas de negocio, coordina transacciones. | SQL, detalles HTTP, detalles de framework web. |
 | `repository/` | Contratos (interfaces) e implementaciones de acceso a datos — Repository Pattern. | Lógica de negocio. |

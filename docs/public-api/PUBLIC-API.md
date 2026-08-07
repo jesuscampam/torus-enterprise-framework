@@ -111,11 +111,30 @@ with tracer.start_span("create_order", kind=SpanKind.SERVER) as span:
 
 Ver los 6 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-observabilidad-sprint-28-adr-008).
 
-## 8. Qué NO expone `teaf`
+## 8. Plataforma de protección de APIs (`teaf.api`, Sprint 2.9)
 
-Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule`, `SecurityModule` ni `ObservabilityModule`, ni ningún otro módulo real (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad/observabilidad a partir de las piezas públicas de `teaf.security`/`teaf.observability`, ver secciones 6-7), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+Además de los catorce símbolos principales, `teaf`/`teaf.api` reexportan la plataforma de protección y gobernanza de APIs completa (rate limiting con cuatro algoritmos, cuotas, CORS, versionado, validación de borde, compresión, idempotencia y auditoría) — documentada íntegramente en [docs/api/API-PROTECTION.md](../api/API-PROTECTION.md) en vez de repetida aquí. Mismo patrón que las secciones 6-7: `from teaf import ApiGateway` funciona igual que `from teaf.api import ApiGateway`.
 
-## 9. Documentos relacionados
+```python
+from fastapi import FastAPI
+from teaf import ApiGateway, CorsPolicy, RateLimiter, RateLimitRule
+
+app = FastAPI()
+ApiGateway(
+    rate_limiter=RateLimiter([RateLimitRule(name="por-ip", limit=100, window_seconds=60)]),
+    cors=CorsPolicy(allow_origins=("https://app.torus.com",)),
+).install(app)
+```
+
+**Excepción documentada a la regla de la sección 9**: `ApiProtectionModule` **sí** se expone públicamente, a diferencia de `DatabaseModule`/`SecurityModule`/`ObservabilityModule`. La protección de APIs se activa como una unidad —ocho subsistemas con configuración, orden de middlewares y ciclo de vida compartidos—, así que obligar a recomponerla pieza a pieza en cada aplicación sería repetición sin ganancia de desacoplamiento. Componer manualmente sigue siendo posible: es el resto de `teaf.api`. Ver [ADR-009](../architecture/adr/ADR-009-enterprise-api-protection.md), "Decisiones de ubicación y superficie".
+
+Ver los 7 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-protección-de-apis-sprint-29-adr-009).
+
+## 9. Qué NO expone `teaf`
+
+Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts`, `teaf._internal.providers` o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule`, `SecurityModule` ni `ObservabilityModule` (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad/observabilidad a partir de las piezas públicas de `teaf.security`/`teaf.observability`, ver secciones 6-7). La **única excepción** es `ApiProtectionModule` (sección 8), por los motivos allí documentados. Tampoco se exponen, `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+
+## 10. Documentos relacionados
 
 | Documento | Contenido |
 |---|---|
@@ -125,3 +144,4 @@ Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de 
 | [MIGRATION-GUIDE.md](MIGRATION-GUIDE.md) | Tabla de equivalencia `teaf._internal.*` → `teaf.*`. |
 | [SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) | La plataforma de seguridad empresarial completa (sección 6). |
 | [OBSERVABILITY.md](../observability/OBSERVABILITY.md) | La plataforma de observabilidad empresarial completa (sección 7). |
+| [API-PROTECTION.md](../api/API-PROTECTION.md) | La plataforma de protección de APIs completa (sección 8). |

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "teaf"
-version = "0.8.0-alpha"
+version = "0.9.0-alpha"
 description = "TORUS Enterprise Application Framework — a modular, API-first, Cloud-ready and AI-ready Python framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -81,11 +81,28 @@ select = ["E", "F", "I", "UP", "B"]
 # ``current_identity``/``current_principal``/``current_claims``/
 # ``current_security_context`` (Sprint 2.7, teaf/_internal/security/dependencies.py)
 # y su uso en tests/examples vía ``Depends(current_principal)``.
-ignore = ["B008"]
+# UP042 ("hereda de str y Enum, usa enum.StrEnum") describe una convención
+# deliberada y uniforme de todo TEAF: las ~27 enumeraciones del framework
+# (``CapabilityCategory``, ``ModuleCategory``, ``SpanKind``, ``QuotaPeriod``,
+# ...) heredan de ``(str, Enum)`` desde Sprint 2.2. No es deuda pendiente de
+# limpiar: ``StrEnum`` cambia el resultado de ``str(miembro)`` (devuelve el
+# valor, no ``"Clase.MIEMBRO"``), así que migrar sería un cambio de
+# comportamiento repartido por serialización, logs y respuestas HTTP — un
+# cambio estructural que exige su propio ADR (CLAUDE.md, sección 12), no un
+# efecto colateral de un Sprint funcional. Se ignora la regla, no se
+# silencia archivo a archivo, para que la convención quede declarada en un
+# único sitio. Ver el reporte del Sprint 2.9: la regla apareció al
+# actualizarse ruff, sobre código que ya existía.
+ignore = ["B008", "UP042"]
 
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+# Mismo criterio (y misma ruta) que ``[tool.ruff].extend-exclude``: las
+# revisiones de Alembic las genera su plantilla (``script.py.mako``), no se
+# escriben a mano, y reformatearlas solo produce ruido en el diff que la
+# siguiente ``alembic revision`` vuelve a introducir.
+force-exclude = "database/migrations/versions"
 
 [tool.mypy]
 python_version = "3.11"

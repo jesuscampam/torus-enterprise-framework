@@ -87,9 +87,16 @@ MODULE_TEMPLATES: dict[ModuleCategory, ModuleTemplate] = {
         suggested_capabilities=("observability.tracing", "observability.metrics"),
         suggested_services=("Tracer", "Meter"),
     ),
+    ModuleCategory.API: ModuleTemplate(
+        category=ModuleCategory.API,
+        name="API Protection Module",
+        description="Módulo que protege y gobierna una API (ver ADR-009).",
+        suggested_capabilities=("api.rate-limit", "api.quota", "api.audit"),
+        suggested_services=("RateLimiter", "QuotaManager", "ApiAudit"),
+    ),
 }
 
 
 def get_template(category: ModuleCategory) -> ModuleTemplate:
-    """Devuelve la plantilla de ``category`` (una entrada fija por cada una de las 8)."""
+    """Devuelve la plantilla de ``category`` (una entrada fija por cada una de las 9)."""
     return MODULE_TEMPLATES[category]

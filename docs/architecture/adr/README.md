@@ -25,6 +25,7 @@ No crees un ADR para decisiones de implementación local que no afecten al frame
 | [ADR-006](ADR-006-internal-namespace-refactor.md) | Internal Namespace Refactor | Aceptado |
 | [ADR-007](ADR-007-enterprise-security-stack.md) | Enterprise Security Stack | Aceptado |
 | [ADR-008](ADR-008-enterprise-observability-stack.md) | Enterprise Observability Stack | Aceptado |
+| [ADR-009](ADR-009-enterprise-api-protection.md) | Enterprise API Protection — Rate Limiting, Quotas y gobernanza de APIs | Aceptado |
 
 ## Plantilla
 
