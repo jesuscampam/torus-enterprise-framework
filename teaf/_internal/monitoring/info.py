@@ -17,6 +17,7 @@ from fastapi import APIRouter
 
 from teaf._internal.core.registry import ModuleRegistry
 from teaf._internal.core.version import VersionInfo
+from teaf._internal.shared.openapi import JSON_OBJECT_RESPONSE
 
 #: Devuelve una fotografía serializable del estado del Runtime en el
 #: momento de la llamada (ver ``Runtime.describe().as_dict()``).
@@ -31,7 +32,7 @@ def create_info_router(
     """Construye el router de introspección de la instancia en ejecución."""
     router = APIRouter(tags=["system"])
 
-    @router.get("/info")
+    @router.get("/info", response_model=None, responses=JSON_OBJECT_RESPONSE)
     def info() -> dict[str, object]:
         """Versión, módulos y estado del Runtime, leídos en el momento de la petición."""
         return {

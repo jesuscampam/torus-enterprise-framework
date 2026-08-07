@@ -22,6 +22,7 @@ from opentelemetry.trace import TraceFlags
 
 from teaf._internal.contracts.telemetry import Span, Tracer
 from teaf._internal.core.context import get_span_id, get_trace_id, set_trace_context
+from teaf._internal.observability.metrics.meter import _as_otel_attributes
 from teaf._internal.observability.models import SpanKind, SpanStatus
 
 _SPAN_KIND_MAP: dict[SpanKind, OtelSpanKind] = {
@@ -57,7 +58,7 @@ class OtelSpan(Span):
         self._span.set_attribute(key, value)
 
     def add_event(self, name: str, *, attributes: Mapping[str, object] | None = None) -> None:
-        self._span.add_event(name, attributes=dict(attributes) if attributes else None)
+        self._span.add_event(name, attributes=_as_otel_attributes(attributes))
 
     def record_exception(self, exception: BaseException) -> None:
         self._span.record_exception(exception)
@@ -96,7 +97,7 @@ class OtelTracer(Tracer):
         with self._tracer.start_as_current_span(
             name,
             kind=_SPAN_KIND_MAP[kind],
-            attributes=dict(attributes) if attributes else None,
+            attributes=_as_otel_attributes(attributes),
             links=[_as_otel_link(link) for link in links],
         ) as otel_span:
             wrapped = OtelSpan(otel_span)

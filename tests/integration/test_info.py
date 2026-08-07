@@ -24,7 +24,7 @@ def test_info_returns_version_and_environment(client: TestClient) -> None:
     response = client.get("/info")
     assert response.status_code == 200
     body = response.json()
-    assert body["version"] == "0.9.0-alpha"
+    assert body["version"] == "0.9.1-alpha"
     assert body["environment"] == "testing"
 
 

@@ -19,6 +19,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.exceptions import UnsupportedApiVersionException
 from teaf._internal.api.middleware.base import ApiProtectionMiddleware
@@ -29,7 +30,7 @@ class ApiVersionMiddleware(ApiProtectionMiddleware):
     """Resuelve la versión de API y la publica en la petición y en la respuesta."""
 
     def __init__(
-        self, app: object, *, negotiator: ApiVersionNegotiator, **base_options: Any
+        self, app: ASGIApp, *, negotiator: ApiVersionNegotiator, **base_options: Any
     ) -> None:
         """``base_options`` son los argumentos comunes de
         ``ApiProtectionMiddleware`` (``event_bus``/``event_bus_provider``/

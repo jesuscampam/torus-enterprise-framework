@@ -14,6 +14,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.exceptions import RateLimitExceededException
 from teaf._internal.api.middleware.base import ApiProtectionMiddleware
@@ -47,7 +48,7 @@ def retry_after_seconds(decision: RateLimitDecision) -> int:
 class RateLimitMiddleware(ApiProtectionMiddleware):
     """Rechaza con HTTP 429 las peticiones que superan alguna regla de limitación."""
 
-    def __init__(self, app: object, *, limiter: RateLimiter, **base_options: Any) -> None:
+    def __init__(self, app: ASGIApp, *, limiter: RateLimiter, **base_options: Any) -> None:
         """``base_options`` son los argumentos comunes de
         ``ApiProtectionMiddleware`` (``event_bus``/``event_bus_provider``/
         ``trust_forwarded_headers``): se reenvían tal cual en vez de

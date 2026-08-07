@@ -37,6 +37,21 @@ from teaf._internal.core.logging import get_logger
 #: pruebas puedan avanzar el tiempo sin dormir — ver ``tests/unit/api/``.
 Clock = Callable[[], float]
 
+#: Cada cuántas escrituras se barren las entradas ya expiradas (Sprint 2.9.1).
+#:
+#: Sin este barrido, la expiración sería solo *perezosa* — una entrada solo
+#: desaparece cuando alguien vuelve a consultar **esa misma clave**. Con rate
+#: limiting por IP sobre una API pública, cada IP que llama una vez y no
+#: vuelve deja su entrada en memoria para siempre: el diccionario crece con
+#: la cardinalidad del tráfico, no con el tráfico concurrente, y el proceso
+#: acaba agotando la memoria tras suficientes días en producción.
+#:
+#: 512 amortiza el coste a O(1) por escritura (un barrido O(n) cada 512), que
+#: es despreciable frente al trabajo que ya hace la petición, y acota el
+#: diccionario al número de claves *vivas* en vez de al número de claves
+#: *vistas*. Ver docs/api/RATE-LIMITING.md, "De memoria a Redis".
+_PURGE_INTERVAL_WRITES = 512
+
 
 class InMemoryRateLimitStore(RateLimitStore):
     """Estado de rate limiting en un diccionario del proceso, con expiración perezosa."""
@@ -45,6 +60,7 @@ class InMemoryRateLimitStore(RateLimitStore):
         self._clock = clock
         self._entries: dict[str, tuple[RateLimitState, float]] = {}
         self._lock = asyncio.Lock()
+        self._writes_since_purge = 0
 
     async def get(self, key: str) -> RateLimitState | None:
         async with self._lock:
@@ -60,6 +76,9 @@ class InMemoryRateLimitStore(RateLimitStore):
     async def put(self, key: str, state: RateLimitState, *, ttl_seconds: float) -> None:
         async with self._lock:
             self._entries[key] = (state, self._clock() + ttl_seconds)
+            self._writes_since_purge += 1
+            if self._writes_since_purge >= _PURGE_INTERVAL_WRITES:
+                self.purge_expired()
 
     async def reset(self, key: str) -> None:
         async with self._lock:
@@ -68,18 +87,27 @@ class InMemoryRateLimitStore(RateLimitStore):
     def purge_expired(self) -> int:
         """Elimina las entradas ya expiradas y devuelve cuántas eran.
 
-        La expiración de ``get()`` es perezosa (solo limpia lo que se
-        consulta), así que una clave que deja de recibir tráfico se quedaría
-        en memoria indefinidamente. Este barrido es lo que
-        ``ApiProtectionModule.stop()`` ejecuta al apagar, y lo que una
-        aplicación con muchísimas claves distintas puede programar
-        periódicamente.
+        Es el mismo barrido que ``put()`` dispara automáticamente cada
+        ``_PURGE_INTERVAL_WRITES`` escrituras, expuesto para los dos casos en
+        los que ese no basta: al apagar (``ApiProtectionModule.stop()``), y
+        cuando el tráfico cesa justo antes de alcanzar el umbral, dejando las
+        últimas entradas sin barrer hasta la siguiente escritura.
+
+        No toma el lock: se invoca desde el apagado o desde una tarea de
+        mantenimiento, nunca compitiendo con la ruta caliente, y ``dict`` ya
+        garantiza que cada ``del`` individual es atómico.
         """
         now = self._clock()
         expired = [key for key, (_, expires_at) in self._entries.items() if expires_at <= now]
         for key in expired:
             del self._entries[key]
+        self._writes_since_purge = 0
         return len(expired)
+
+    @property
+    def size(self) -> int:
+        """Entradas retenidas ahora mismo — para diagnóstico y pruebas de memoria."""
+        return len(self._entries)
 
 
 class InMemoryQuotaStore(QuotaStore):
@@ -89,6 +117,7 @@ class InMemoryQuotaStore(QuotaStore):
         self._clock = clock
         self._entries: dict[str, tuple[float, float]] = {}
         self._lock = asyncio.Lock()
+        self._writes_since_purge = 0
 
     def _read(self, key: str) -> float:
         """Consumo vigente de ``key`` (``0.0`` si no existe o ya expiró). Requiere el lock."""
@@ -110,6 +139,9 @@ class InMemoryQuotaStore(QuotaStore):
             entry = self._entries.get(key)
             expires_at = entry[1] if entry is not None else self._clock() + ttl_seconds
             self._entries[key] = (total, expires_at)
+            self._writes_since_purge += 1
+            if self._writes_since_purge >= _PURGE_INTERVAL_WRITES:
+                self.purge_expired()
             return total
 
     async def peek(self, key: str) -> float:
@@ -129,6 +161,25 @@ class InMemoryQuotaStore(QuotaStore):
         async with self._lock:
             self._entries.pop(key, None)
 
+    def purge_expired(self) -> int:
+        """Elimina las ventanas de cuota ya cerradas y devuelve cuántas eran.
+
+        Mismo motivo y mismas garantías que en ``InMemoryRateLimitStore`` —
+        una cuota por tenant sobre miles de tenants inactivos retendría una
+        entrada por cada uno indefinidamente.
+        """
+        now = self._clock()
+        expired = [key for key, (_, expires_at) in self._entries.items() if expires_at <= now]
+        for key in expired:
+            del self._entries[key]
+        self._writes_since_purge = 0
+        return len(expired)
+
+    @property
+    def size(self) -> int:
+        """Entradas retenidas ahora mismo — para diagnóstico y pruebas de memoria."""
+        return len(self._entries)
+
 
 class InMemoryIdempotencyStore(IdempotencyStore):
     """Respuestas idempotentes en un diccionario del proceso, expiradas por ``expires_at``."""
@@ -137,6 +188,7 @@ class InMemoryIdempotencyStore(IdempotencyStore):
         self._clock = clock
         self._records: dict[str, IdempotencyRecord] = {}
         self._lock = asyncio.Lock()
+        self._writes_since_purge = 0
 
     async def get(self, key: str) -> IdempotencyRecord | None:
         async with self._lock:
@@ -151,10 +203,32 @@ class InMemoryIdempotencyStore(IdempotencyStore):
     async def put(self, record: IdempotencyRecord) -> None:
         async with self._lock:
             self._records[record.key] = record
+            self._writes_since_purge += 1
+            if self._writes_since_purge >= _PURGE_INTERVAL_WRITES:
+                self.purge_expired()
 
     async def delete(self, key: str) -> None:
         async with self._lock:
             self._records.pop(key, None)
+
+    def purge_expired(self) -> int:
+        """Elimina los registros idempotentes caducados y devuelve cuántos eran.
+
+        El más propenso a crecer de los tres: su TTL por defecto son 24 h y
+        cada clave que un cliente usa una sola vez queda retenida ese tiempo
+        completo, con el cuerpo de la respuesta dentro.
+        """
+        now = self._clock()
+        expired = [key for key, record in self._records.items() if record.expires_at <= now]
+        for key in expired:
+            del self._records[key]
+        self._writes_since_purge = 0
+        return len(expired)
+
+    @property
+    def size(self) -> int:
+        """Registros retenidos ahora mismo — para diagnóstico y pruebas de memoria."""
+        return len(self._records)
 
 
 class InMemoryAuditSink(AuditSink):

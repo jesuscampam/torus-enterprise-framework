@@ -21,6 +21,7 @@ import jwt as pyjwt
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.core.context import get_correlation_id
 from teaf._internal.core.exceptions import AuthenticationException
@@ -76,7 +77,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app: object,
+        app: ASGIApp,
         *,
         provider_registry: IdentityProviderRegistry,
         principal_resolver: PrincipalResolver,

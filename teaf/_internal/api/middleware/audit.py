@@ -19,6 +19,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.audit.audit import ApiAudit, build_audit_record
 from teaf._internal.api.middleware.base import ApiProtectionMiddleware
@@ -32,7 +33,7 @@ IDEMPOTENT_REPLAY_HEADER = "X-Idempotent-Replay"
 class ApiAuditMiddleware(ApiProtectionMiddleware):
     """Construye y registra un ``ApiAuditRecord`` por cada petición."""
 
-    def __init__(self, app: object, *, audit: ApiAudit, **base_options: Any) -> None:
+    def __init__(self, app: ASGIApp, *, audit: ApiAudit, **base_options: Any) -> None:
         """``base_options`` son los argumentos comunes de
         ``ApiProtectionMiddleware`` (``event_bus``/``event_bus_provider``/
         ``trust_forwarded_headers``): se reenvían tal cual en vez de

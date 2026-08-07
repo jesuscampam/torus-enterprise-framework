@@ -20,6 +20,7 @@ from collections.abc import Callable, Mapping
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.middleware.context import build_request_context
 from teaf._internal.api.models import ApiRequestContext
@@ -71,7 +72,7 @@ class ApiProtectionMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app: object,
+        app: ASGIApp,
         *,
         event_bus: EventBus | None = None,
         event_bus_provider: Callable[[], EventBus | None] | None = None,

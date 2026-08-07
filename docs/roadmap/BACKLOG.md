@@ -84,6 +84,18 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 | Developer Experience | CLI/generador de proyectos (`teaf new app`) | 🟢 | Épicas 1-3 |
 | Documentación | Portal de documentación navegable generado desde `docs/` | 🟢 | — |
 
+### Hallazgos abiertos de la revisión de seguridad (Sprint 2.9.1)
+
+Detectados y documentados en [SECURITY-REVIEW.md](../SECURITY-REVIEW.md); **no corregidos** porque el Sprint 2.9.1 tenía prohibido añadir funcionalidad o cambiar comportamiento. Condicionan la declaración de v1.0-beta (ver [PRODUCTION-READINESS.md](../PRODUCTION-READINESS.md)).
+
+| Feature | Historia | Prioridad | Dependencias |
+|---|---|---|---|
+| Seguridad | `SecurityHeadersMiddleware`: implementar las cabeceras que SECURITY-STANDARD.md §7 exige y que hoy `Settings` promete sin activar (H-1) | 🔴 | Épica 2 |
+| Seguridad | Añadir `pip-audit` a CI como puerta de calidad — el árbol de dependencias no se ha contrastado nunca contra una base de vulnerabilidades | 🔴 | — |
+| Seguridad | Decidir el valor por defecto de `trust_forwarded_headers`, o sustituirlo por una lista de proxies de confianza (H-2) | 🟡 | Sprint 2.9 |
+| Protección de APIs | Implementar los proveedores Redis (rate limiting, cuotas, idempotencia) — requisito para escalar horizontalmente con límites reales | 🟡 | ADR nuevo (`redis-py`) |
+| Documentación | Corregir el comentario obsoleto sobre secretos en `_configuration_summary` (H-3) | 🟢 | — |
+
 ---
 
 ## Cómo mantener este backlog

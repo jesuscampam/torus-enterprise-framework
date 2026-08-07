@@ -13,6 +13,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.exceptions import QuotaExceededException
 from teaf._internal.api.middleware.base import ApiProtectionMiddleware
@@ -36,7 +37,7 @@ def quota_headers(decision: QuotaDecision) -> dict[str, str]:
 class QuotaMiddleware(ApiProtectionMiddleware):
     """Rechaza con HTTP 429 las peticiones que agotan alguna cuota."""
 
-    def __init__(self, app: object, *, manager: QuotaManager, **base_options: Any) -> None:
+    def __init__(self, app: ASGIApp, *, manager: QuotaManager, **base_options: Any) -> None:
         """``base_options`` son los argumentos comunes de
         ``ApiProtectionMiddleware`` (``event_bus``/``event_bus_provider``/
         ``trust_forwarded_headers``): se reenvían tal cual en vez de

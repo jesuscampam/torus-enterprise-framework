@@ -3,8 +3,7 @@
 Solo métricas: Prometheus no tiene noción de trazas, así que
 ``configure_tracing`` es intencionalmente un no-op (documentado, no un
 ``NotImplementedError`` — llamarlo no es un error, simplemente no hace
-nada, igual que ``TracerProvider.record_metric`` en
-``providers/telemetry/tracer_provider.py``, Sprint 2.2). El endpoint HTTP
+nada). El endpoint HTTP
 ``GET /metrics`` que sirve el formato de texto de Prometheus lo construye
 ``ObservabilityModule`` (``registry`` queda público para eso).
 """

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "teaf"
-version = "0.9.0-alpha"
+version = "0.9.1-alpha"
 description = "TORUS Enterprise Application Framework — a modular, API-first, Cloud-ready and AI-ready Python framework."
 readme = "README.md"
 license = { file = "LICENSE" }

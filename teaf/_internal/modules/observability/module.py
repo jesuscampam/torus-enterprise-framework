@@ -28,6 +28,8 @@ necesita para configurarse, igual que ``SecurityMiddleware`` con
 
 from __future__ import annotations
 
+from typing import Any
+
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -108,7 +110,11 @@ class ObservabilityModule(ModuleBase):
             for exporter in self.exporters:
                 exporter.configure_tracing(self.tracer_provider)
 
-        metric_readers: list[object] = []
+        # ``list[Any]`` y no ``list[MetricReader]``: el contrato
+        # ``Exporter.configure_metrics`` (contracts/telemetry.py) recibe
+        # ``list[Any]`` precisamente para no filtrar tipos de OpenTelemetry,
+        # así que esta lista es el otro extremo de esa misma frontera.
+        metric_readers: list[Any] = []
         if self.configuration.metrics_enabled:
             for exporter in self.exporters:
                 exporter.configure_metrics(metric_readers)

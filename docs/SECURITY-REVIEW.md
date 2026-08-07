@@ -1,0 +1,182 @@
+# Revisión de seguridad y de dependencias — v0.9.1-alpha
+
+Revisión completa realizada en Sprint 2.9.1 sobre la plataforma de seguridad (Sprint 2.7,
+[ADR-007](architecture/adr/ADR-007-enterprise-security.md)), la de protección de APIs (Sprint 2.9,
+[ADR-009](architecture/adr/ADR-009-enterprise-api-protection.md)) y el árbol de dependencias.
+
+Alcance: JWT, API Keys, LDAP, Azure AD, RBAC, políticas, criptografía, secretos, cabeceras HTTP,
+middlewares, configuración y dependencias. Fuente de verdad de los requisitos:
+[SECURITY-STANDARD.md](standards/SECURITY-STANDARD.md).
+
+> **Naturaleza de este documento.** Es una revisión, no una certificación. Sprint 2.9.1 tenía
+> prohibido añadir funcionalidad, cambiar la API pública o alterar el comportamiento, así que
+> **ningún hallazgo se ha corregido en código**: se reportan con su recomendación para que el
+> usuario decida el alcance de un Sprint posterior. Es deliberado — corregir en silencio un
+> hallazgo de seguridad dentro de un Sprint de endurecimiento sería exactamente el tipo de
+> cambio no revisado que esta revisión existe para evitar ([CLAUDE.md](../CLAUDE.md) §8).
+
+## Resumen
+
+| Severidad | Nº | Hallazgos |
+|---|---|---|
+| Alta | 1 | H-1 Cabeceras de seguridad HTTP declaradas pero no implementadas. |
+| Media | 1 | H-2 `trust_forwarded_headers` es `True` por defecto. |
+| Baja | 2 | H-3 Comentario obsoleto sobre secretos. H-4 `pydantic` declarada sin uso directo. |
+
+Verificado sin hallazgos: verificación de JWT, emisión y verificación de API Keys, hashing de
+contraseñas, criptografía, exposición de secretos por HTTP, sincronía de manifiestos de
+dependencias.
+
+---
+
+## H-1 · Alta — Cabeceras de seguridad HTTP declaradas pero no implementadas
+
+**Qué.** [SECURITY-STANDARD.md §7](standards/SECURITY-STANDARD.md) exige que *«toda respuesta HTTP
+incluye, como mínimo: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: DENY` (o CSP equivalente), `Content-Security-Policy`»*. `Settings` declara tres
+campos que prometen justamente eso:
+
+```python
+security_headers_enabled: bool = True          # teaf/_internal/config/settings.py:108
+security_hsts_max_age_seconds: int = 31_536_000
+security_frame_options: str = "DENY"
+```
+
+**El problema.** Los tres campos **no los lee nadie**: no existe ningún `SecurityHeadersMiddleware`
+en el árbol. Una aplicación TEAF no emite ninguna de esas cabeceras.
+
+**Verificación** (`Application()` por defecto, `GET /health`):
+
+```
+content-length: 146
+content-type: application/json
+x-correlation-id: acfec827-99e9-4ea7-b617-f25c98d5817d
+```
+
+Ni `Strict-Transport-Security`, ni `X-Content-Type-Options`, ni `X-Frame-Options`, ni CSP.
+
+**Por qué importa más que la ausencia sola.** Un valor por defecto de `True` en un campo llamado
+`security_headers_enabled` no es neutro: comunica activamente que la protección está puesta. Un
+operador que audite la configuración concluirá, razonablemente, que HSTS y `X-Frame-Options` están
+activos. Es peor que no tener el campo.
+
+**Recomendación.** Sprint propio que implemente `SecurityHeadersMiddleware`, lo instale desde
+`create_app` gobernado por estos tres campos, y añada CSP a `Settings`. Es funcionalidad nueva y
+necesita aprobación explícita. **Mitigación inmediata**, mientras tanto: terminar TLS y añadir las
+cabeceras en el proxy inverso o el App Service, que es donde muchos despliegues ya las ponen.
+
+---
+
+## H-2 · Media — `trust_forwarded_headers` es `True` por defecto
+
+**Qué.** `resolve_client_ip` (`teaf/_internal/api/middleware/context.py:37`) toma la IP del cliente
+de `X-Forwarded-For`/`X-Real-IP` antes que de la conexión, y el parámetro que lo gobierna vale
+`True` por defecto en los ocho middlewares de protección.
+
+**El problema.** `X-Forwarded-For` lo falsifica cualquier cliente. Si la aplicación está expuesta
+directamente a internet —sin un proxy que **reescriba** la cabecera— basta con enviar una IP
+distinta en cada petición para saltarse por completo cualquier límite por IP: rate limiting
+(`ProtectionScope.IP`), cuotas por IP y el reparto de auditoría.
+
+**Atenuantes reales.** El riesgo está documentado en el docstring de la función y en
+[docs/api/RATE-LIMITING.md](api/RATE-LIMITING.md); el parámetro existe y se puede poner a `False`;
+y el despliegue objetivo de TEAF (Azure App Service, Render) siempre lleva proxy delante, que es
+el caso en el que el valor por defecto es el correcto. Por eso es Media y no Alta.
+
+**Recomendación.** Invertir el valor por defecto a `False` (seguro por defecto: quien esté detrás
+de un proxy lo activa a conciencia), o sustituirlo por una lista de proxies de confianza, que es
+la solución completa. Ambas cambian comportamiento y necesitan aprobación explícita.
+
+---
+
+## H-3 · Baja — Comentario obsoleto sobre secretos en `_configuration_summary`
+
+`teaf/_internal/core/application.py:86` afirma: *«Ningún campo de `Settings` actual es un secreto
+— si un Sprint futuro añade credenciales reales, deberá excluirlas explícitamente»*. Ese Sprint ya
+llegó: Sprint 2.7 añadió `jwt_secret`, `api_key_hash_secret` y `azure_ad_client_secret`.
+
+**No hay fuga**, y esa es la parte importante: el resumen se construye con una **lista blanca
+explícita** de ocho campos no sensibles, así que los secretos nuevos quedaron fuera solos, sin que
+nadie tuviera que acordarse. El diseño acertó donde el comentario falló. Solo la prosa está
+desactualizada, y hoy induce a pensar que la protección depende de recordar excluir campos cuando
+en realidad depende de recordar incluirlos.
+
+**Verificación.** Con `JWT_SECRET`, `API_KEY_HASH_SECRET` y `AZURE_AD_CLIENT_SECRET` puestos a
+valores centinela, se consultaron los 12 endpoints de sistema que responden 200 (`/`, `/health`,
+`/live`, `/ready`, `/info`, `/runtime/info`, `/runtime/modules`, `/runtime/configuration`,
+`/runtime/capabilities`, `/runtime/services`, `/runtime/events`, `/openapi.json`) buscando los
+centinelas en el cuerpo: **ninguna coincidencia**.
+
+**Recomendación.** Reescribir el comentario (cambio solo de documentación).
+
+---
+
+## H-4 · Baja — `pydantic` declarada sin importarse directamente
+
+`pydantic==2.10.4` figura en `requirements.txt` y en `pyproject.toml`, pero **ningún módulo de
+`teaf/` la importa**: el framework usa `pydantic_settings` (que depende de ella) y FastAPI (que
+también). Lo mismo ocurre, por motivos distintos y legítimos, con `uvicorn` (servidor, se invoca,
+no se importa) y con `aiosqlite`/`asyncpg` (drivers que SQLAlchemy carga desde la cadena de
+conexión).
+
+No es un defecto: fijar explícitamente una dependencia transitiva es una práctica deliberada de
+cadena de suministro — impide que una actualización de FastAPI arrastre una versión de Pydantic no
+probada. Se documenta para que nadie la «limpie» por parecer sobrante.
+
+---
+
+## Verificado sin hallazgos
+
+### JWT (`teaf/_internal/security/tokens/jwt_provider.py`)
+
+Correcto en los puntos donde suelen estar los fallos:
+
+- **Algoritmo en lista blanca explícita** (`algorithms=[self._algorithm]`) en las dos rutas de
+  decodificación. Cierra la confusión de algoritmos y el ataque `alg: none`, que es el fallo
+  clásico de esta librería.
+- **`aud` e `iss` verificados** siempre, no solo decodificados.
+- **`leeway` configurable** para desviación de reloj, en vez de ampliar la expiración.
+- **`verify_exp=False` aparece una sola vez**, en `revoke()`, y está razonado: un token ya expirado
+  también debe poder revocarse. No participa en ninguna ruta de autenticación.
+
+### API Keys (`teaf/_internal/security/tokens/api_key_provider.py`)
+
+- Generadas con `secrets.token_urlsafe(32)` — 256 bits de entropía de fuente criptográfica.
+- Se almacena **solo** el HMAC-SHA256 con pepper de servidor; la clave en claro existe una vez.
+- La verificación es una **búsqueda por hash**, no una comparación de secretos: no hay superficie
+  de ataque por temporización.
+- Revocación y rotación invalidan de inmediato.
+
+### Criptografía (`teaf/_internal/security/crypto/crypto_provider.py`)
+
+`hmac.compare_digest` para verificar firmas (comparación en tiempo constante), `secrets.token_bytes`
+para material nuevo, HMAC-SHA256 en todo. Contraseñas con Argon2id (por defecto) o bcrypt, con
+coste reducido solo en `TestingSettings` y documentado.
+
+### Dependencias
+
+Los dos manifiestos están **exactamente sincronizados**: 18 paquetes de runtime, mismas versiones,
+sin divergencias, sin duplicados, todas fijadas con `==`.
+
+| Comprobación | Resultado |
+|---|---|
+| `requirements.txt` ↔ `pyproject.toml` | 18/18, sin divergencia de versión |
+| Fijado exacto (`==`) | 18/18 |
+| Sin usar | Ninguna (ver H-4 sobre las 4 indirectas) |
+| Duplicados | Ninguno |
+| Licencias | Todas MIT/BSD/Apache-2.0 — compatibles con uso empresarial |
+
+**Limitación honesta de esta comprobación**: no hay `pip-audit` ni `safety` instalados en el
+entorno, así que **no se ha contrastado el árbol contra una base de datos de vulnerabilidades**.
+Las versiones fijadas son recientes y ninguna tiene un aviso conocido a la fecha de esta revisión,
+pero eso es conocimiento, no una verificación. Es la mayor laguna de esta revisión y se recomienda
+cerrarla añadiendo `pip-audit` a `requirements-dev.txt` y una puerta de calidad que lo ejecute.
+
+## Recomendaciones, por orden
+
+1. Implementar las cabeceras de seguridad HTTP (H-1) — o documentar explícitamente que son
+   responsabilidad del proxy y corregir SECURITY-STANDARD.md §7 para que no prometa lo que el
+   framework no hace.
+2. Añadir `pip-audit` y su puerta de calidad, cerrando la laguna de vulnerabilidades conocidas.
+3. Decidir el valor por defecto de `trust_forwarded_headers` (H-2).
+4. Corregir el comentario obsoleto (H-3) — trivial, solo documentación.

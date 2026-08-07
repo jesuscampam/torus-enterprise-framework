@@ -25,6 +25,7 @@ from collections.abc import Callable, Mapping
 from fastapi import APIRouter
 
 from teaf._internal.runtime.runtime import Runtime
+from teaf._internal.shared.openapi import JSON_OBJECT_ARRAY_RESPONSE, JSON_OBJECT_RESPONSE
 
 #: Devuelve un resumen serializable de la configuración activa, aportado por
 #: el composition root (único lugar con acceso a ``Settings``).
@@ -93,43 +94,43 @@ def create_runtime_router(
     """
     router = APIRouter(prefix="/runtime", tags=["runtime"])
 
-    @router.get("/info")
+    @router.get("/info", response_model=None, responses=JSON_OBJECT_RESPONSE)
     def info() -> dict[str, object]:
         return runtime.diagnostics(configuration_summary=configuration_provider()).as_dict()
 
-    @router.get("/modules")
+    @router.get("/modules", response_model=None, responses=JSON_OBJECT_ARRAY_RESPONSE)
     def modules() -> list[dict[str, object]]:
         return build_modules_payload(runtime)
 
-    @router.get("/services")
+    @router.get("/services", response_model=None, responses=JSON_OBJECT_ARRAY_RESPONSE)
     def services() -> list[dict[str, object]]:
         return build_services_payload(runtime)
 
-    @router.get("/plugins")
+    @router.get("/plugins", response_model=None, responses=JSON_OBJECT_ARRAY_RESPONSE)
     def plugins() -> list[dict[str, object]]:
         return build_plugins_payload(runtime)
 
-    @router.get("/capabilities")
+    @router.get("/capabilities", response_model=None, responses=JSON_OBJECT_ARRAY_RESPONSE)
     def capabilities() -> list[dict[str, object]]:
         return build_capabilities_payload(runtime)
 
-    @router.get("/features")
+    @router.get("/features", response_model=None, responses=JSON_OBJECT_ARRAY_RESPONSE)
     def features() -> list[dict[str, object]]:
         return build_features_payload(runtime)
 
-    @router.get("/events")
+    @router.get("/events", response_model=None, responses=JSON_OBJECT_ARRAY_RESPONSE)
     def events(limit: int | None = None) -> list[dict[str, object]]:
         return build_events_payload(runtime, limit=limit)
 
-    @router.get("/configuration")
+    @router.get("/configuration", response_model=None, responses=JSON_OBJECT_RESPONSE)
     def configuration() -> dict[str, object]:
         return dict(configuration_provider())
 
-    @router.get("/dependencies")
+    @router.get("/dependencies", response_model=None, responses=JSON_OBJECT_RESPONSE)
     def dependencies() -> dict[str, object]:
         return build_dependencies_payload(runtime)
 
-    @router.get("/self")
+    @router.get("/self", response_model=None, responses=JSON_OBJECT_RESPONSE)
     def self_() -> dict[str, object]:
         return runtime.self_description().as_dict()
 

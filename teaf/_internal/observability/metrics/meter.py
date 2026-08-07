@@ -13,10 +13,25 @@ no lo reexpone).
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import cast
 
 from opentelemetry import metrics as otel_metrics
+from opentelemetry.util.types import Attributes
 
 from teaf._internal.contracts.telemetry import Counter, Gauge, Histogram, Meter, UpDownCounter
+
+
+#: Los contratos de ``teaf.observability`` tipan los atributos como
+#: ``Mapping[str, object]`` a propósito: no filtran los tipos de
+#: OpenTelemetry (misma regla que ``contracts/database.py`` con SQLAlchemy).
+#: OpenTelemetry los tipa más estrecho (``Attributes``: solo escalares y
+#: secuencias de escalares). Esta conversión es el punto exacto donde se
+#: cruza esa frontera — y el único sitio del subsistema que conoce ambos
+#: lados. Un valor que OpenTelemetry no admita lo descarta él mismo con un
+#: aviso, sin romper la petición.
+def _as_otel_attributes(attributes: Mapping[str, object] | None) -> Attributes:
+    """Convierte los atributos del contrato de TEAF a los de OpenTelemetry."""
+    return cast(Attributes, dict(attributes)) if attributes else None
 
 
 class OtelCounter(Counter):
@@ -24,7 +39,7 @@ class OtelCounter(Counter):
         self._counter = counter
 
     def add(self, value: float, *, attributes: Mapping[str, object] | None = None) -> None:
-        self._counter.add(value, attributes=dict(attributes) if attributes else None)
+        self._counter.add(value, attributes=_as_otel_attributes(attributes))
 
 
 class OtelUpDownCounter(UpDownCounter):
@@ -32,7 +47,7 @@ class OtelUpDownCounter(UpDownCounter):
         self._counter = counter
 
     def add(self, value: float, *, attributes: Mapping[str, object] | None = None) -> None:
-        self._counter.add(value, attributes=dict(attributes) if attributes else None)
+        self._counter.add(value, attributes=_as_otel_attributes(attributes))
 
 
 class OtelHistogram(Histogram):
@@ -40,15 +55,15 @@ class OtelHistogram(Histogram):
         self._histogram = histogram
 
     def record(self, value: float, *, attributes: Mapping[str, object] | None = None) -> None:
-        self._histogram.record(value, attributes=dict(attributes) if attributes else None)
+        self._histogram.record(value, attributes=_as_otel_attributes(attributes))
 
 
 class OtelGauge(Gauge):
-    def __init__(self, gauge: otel_metrics.Gauge) -> None:
+    def __init__(self, gauge: otel_metrics._Gauge) -> None:
         self._gauge = gauge
 
     def set(self, value: float, *, attributes: Mapping[str, object] | None = None) -> None:
-        self._gauge.set(value, attributes=dict(attributes) if attributes else None)
+        self._gauge.set(value, attributes=_as_otel_attributes(attributes))
 
 
 class OtelMeter(Meter):

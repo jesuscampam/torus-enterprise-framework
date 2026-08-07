@@ -19,6 +19,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.cors.policy import CorsPolicy
 from teaf._internal.api.middleware.base import ApiProtectionMiddleware
@@ -27,7 +28,7 @@ from teaf._internal.api.middleware.base import ApiProtectionMiddleware
 class CorsMiddleware(ApiProtectionMiddleware):
     """Responde los preflight ``OPTIONS`` y añade cabeceras CORS al resto de respuestas."""
 
-    def __init__(self, app: object, *, policy: CorsPolicy, **base_options: Any) -> None:
+    def __init__(self, app: ASGIApp, *, policy: CorsPolicy, **base_options: Any) -> None:
         """``base_options`` son los argumentos comunes de
         ``ApiProtectionMiddleware`` (``event_bus``/``event_bus_provider``/
         ``trust_forwarded_headers``): se reenvían tal cual en vez de

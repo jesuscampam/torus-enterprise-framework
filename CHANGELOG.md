@@ -7,7 +7,53 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.9.0-alpha](#090-alpha---2026-08-07).
+Sin cambios todavía sobre [0.9.1-alpha](#091-alpha---2026-08-07).
+
+## [0.9.1-alpha] - 2026-08-07
+
+Sprint 2.9.1 — **Hardening, rendimiento y preparación para producción**. Sin funcionalidad nueva, sin módulos nuevos, sin cambios en la API pública y sin cambios de comportamiento: el objetivo era convertir lo que ya existía en algo desplegable. Estado completo en [docs/PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md).
+
+**La API pública es 100% compatible con 0.9.0-alpha**, verificado de forma mecánica: 192 símbolos, 0 eliminados, 0 renombrados, 0 firmas rotas ([docs/BACKWARD-COMPATIBILITY.md](docs/BACKWARD-COMPATIBILITY.md)).
+
+### Fixed
+
+- **Fuga de memoria en los tres almacenes en memoria de protección de APIs** (`teaf/_internal/api/providers/memory.py`). Las entradas solo caducaban de forma perezosa —al consultar una clave concreta—, así que una clave que nunca se volvía a consultar no se liberaba nunca. El crecimiento no dependía del volumen de tráfico sino de su **cardinalidad** (IPs, claves de idempotencia, tenants), que es justo lo que un atacante controla. Corregido con purga amortizada cada 512 escrituras: **1.536 → 10 entradas retenidas (−99,3%)**, verificado en `tests/unit/test_memory_bounds.py`.
+- **`otel_metrics.Gauge` no existe** (`observability/metrics/meter.py`): referencia a un símbolo inexistente que el tipado permisivo ocultaba. Ahora `otel_metrics._Gauge`.
+- **Referencia obsoleta a un fichero eliminado** en `observability/exporters/prometheus.py`.
+
+### Changed
+
+- **Arranque 5,5× más rápido** (`Application()`: 15,50 → 2,82 ms; arranque ASGI completo: 18,42 → 5,79 ms; bootstrap de módulo: 17,96 → 6,25 ms; memoria de construcción: 290,7 → 192,1 KiB). El 97% del tiempo original lo consumía FastAPI generando modelos Pydantic de respuesta para los 30 endpoints de sistema. Se declaran ahora con `response_model=None` **y** con constantes explícitas de `responses=` (`teaf/_internal/shared/openapi.py`) que preservan el esquema OpenAPI: los cuerpos siguen siendo byte a byte idénticos. Detalle en [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+- **`mypy --strict`: de 28 errores a 0** sobre 225 ficheros. La mayoría eran artefactos de invocar `mypy` en vez de `python -m mypy` —el ejecutable suelto no resolvía los tipos de FastAPI/Starlette y los degradaba a `Any`, ocultando errores reales—. Las puertas de calidad fijan ahora la invocación correcta.
+- **Tipado de 11 middlewares**: `app: object` → `app: ASGIApp` (`starlette.types`).
+- `black` deja de reformatear las migraciones generadas por Alembic (`force-exclude`, en paralelo a la exclusión que ya tenía `ruff`).
+- [docs/standards/QUALITY-GATES.md](docs/standards/QUALITY-GATES.md) documenta la ejecución automática (nueva sección 0) sin duplicar los criterios, que siguen siendo la fuente de verdad.
+
+### Added
+
+- **Puertas de calidad en un solo comando**: `python scripts/quality_gates.py` ejecuta las 10 puertas automatizables (formato, lint, tipos, ciclos, espacio de nombres, frontera pública, compatibilidad de firmas, arranque real, pruebas con cobertura, benchmarks) con `--fast`, `--list` y `--gate`.
+  - `scripts/check_runtime_startup.py` — la única puerta que **ejecuta** el framework de extremo a extremo: construye una `Application`, corre el ciclo de vida ASGI, llama a los 7 endpoints de sistema y la apaga. Ningún análisis estático detecta un fallo de cableado.
+  - `scripts/check_circular_dependencies.py` — AST + DFS tricolor: **0 ciclos en 225 módulos**.
+  - `scripts/check_public_api_surface.py` — captura y compara **firmas**, no solo nombres, contra `docs/public-api/api-surface.json`, distinguiendo rupturas de ampliaciones.
+- **Suite de benchmarks** ([`benchmarks/`](benchmarks/README.md)): 25 benchmarks en 8 suites, con baseline versionada y detección de regresiones. Sus tres reglas de comparación —mínimo en vez de mediana, umbral del 60%, suelo absoluto de 1 µs— salen de medir la varianza real de la suite, no de números elegidos a ojo; y una regresión se **vuelve a medir** antes de reportarse, porque un pico del anfitrión llegó a multiplicar por 2,5 un resultado sin cambio de código. Cifras en [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+- **Pruebas de carga** ([`loadtests/`](loadtests/README.md)): 9 escenarios concurrentes con throughput, latencias p50/p95/p99, CPU, memoria y errores. **0 errores** en 9 × 2.000 peticiones. Cada escenario tiene su control explícito para que la resta signifique algo.
+- **Documentación de producción**: [PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md), [PERFORMANCE.md](docs/PERFORMANCE.md), [BENCHMARKS.md](docs/BENCHMARKS.md), [BACKWARD-COMPATIBILITY.md](docs/BACKWARD-COMPATIBILITY.md) y [SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md).
+- **52 pruebas nuevas** (1.074 → 1.126, cobertura **98%**): límites de memoria, esquemas OpenAPI y comparación de benchmarks.
+
+### Removed
+
+- **7 módulos de código muerto**, ninguno alcanzable desde `teaf.*`: `shared/{collections,dates,strings,validation}.py` y `providers/telemetry/{logger,metrics,tracer}_provider.py`. Estos últimos ya los declaraba muertos [ADR-008](docs/architecture/adr/ADR-008-enterprise-observability.md) («todos abstractos, ninguno instanciado en ningún sitio») y además colisionaban por nombre con el `TracerProvider` real de OpenTelemetry.
+- `is_valid_uuid` de `shared/identifiers.py` — sin uso.
+
+### Security
+
+Revisión completa en [docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md). **Ningún hallazgo se corrigió en código**, deliberadamente: este Sprint tenía prohibido añadir funcionalidad o cambiar comportamiento, y corregir en silencio un hallazgo de seguridad dentro de un Sprint de endurecimiento sería el tipo de cambio no revisado que la revisión existe para evitar.
+
+- **Alta** — Las cabeceras de seguridad HTTP que [SECURITY-STANDARD.md §7](docs/standards/SECURITY-STANDARD.md) exige **no están implementadas**: los campos `security_headers_enabled`/`security_hsts_max_age_seconds`/`security_frame_options` de `Settings` no los lee nadie y no existe ningún `SecurityHeadersMiddleware`. Un valor por defecto de `True` comunica una protección inexistente.
+- **Media** — `trust_forwarded_headers` vale `True` por defecto: expuesta directamente a internet, una aplicación puede saltarse cualquier límite por IP falsificando `X-Forwarded-For`.
+- **Baja** — Comentario obsoleto sobre secretos en `_configuration_summary`; `pydantic` declarada sin importarse directamente.
+- **Verificado sin hallazgos**: verificación de JWT (algoritmo en lista blanca, `aud`/`iss`, `leeway`), API Keys (256 bits, HMAC con pepper, búsqueda por hash), criptografía (`compare_digest`, `secrets`), y **ausencia de fuga de secretos** por los 12 endpoints de sistema, comprobada con valores centinela.
+- **Laguna conocida**: sin `pip-audit`/`safety` en el entorno, el árbol de 18 dependencias no se ha contrastado contra una base de datos de vulnerabilidades.
 
 ## [0.9.0-alpha] - 2026-08-07
 

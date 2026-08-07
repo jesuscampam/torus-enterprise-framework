@@ -14,6 +14,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.compression.providers import CompressionNegotiator
 from teaf._internal.api.middleware.base import (
@@ -27,7 +28,7 @@ class CompressionMiddleware(ApiProtectionMiddleware):
     """Aplica GZip/Brotli a las respuestas que lo admitan."""
 
     def __init__(
-        self, app: object, *, negotiator: CompressionNegotiator, **base_options: Any
+        self, app: ASGIApp, *, negotiator: CompressionNegotiator, **base_options: Any
     ) -> None:
         """``base_options`` son los argumentos comunes de
         ``ApiProtectionMiddleware`` (``event_bus``/``event_bus_provider``/

@@ -18,6 +18,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.api.exceptions import ApiProtectionException, ResponseTooLargeException
 from teaf._internal.api.middleware.base import (
@@ -34,7 +35,7 @@ class RequestValidationMiddleware(ApiProtectionMiddleware):
 
     def __init__(
         self,
-        app: object,
+        app: ASGIApp,
         *,
         validator: RequestValidator,
         validate_responses: bool = False,

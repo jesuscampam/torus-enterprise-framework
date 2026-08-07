@@ -19,7 +19,7 @@ from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.types import Message
+from starlette.types import ASGIApp, Message
 
 from teaf._internal.api.exceptions import IdempotencyConflictException
 from teaf._internal.api.idempotency.manager import IdempotencyManager, build_fingerprint
@@ -34,7 +34,7 @@ from teaf._internal.api.middleware.base import (
 class IdempotencyMiddleware(ApiProtectionMiddleware):
     """Detecta reintentos por ``Idempotency-Key`` y devuelve la respuesta original."""
 
-    def __init__(self, app: object, *, manager: IdempotencyManager, **base_options: Any) -> None:
+    def __init__(self, app: ASGIApp, *, manager: IdempotencyManager, **base_options: Any) -> None:
         """``base_options`` son los argumentos comunes de
         ``ApiProtectionMiddleware`` (``event_bus``/``event_bus_provider``/
         ``trust_forwarded_headers``): se reenvían tal cual en vez de

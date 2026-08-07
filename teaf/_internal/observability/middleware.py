@@ -20,6 +20,7 @@ from collections.abc import Awaitable, Callable
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp
 
 from teaf._internal.contracts.telemetry import Histogram, Meter, Tracer
 from teaf._internal.observability.models import SpanKind, SpanStatus
@@ -30,7 +31,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     """Abre un span ``SERVER`` por petición y registra su duración como histograma."""
 
     def __init__(
-        self, app: object, *, tracer: Tracer, meter: Meter, event_bus: EventBus | None = None
+        self, app: ASGIApp, *, tracer: Tracer, meter: Meter, event_bus: EventBus | None = None
     ) -> None:
         super().__init__(app)
         self._tracer = tracer

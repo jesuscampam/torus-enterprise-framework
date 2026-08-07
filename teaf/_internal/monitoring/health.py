@@ -36,6 +36,7 @@ from teaf._internal.core.version import VersionInfo
 from teaf._internal.observability.health.checker import CompositeHealthChecker
 from teaf._internal.runtime.capabilities.enums import CapabilityHealth
 from teaf._internal.sdk.module_base import ModuleBase
+from teaf._internal.shared.openapi import JSON_OBJECT_RESPONSE, JSON_STRING_MAP_RESPONSE
 
 
 def _bootstrapped_modules(request: Request) -> tuple[ModuleBase, ...]:
@@ -46,7 +47,7 @@ def create_health_router(version_info: VersionInfo) -> APIRouter:
     """Construye el router de rutas de sistema para la instancia en ejecución."""
     router = APIRouter(tags=["system"])
 
-    @router.get("/")
+    @router.get("/", response_model=None, responses=JSON_STRING_MAP_RESPONSE)
     def root() -> dict[str, str]:
         """Bienvenida mínima con la identidad de la instancia."""
         return {
@@ -55,7 +56,7 @@ def create_health_router(version_info: VersionInfo) -> APIRouter:
             "environment": version_info.environment,
         }
 
-    @router.get("/health")
+    @router.get("/health", response_model=None, responses=JSON_OBJECT_RESPONSE)
     def health(request: Request) -> dict[str, object]:
         """Estado general de la instancia, incluyendo el desglose por módulo."""
         report = CompositeHealthChecker.from_modules(_bootstrapped_modules(request)).check_all()
@@ -68,12 +69,12 @@ def create_health_router(version_info: VersionInfo) -> APIRouter:
             "modules": report.as_dict(),
         }
 
-    @router.get("/live")
+    @router.get("/live", response_model=None, responses=JSON_STRING_MAP_RESPONSE)
     def live() -> dict[str, str]:
         """Liveness probe: el proceso está vivo y responde — nunca verifica dependencias."""
         return {"status": "alive"}
 
-    @router.get("/ready")
+    @router.get("/ready", response_model=None, responses=JSON_OBJECT_RESPONSE)
     def ready(request: Request) -> JSONResponse:
         """Readiness probe: ``ready`` solo si ningún ``HealthCheck`` crítico está ``UNHEALTHY``."""
         report = CompositeHealthChecker.from_modules(_bootstrapped_modules(request)).check_all()
