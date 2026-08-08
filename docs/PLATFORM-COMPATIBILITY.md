@@ -4,6 +4,9 @@ Qué sistema operativo necesita TEAF para importar, arrancar y servir una aplica
 diferencia hay entre ellos. Nace del Windows Compatibility Patch (v0.10.1-alpha) — hasta ese
 parche, `from teaf import Application` **no funcionaba en Windows**.
 
+La otra mitad de "plataforma" es el intérprete: qué versiones de Python soporta TEAF, y cuáles se
+ejecutaron de verdad, está en [Versiones de Python](#versiones-de-python) más abajo.
+
 ## Estado por plataforma
 
 | Plataforma | Import (`from teaf import Application`) | Arranque (`Runtime`) | HTTP (`/`, `/health`, `/info`, `/runtime/info`) | Métricas de proceso |
@@ -183,6 +186,55 @@ tiempo, dentro de la misma plataforma.
 
 Ninguna de estas diferencias afecta al arranque, al enrutamiento ni al ciclo de vida: las dos
 cifras son observabilidad y ya eran `int | None`/`float | None`.
+
+## Versiones de Python
+
+"Plataforma" no es solo el sistema operativo: la versión del intérprete decide igual de rápido si
+`pip install` funciona. Desde v0.10.3-alpha (Sprint 3.0.3), TEAF declara y soporta cuatro:
+
+| Versión | Estado | Cómo se comprobó |
+|---|---|---|
+| **3.11** | ✅ Verificado | CPython 3.11.15. Venv nuevo + `pip install -e .` + **1.281 pruebas en verde** |
+| **3.12** | ✅ Verificado | CPython 3.12.3. Venv nuevo + `pip install -e .` + **1.281 pruebas en verde** |
+| **3.13** | ✅ Verificado | CPython 3.13.12. Venv nuevo + `pip install -e .` + **1.281 pruebas en verde** |
+| **3.14** | ✅ Verificado | CPython **3.14.0rc2** (vía `uv`). Venv nuevo + `pip install -e .` + **1.281 pruebas en verde**, resultados idénticos a las otras tres |
+
+Los mismos dos estados que el resto de este documento: **Verificado** es "se ejecutó de verdad y se
+observó el resultado"; **Compatible por diseño** es "nada indica que falle, pero nadie lo corrió".
+
+`requires-python` sigue en **`>=3.11`**: ganar 3.14 no cuesta 3.11 ni 3.12. Lo que se comprueba
+automáticamente es que la metadata no mienta —que `requires-python` y los clasificadores coincidan,
+sin huecos, y que el intérprete en curso caiga dentro del rango declarado—, en
+[`tests/unit/test_python_version_support.py`](../tests/unit/test_python_version_support.py) y
+[`tests/unit/test_packaging_metadata.py`](../tests/unit/test_packaging_metadata.py).
+
+En 3.14 se ejercitaron además los mismos criterios que en Linux: `from teaf import Application`,
+`Version.as_dict()` (con `publicApi: 2.0.0`), el ciclo `bootstrapping → running → stopped` del
+`Runtime`, y `GET /`, `/health`, `/info` y `/runtime/info` respondiendo 200 — este último con
+`memoryRssBytes` y `cpuTimeSeconds` reales, no nulos, por el camino POSIX de `process_metrics.py`.
+
+**El código de TEAF no necesitó ni un cambio.** Se auditó el árbol completo en busca de APIs
+retiradas en 3.13/3.14 (`datetime.utcnow`, `distutils`, `asyncio.get_event_loop` sin bucle activo,
+`imp`, `pkgutil.find_loader`): ninguna aparece. El bloqueo estaba íntegramente en tres dependencias
+fijadas a versiones sin soporte para 3.14 — el detalle, en
+[DEPENDENCIES.md](DEPENDENCIES.md#sprint-303--compatibilidad-con-python-314).
+
+Los cuatro intérpretes se probaron en **entornos virtuales recreados desde cero**, no reutilizando
+uno ya poblado: un fallo de instalación solo aparece instalando. En los cuatro se resuelven las
+mismas versiones exactas, incluidas `starlette==1.4.1` y `greenlet==3.5.4` — las dos transitivas que
+antes flotaban y que el Sprint 3.0.3 fijó.
+
+**Sin verificar en 3.14 en otro sistema operativo.** Todo lo anterior se ejecutó en Linux x86_64. La
+combinación *Windows o macOS × Python 3.14* hereda las mismas reservas que la tabla del principio
+de este documento: ninguna de las dos plataformas se ha ejecutado de verdad.
+
+Para macOS ARM64 concretamente —que es donde se reportó el fallo original, con Python 3.14.6— lo que
+sí se ha verificado sin disponer de un Mac es **qué wheel elegiría pip en esa plataforma**, que es
+el mecanismo exacto que falló. Ninguno de los 20 paquetes fijados cae al *sdist*, así que **ninguno
+compila**; la tabla completa está en
+[DEPENDENCIES.md](DEPENDENCIES.md#macos-arm64--cpython-314-ningún-paquete-compila). Es verificación
+del mecanismo, no de la ejecución: sigue sin ejecutarse en un Mac, y **3.14.6 tampoco se ha
+ejecutado** — lo probado es 3.14.0rc2, mismo ABI `cp314` pero distinta compilación.
 
 ## Qué no cambió
 

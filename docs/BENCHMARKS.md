@@ -168,6 +168,25 @@ operaciones pesadas. Para eso haría falta una máquina dedicada. La alternativa
 umbrales hasta que la puerta no fallara nunca, que es peor: una puerta que no puede fallar no
 informa de nada.
 
+## Un episodio del Sprint 3.0.3 que conviene recordar
+
+Durante la validación de v0.10.3-alpha, la puerta falló con seis mediciones entre **+64 % y +80 %**
+sobre esta baseline: `resolve()` en sus tres *lifetimes*, `publish()` con un suscriptor,
+`subscribe()` + `unsubscribe()`, búsqueda de capacidad y compresión GZip.
+
+La hipótesis fácil era culpar al cambio del sprint (subir `pydantic`, `asyncpg` y `sqlalchemy`). Se
+descartó con un experimento controlado: los mismos benchmarks, en la misma máquina y en la misma
+sesión, con el **pin anterior `pydantic==2.10.4`**, daban la misma degradación — GZip midió
+2048.70 µs con 2.10.4 y 2048.12 µs con 2.12.0, el mismo número. Además lo degradado incluía
+compresión GZip y resolución del contenedor de DI, que no tocan `pydantic` por ningún camino.
+Diagnóstico: **el anfitrión, momentáneamente más lento**, exactamente el límite que advierte la
+sección anterior.
+
+**La baseline no se regeneró.** Horas después, sin tocar ni un número de `baseline.json`, la puerta
+volvió sola a verde. Si se hubiera reescrito para "arreglar" el rojo, hoy la baseline estaría
+inflada un 70 % de forma permanente y habría dejado de detectar regresiones reales. Es el argumento
+práctico de la sección siguiente, no una hipótesis.
+
 ## Regenerar la baseline
 
 ```bash
