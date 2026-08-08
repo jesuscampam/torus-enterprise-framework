@@ -7,8 +7,8 @@ Documentación de la infraestructura base implementada en el Sprint 2.1 (Bootstr
 El Sprint 2.1 implementa exclusivamente la infraestructura transversal del framework — ningún módulo de negocio. El código vive en las carpetas ya definidas desde Sprint 1 (ver [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)):
 
 ```
-backend/
-├── main.py                    # Entry point: uvicorn backend.main:app
+teaf/_internal/
+├── main.py                    # Entry point: uvicorn teaf._internal.main:app
 ├── core/
 │   ├── application.py         # Application Factory (composition root)
 │   ├── exceptions.py          # Jerarquía ApplicationException
@@ -58,7 +58,7 @@ Arrancar en desarrollo (desde la raíz del repositorio):
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env
-uvicorn backend.main:app --reload
+uvicorn teaf._internal.main:app --reload
 ```
 
 Verificar: `curl http://localhost:8000/health`.
@@ -67,15 +67,15 @@ Ejecutar la suite de pruebas: `python -m pytest`.
 
 ### Nota sobre el comando de arranque
 
-El Sprint 2.1 pedía literalmente `uvicorn app.main:app --reload`. Se implementó como `uvicorn backend.main:app --reload` para respetar la estructura de carpetas `backend/` ya aprobada en Sprint 1 (CLAUDE.md prohíbe reorganizar la arquitectura sin aprobación explícita) en vez de introducir un paquete `app/` nuevo y paralelo. Ver el reporte de cierre de Sprint 2.1 para el detalle completo de esta decisión.
+El Sprint 2.1 pedía literalmente `uvicorn app.main:app --reload`. Se implementó como `uvicorn teaf._internal.main:app --reload` para respetar la estructura de carpetas `teaf/_internal/` ya aprobada en Sprint 1 (CLAUDE.md prohíbe reorganizar la arquitectura sin aprobación explícita) en vez de introducir un paquete `app/` nuevo y paralelo. Ver el reporte de cierre de Sprint 2.1 para el detalle completo de esta decisión.
 
 ## 4. Cómo extender el Core
 
-- **Añadir un parámetro de configuración**: agregar un campo tipado a `Settings` (o a la subclase de entorno correspondiente) en `backend/config/settings.py`. No requiere tocar `environment.py` ni el resto del framework.
-- **Añadir un middleware nuevo**: crear el archivo en `backend/middleware/`, registrarlo en `core/application.py` con `app.add_middleware(...)`, respetando el orden ya documentado (Starlette ejecuta el último añadido primero).
-- **Añadir una excepción nueva**: heredar de `ApplicationException` (o de un subtipo existente si aplica semánticamente) en `backend/core/exceptions.py`, y añadir su mapeo a código HTTP en `_STATUS_BY_EXCEPTION_TYPE` de `middleware/exception_handler.py`.
+- **Añadir un parámetro de configuración**: agregar un campo tipado a `Settings` (o a la subclase de entorno correspondiente) en `teaf/_internal/config/settings.py`. No requiere tocar `environment.py` ni el resto del framework.
+- **Añadir un middleware nuevo**: crear el archivo en `teaf/_internal/middleware/`, registrarlo en `core/application.py` con `app.add_middleware(...)`, respetando el orden ya documentado (Starlette ejecuta el último añadido primero).
+- **Añadir una excepción nueva**: heredar de `ApplicationException` (o de un subtipo existente si aplica semánticamente) en `teaf/_internal/core/exceptions.py`, y añadir su mapeo a código HTTP en `_STATUS_BY_EXCEPTION_TYPE` de `middleware/exception_handler.py`.
 - **Añadir una dependencia inyectable**: declarar una factory decorada con `singleton_provider()` (para recursos de ciclo de vida de proceso) o una función simple (para recursos de ciclo de vida por petición), y consumirla vía `Depends()` en el router correspondiente — ver el ejemplo en el docstring de `core/dependencies.py`.
-- **Añadir una utilidad genérica**: si es reutilizable entre capas y no contiene lógica de negocio, va en `backend/shared/`; si es específica de un módulo nuevo, va dentro de ese módulo.
+- **Añadir una utilidad genérica**: si es reutilizable entre capas y no contiene lógica de negocio, va en `teaf/_internal/shared/`; si es específica de un módulo nuevo, va dentro de ese módulo.
 
 Antes de extender el Core con algo que no encaje en los puntos anteriores, consulta [DECISION-TREE.md](../architecture/DECISION-TREE.md) y [EXTENSIBILITY.md](../architecture/EXTENSIBILITY.md).
 

@@ -3,11 +3,11 @@
 %% Referenciado desde FRAMEWORK-BLUEPRINT.md, sección 3.
 flowchart TD
     P["1. Presentation\nfrontend/ — UI, portales TORUS"]
-    A["2. API\nbackend/api/ — routers versionados, middleware/"]
-    AP["3. Application\nbackend/services/ — casos de uso, orquestación"]
-    D["4. Domain\nbackend/models/ + reglas de negocio en services/\n(candidato a backend/domain/ propio — ver ADR sugerido)"]
+    A["2. API\nteaf/_internal/api/ — routers versionados, middleware/"]
+    AP["3. Application\nteaf/_internal/services/ — casos de uso, orquestación"]
+    D["4. Domain\nteaf/_internal/models/ + reglas de negocio en services/\n(candidato a teaf/_internal/domain/ propio — ver ADR sugerido)"]
     I["5. Infrastructure\ncore/ · config/ · security/ · monitoring/ · shared/ · scheduler/"]
-    PE["6. Persistence\nbackend/database/ + backend/repository/ + database/migrations/"]
+    PE["6. Persistence\nteaf/_internal/database/ + teaf/_internal/repository/ + database/migrations/"]
     E["7. External Services\nwebhooks/ · conectores SAP/Salesforce/Control-M · proveedores ai/ · Azure"]
 
     P --> A --> AP --> D --> I --> PE --> E

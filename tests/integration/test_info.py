@@ -1,13 +1,18 @@
-"""Pruebas de integración de la ruta /info (backend/monitoring/info.py)."""
+"""Pruebas de integración de la ruta /info (teaf/_internal/monitoring/info.py)."""
 
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+#: "security" ya no aparece aquí desde Sprint 2.7 ni "telemetry" desde
+#: Sprint 2.8: ambos tienen ya un ``ModuleBase`` real (``SecurityModule``,
+#: ``ObservabilityModule``), así que se retiraron de
+#: ``_INFRASTRUCTURE_MODULES`` (ver ``teaf/_internal/core/application.py``)
+#: — el placeholder ``contracts_only`` colisionaría (o, para "telemetry",
+#: simplemente duplicaría) el módulo real al registrarse vía
+#: ``Application(modules=[...])``.
 _EXPECTED_MODULES = {
     "database",
-    "security",
-    "telemetry",
     "storage",
     "ai",
     "scheduler",
@@ -19,7 +24,7 @@ def test_info_returns_version_and_environment(client: TestClient) -> None:
     response = client.get("/info")
     assert response.status_code == 200
     body = response.json()
-    assert body["version"] == "0.6.1-alpha"
+    assert body["version"] == "0.10.2-alpha"
     assert body["environment"] == "testing"
 
 

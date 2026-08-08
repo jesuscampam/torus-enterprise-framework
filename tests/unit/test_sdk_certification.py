@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.certification import CERTIFICATION_SECTIONS, ModuleCertification
-from backend.sdk.manifest import ModuleManifest
-from backend.sdk.module_base import ModuleBase
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.certification import CERTIFICATION_SECTIONS, ModuleCertification
+from teaf._internal.sdk.manifest import ModuleManifest
+from teaf._internal.sdk.module_base import ModuleBase
 
 
 class _GoodModule(ModuleBase):

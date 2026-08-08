@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from backend.core.exceptions import ConfigurationException
-from backend.runtime.configuration_pipeline import ConfigurationPipeline
+from teaf._internal.core.exceptions import ConfigurationException
+from teaf._internal.runtime.configuration_pipeline import ConfigurationPipeline
 
 
 def test_validate_all_runs_every_registered_validator() -> None:

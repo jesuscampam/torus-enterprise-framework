@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from backend.sdk.descriptor import ModuleDescriptor
-from backend.sdk.manifest import ModuleManifest
-from backend.sdk.specification import (
+from teaf._internal.sdk.descriptor import ModuleDescriptor
+from teaf._internal.sdk.manifest import ModuleManifest
+from teaf._internal.sdk.specification import (
     CURRENT_SPECIFICATION,
     SPEC_VERSION,
     ModuleSpecification,

@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import pytest
-from backend.runtime.exceptions import FeatureAlreadyRegisteredException, FeatureNotFoundException
-from backend.runtime.features.enums import FeatureGroup, FeatureStatus
-from backend.runtime.features.flag import FeatureFlag
-from backend.runtime.features.manager import FeatureManager
+from teaf._internal.runtime.exceptions import (
+    FeatureAlreadyRegisteredException,
+    FeatureNotFoundException,
+)
+from teaf._internal.runtime.features.enums import FeatureGroup, FeatureStatus
+from teaf._internal.runtime.features.flag import FeatureFlag
+from teaf._internal.runtime.features.manager import FeatureManager
 
 
 def test_register_and_exists() -> None:

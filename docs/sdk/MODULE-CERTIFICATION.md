@@ -1,11 +1,11 @@
 # Module Certification — TEAF
 
-`ModuleCertification` (`backend/sdk/certification.py`) certifica que un módulo cumple `ModuleSpecification v1` — un nivel más estricto que simplemente poder registrarse en un `Runtime`. Ver visión general en [SDK.md](SDK.md) y las reglas subyacentes en [MODULE-SPECIFICATION.md](MODULE-SPECIFICATION.md).
+`ModuleCertification` (`teaf/_internal/sdk/certification.py`) certifica que un módulo cumple `ModuleSpecification v1` — un nivel más estricto que simplemente poder registrarse en un `Runtime`. Ver visión general en [SDK.md](SDK.md) y las reglas subyacentes en [MODULE-SPECIFICATION.md](MODULE-SPECIFICATION.md).
 
 ## 1. Uso
 
 ```python
-from backend.sdk.certification import ModuleCertification
+from teaf._internal.sdk.certification import ModuleCertification
 
 result = ModuleCertification().certify(my_module)
 

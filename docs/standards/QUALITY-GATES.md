@@ -4,6 +4,42 @@ Criterios mínimos, no negociables, que cualquier cambio debe cumplir antes de f
 
 Estos gates se verifican **a nivel de PR/cambio al framework**. Para el criterio de "una historia/feature está terminada", ver [DEFINITION-OF-DONE.md](DEFINITION-OF-DONE.md), que es más granular.
 
+## 0. Ejecución automática — un solo comando
+
+Desde Sprint 2.9.1, las puertas automatizables se ejecutan con un único comando en vez de con ocho comandos recordados de memoria:
+
+```bash
+python scripts/quality_gates.py           # todas
+python scripts/quality_gates.py --fast    # salta las lentas (pruebas, benchmarks)
+python scripts/quality_gates.py --list    # qué puertas hay y por qué existe cada una
+python scripts/quality_gates.py --gate lint mypy
+```
+
+Sale con código distinto de cero si alguna falla, así que sirve en CI sin envoltorio adicional. **Este documento manda sobre el script**: si divergen, lo que hay que corregir es el script.
+
+| Puerta | Qué comprueba |
+|---|---|
+| `format` | `black --check .` |
+| `lint` | `ruff check .` |
+| `mypy` | `python -m mypy --strict teaf` (§2) |
+| `imports` | Sin ciclos de dependencias entre módulos internos |
+| `namespace` | El paquete privado sigue siendo `teaf._internal` ([ADR-006](../architecture/adr/ADR-006-internal-namespace-refactor.md)) |
+| `boundary` | Ningún ejemplo importa `teaf._internal` |
+| `public-api` | La API pública no rompe compatibilidad — firmas, no solo nombres ([BACKWARD-COMPATIBILITY.md](../BACKWARD-COMPATIBILITY.md)) |
+| `startup` | La aplicación **arranca de verdad** y sus endpoints de sistema responden (§9) |
+| `build` | El paquete se construye y el wheel contiene lo que debe (Sprint 3.0) |
+| `dependencies` | `pip-audit` — vulnerabilidades conocidas, con excepciones explícitas en [`accepted-vulnerabilities.json`](../security/accepted-vulnerabilities.json) |
+| `tests` | Suite completa con cobertura ≥95% sobre `teaf/` (§1) |
+| `benchmarks` | Sin regresiones de rendimiento frente a la baseline ([BENCHMARKS.md](../BENCHMARKS.md)) |
+
+Dos matices que no son evidentes y que conviene no "simplificar" más adelante:
+
+- **`mypy` se invoca como `python -m mypy`, no como `mypy`.** El ejecutable suelto no resuelve los tipos de FastAPI/Starlette y los degrada a `Any`, lo que deja pasar errores reales — en Sprint 2.9.1 ocultaba, entre otros, una referencia a un `otel_metrics.Gauge` que no existe.
+- **`startup` es la única puerta que ejecuta el framework.** Las demás lo analizan. Un fallo de cableado —un `lifespan` que lanza, un router que no se registra— no lo detecta ningún análisis estático, y es precisamente el fallo que aparece en producción.
+- **`build` es la única puerta que mira el artefacto distribuible.** Las demás trabajan sobre el árbol de fuentes, donde `import teaf` funciona porque el directorio actual está en `sys.path`. Eso oculta una clase entera de fallos —un paquete nuevo que no entra en el wheel, un fichero de datos sin declarar— que no rompen ninguna prueba, solo la instalación de quien consume TEAF. Se evaluó además una puerta `imports` de validación de importación y **se descartó por duplicada**: importar el paquete es precondición de `startup`, que ya lo ejecuta.
+
+Lo que **no** cubre el script y sigue siendo responsabilidad humana: los puntos 3 a 8 y 10 (documentación, ADR, roadmap, changelog, secretos, Docker, OpenAPI) y el checklist del punto 11.
+
 ## 1. Cobertura de pruebas
 
 - `services/` y `repository/` mantienen cobertura ≥ 80% (umbral de [CODING-STANDARD.md](CODING-STANDARD.md), sección 7).
@@ -48,7 +84,7 @@ Estos gates se verifican **a nivel de PR/cambio al framework**. Para el criterio
 
 ## 10. Swagger/OpenAPI actualizado
 
-- Todo endpoint nuevo o modificado en `backend/api/` está documentado en el esquema OpenAPI generado (resumen, ejemplos, códigos de error), conforme a [API-STANDARD.md](API-STANDARD.md).
+- Todo endpoint nuevo o modificado en `teaf/_internal/api/` está documentado en el esquema OpenAPI generado (resumen, ejemplos, códigos de error), conforme a [API-STANDARD.md](API-STANDARD.md).
 
 ## 11. Checklist de revisión humana
 

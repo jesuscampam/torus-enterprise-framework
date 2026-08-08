@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Vulnerabilidades conocidas aceptadas temporalmente, con su justificación.",
+    "Las consume scripts/check_dependency_audit.py: cualquier aviso que NO esté",
+    "aquí hace fallar la puerta de calidad. Aceptar no es silenciar — la puerta",
+    "las lista en cada ejecución y este fichero se revisa al abrir cada Sprint.",
+    "Contexto completo y análisis de explotabilidad: docs/SECURITY-REVIEW.md.",
+    "",
+    "Sprint 3.0: la lista quedó VACÍA. Las 7 entradas de starlette que aceptó",
+    "Sprint 2.9.2 estaban bloqueadas por el pin 'starlette<0.42.0' de",
+    "fastapi 0.115.6; al actualizar a fastapi 0.141.1 + starlette 1.4.1 las",
+    "correcciones quedaron disponibles y las entradas se ELIMINAN en vez de",
+    "mantenerse 'aceptadas'. Una excepción que ya no aplica y sigue en la lista",
+    "es deuda invisible: la próxima vulnerabilidad de ese paquete pasaría",
+    "desapercibida bajo una justificación caducada."
+  ],
+  "reviewed": "2026-08-07",
+  "sprint": "3.0",
+  "accepted": []
+}

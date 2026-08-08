@@ -1,17 +1,17 @@
 # Developer API — TEAF
 
-El Developer API (`backend/developer/runtime_api.py`, clase `DeveloperRuntimeAPI`) expone exactamente lo mismo que la [Runtime API](RUNTIME-API.md) HTTP, pero para código Python que corre **en el mismo proceso**: un script de mantenimiento, una consola interactiva, un plugin, o un futuro servidor MCP (ver Sprint 2.4, ítems 13 y 15). Ver visión general en [PLATFORM-INTELLIGENCE.md](PLATFORM-INTELLIGENCE.md).
+El Developer API (`teaf/_internal/developer/runtime_api.py`, clase `DeveloperRuntimeAPI`) expone exactamente lo mismo que la [Runtime API](RUNTIME-API.md) HTTP, pero para código Python que corre **en el mismo proceso**: un script de mantenimiento, una consola interactiva, un plugin, o un futuro servidor MCP (ver Sprint 2.4, ítems 13 y 15). Ver visión general en [PLATFORM-INTELLIGENCE.md](PLATFORM-INTELLIGENCE.md).
 
 > No depende de HTTP: no hay cliente, no hay serialización de red, no hay latencia de red. Es una fachada de solo lectura sobre un `Runtime` ya construido.
 
-## 1. Por qué existe un paquete `backend/developer/` separado
+## 1. Por qué existe un paquete `teaf/_internal/developer/` separado
 
-`backend/developer/` es un paquete nuevo de Sprint 2.4, hermano de `backend/runtime/`, no una subcarpeta de él — señala explícitamente que este código es **superficie de consumo**, no infraestructura del Runtime en sí. Nada en `backend/runtime/` depende de `backend/developer/` (la dependencia va en un solo sentido: `developer/` → `runtime/`).
+`teaf/_internal/developer/` es un paquete nuevo de Sprint 2.4, hermano de `teaf/_internal/runtime/`, no una subcarpeta de él — señala explícitamente que este código es **superficie de consumo**, no infraestructura del Runtime en sí. Nada en `teaf/_internal/runtime/` depende de `teaf/_internal/developer/` (la dependencia va en un solo sentido: `developer/` → `runtime/`).
 
 ## 2. `DeveloperRuntimeAPI`
 
 ```python
-from backend.developer.runtime_api import DeveloperRuntimeAPI
+from teaf._internal.developer.runtime_api import DeveloperRuntimeAPI
 
 api = DeveloperRuntimeAPI(runtime, configuration_provider=lambda: configuration_summary)
 
@@ -32,7 +32,7 @@ Nueve métodos, uno por cada superficie de introspección del Runtime salvo `sel
 
 ## 3. Dónde se construye
 
-`backend/core/application.py` (el composition root) construye una instancia por aplicación y la expone en `app.state.developer_api` — no está montada en ningún router, es de uso puramente interno:
+`teaf/_internal/core/application.py` (el composition root) construye una instancia por aplicación y la expone en `app.state.developer_api` — no está montada en ningún router, es de uso puramente interno:
 
 ```python
 app.state.developer_api = DeveloperRuntimeAPI(
@@ -44,11 +44,11 @@ Cualquier código con acceso a `app.state` (un script de administración, un tes
 
 ## 4. Cómo se evita duplicar lógica con la Runtime API
 
-`DeveloperRuntimeAPI` no reimplementa el ensamblado de datos: importa las mismas funciones `build_*_payload` de `backend/runtime/api.py` que usa el router HTTP.
+`DeveloperRuntimeAPI` no reimplementa el ensamblado de datos: importa las mismas funciones `build_*_payload` de `teaf/_internal/runtime/api.py` que usa el router HTTP.
 
 ```python
-# backend/developer/runtime_api.py
-from backend.runtime.api import build_modules_payload, ...
+# teaf/_internal/developer/runtime_api.py
+from teaf._internal.runtime.api import build_modules_payload, ...
 
 class DeveloperRuntimeAPI:
     def modules(self) -> list[dict[str, object]]:
@@ -67,5 +67,5 @@ Esto garantiza que `GET /runtime/modules` y `api.modules()` **siempre** devuelve
 ## 6. Buenas prácticas
 
 - **Es de solo lectura**: ningún método de `DeveloperRuntimeAPI` registra ni modifica nada — para eso están los wrappers de `Runtime` (`register_capability`, `enable_feature`, etc.), no esta fachada.
-- **No la uses como sustituto de `Runtime` directo dentro de `backend/runtime/`** — es una capa de conveniencia para consumidores externos al Runtime, no para código interno del propio paquete.
-- **Si necesitas un método nuevo, añade primero su `build_*_payload`** en `backend/runtime/api.py` (ver [RUNTIME-API.md, sección 5](RUNTIME-API.md#5-reutilización-con-el-developer-api)) y expónlo desde ambos lados.
+- **No la uses como sustituto de `Runtime` directo dentro de `teaf/_internal/runtime/`** — es una capa de conveniencia para consumidores externos al Runtime, no para código interno del propio paquete.
+- **Si necesitas un método nuevo, añade primero su `build_*_payload`** en `teaf/_internal/runtime/api.py` (ver [RUNTIME-API.md, sección 5](RUNTIME-API.md#5-reutilización-con-el-developer-api)) y expónlo desde ambos lados.

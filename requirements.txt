@@ -1,13 +1,27 @@
 # TEAF - Dependencias de runtime del backend (ver docs/architecture/STACK.md)
 # Fijar siempre versiones exactas o con límite superior — nunca dependencias sin acotar.
 
-fastapi==0.115.6
+fastapi==0.141.1
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
 pydantic-settings==2.7.0
 
-# Sprint 2.6 — Enterprise Persistence Foundation (backend/modules/database/)
+# Sprint 2.6 — Enterprise Persistence Foundation (teaf/_internal/modules/database/)
 sqlalchemy[asyncio]==2.0.36
 alembic==1.14.0
 aiosqlite==0.20.0
 asyncpg==0.30.0
+
+# Sprint 2.7 — Enterprise Security Platform (teaf/_internal/security/), ver ADR-007
+pyjwt[crypto]==2.13.0
+argon2-cffi==23.1.0
+bcrypt==4.2.1
+ldap3==2.9.1
+httpx==0.28.1
+
+# Sprint 2.8 — Enterprise Observability Platform (teaf/_internal/observability/), ver ADR-008
+opentelemetry-api==1.44.0
+opentelemetry-sdk==1.44.0
+opentelemetry-exporter-otlp-proto-http==1.44.0
+opentelemetry-exporter-prometheus==0.65b0
+prometheus-client==0.26.0

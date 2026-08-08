@@ -51,10 +51,10 @@ fix(repository): corregir fuga de sesión en UnitOfWork
 
 Toda contribución debe cumplir:
 
-- **[API-STANDARD.md](docs/standards/API-STANDARD.md)** — para cualquier cambio en la capa `backend/api/`.
-- **[DATABASE-STANDARD.md](docs/standards/DATABASE-STANDARD.md)** — para cambios en `backend/database/`, `backend/models/` o `database/migrations/`.
+- **[API-STANDARD.md](docs/standards/API-STANDARD.md)** — para cualquier cambio en la capa `teaf/_internal/api/`.
+- **[DATABASE-STANDARD.md](docs/standards/DATABASE-STANDARD.md)** — para cambios en `teaf/_internal/database/`, `teaf/_internal/models/` o `database/migrations/`.
 - **[CODING-STANDARD.md](docs/standards/CODING-STANDARD.md)** — estilo, testing y principios de diseño para todo el código.
-- **[SECURITY-STANDARD.md](docs/standards/SECURITY-STANDARD.md)** — obligatorio para cualquier cambio en `backend/security/` o que maneje datos sensibles.
+- **[SECURITY-STANDARD.md](docs/standards/SECURITY-STANDARD.md)** — obligatorio para cualquier cambio en `teaf/_internal/security/` o que maneje datos sensibles.
 - **[LOGGING-STANDARD.md](docs/standards/LOGGING-STANDARD.md)** — obligatorio para cualquier cambio que emita logs o trazas.
 
 ## Registro de decisiones (ADR)

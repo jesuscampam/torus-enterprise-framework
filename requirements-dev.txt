@@ -5,7 +5,13 @@
 
 pytest==8.3.4
 pytest-cov==6.0.0
-httpx==0.28.1
 ruff==0.8.4
 black==24.10.0
 mypy==1.14.1
+pip-audit==2.10.1
+# Puerta de calidad 'build' (Sprint 3.0): construye el wheel para comprobar
+# que el artefacto distribuible sigue siendo válido, no solo el árbol de fuentes.
+build==1.5.0
+# Extra opcional teaf[redis], para poder ejecutar tests/integration/test_cache_redis.py
+# contra un Redis real. No es dependencia del framework — ver ADR-012.
+redis==6.4.0

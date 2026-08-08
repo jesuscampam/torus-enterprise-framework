@@ -1,6 +1,6 @@
 # Repository Pattern — TEAF
 
-`SQLAlchemyRepository` (`backend/providers/database/sqlalchemy_repository.py`), la implementación funcional de `RepositoryBase` (`repository_base.py`, andamiaje de Sprint 2.2) sobre SQLAlchemy 2.x. Ver [DATABASE.md](DATABASE.md) para dónde encaja en el módulo completo.
+`SQLAlchemyRepository` (`teaf/_internal/providers/database/sqlalchemy_repository.py`), la implementación funcional de `RepositoryBase` (`repository_base.py`, andamiaje de Sprint 2.2) sobre SQLAlchemy 2.x. Ver [DATABASE.md](DATABASE.md) para dónde encaja en el módulo completo.
 
 ## 1. Contrato
 

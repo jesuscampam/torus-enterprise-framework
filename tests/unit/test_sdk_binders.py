@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import pytest
-from backend.core.registry import ModuleRegistry
-from backend.runtime.capabilities.enums import CapabilityCategory
-from backend.runtime.container import Lifetime
-from backend.runtime.runtime import Runtime
-from backend.sdk.capability import ModuleCapability
-from backend.sdk.capability_binder import CapabilityBinder
-from backend.sdk.exceptions import ModuleRegistrationException
-from backend.sdk.service import ModuleService
-from backend.sdk.service_binder import ServiceBinder
+from teaf._internal.core.registry import ModuleRegistry
+from teaf._internal.runtime.capabilities.enums import CapabilityCategory
+from teaf._internal.runtime.container import Lifetime
+from teaf._internal.runtime.runtime import Runtime
+from teaf._internal.sdk.capability import ModuleCapability
+from teaf._internal.sdk.capability_binder import CapabilityBinder
+from teaf._internal.sdk.exceptions import ModuleRegistrationException
+from teaf._internal.sdk.service import ModuleService
+from teaf._internal.sdk.service_binder import ServiceBinder
 
 
 class _Greeter:

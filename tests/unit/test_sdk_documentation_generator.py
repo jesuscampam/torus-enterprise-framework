@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.documentation_generator import ModuleDocumentationGenerator
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.documentation_generator import ModuleDocumentationGenerator
 
 
 class _Greeter:

@@ -19,18 +19,20 @@ from scripts.check_public_api_boundary import (  # noqa: E402
 
 
 def test_find_forbidden_imports_flags_plain_import() -> None:
-    violations = find_forbidden_imports("import backend.core.application\n", path=Path("x.py"))
+    violations = find_forbidden_imports(
+        "import teaf._internal.core.application\n", path=Path("x.py")
+    )
     assert len(violations) == 1
-    assert violations[0].module == "backend"
+    assert violations[0].module == "teaf._internal"
     assert violations[0].line == 1
 
 
 def test_find_forbidden_imports_flags_from_import() -> None:
     violations = find_forbidden_imports(
-        "from backend.sdk.module_base import ModuleBase\n", path=Path("x.py")
+        "from teaf._internal.sdk.module_base import ModuleBase\n", path=Path("x.py")
     )
     assert len(violations) == 1
-    assert violations[0].module == "backend"
+    assert violations[0].module == "teaf._internal"
 
 
 def test_find_forbidden_imports_allows_teaf_import() -> None:
@@ -50,7 +52,7 @@ def test_find_forbidden_imports_ignores_relative_imports() -> None:
 
 
 def test_find_forbidden_imports_reports_correct_line_number() -> None:
-    source = "import asyncio\n\nimport backend.core\n"
+    source = "import asyncio\n\nimport teaf._internal.core\n"
     violations = find_forbidden_imports(source, path=Path("x.py"))
     assert violations[0].line == 3
 
@@ -95,7 +97,7 @@ def test_check_paths_reports_violations_across_multiple_files(tmp_path: Path) ->
     good = tmp_path / "good.py"
     bad = tmp_path / "bad.py"
     good.write_text("from teaf import Application\n")
-    bad.write_text("from backend.core.application import create_app\n")
+    bad.write_text("from teaf._internal.core.application import create_app\n")
 
     violations = check_paths([tmp_path])
     assert len(violations) == 1
@@ -120,10 +122,10 @@ def test_main_returns_zero_and_prints_ok_on_clean_tree(
 def test_main_returns_one_and_prints_violations_on_dirty_tree(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    (tmp_path / "dirty.py").write_text("from backend.sdk.module_base import ModuleBase\n")
+    (tmp_path / "dirty.py").write_text("from teaf._internal.sdk.module_base import ModuleBase\n")
     exit_code = main([str(tmp_path)])
     assert exit_code == 1
-    assert "backend" in capsys.readouterr().err
+    assert "teaf._internal" in capsys.readouterr().err
 
 
 def test_main_returns_two_without_arguments() -> None:

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from backend.core.exceptions import InfrastructureException
-from backend.providers.dependencies import (
+from teaf._internal.core.exceptions import InfrastructureException
+from teaf._internal.providers.dependencies import (
     get_ai_provider,
     get_database_provider,
     get_security_context,

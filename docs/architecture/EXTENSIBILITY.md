@@ -45,16 +45,16 @@ Reemplazar una implementación **nunca** requiere cambios en `services/` ni en c
 
 ## 6. Cómo agregar nuevos proveedores de IA
 
-1. Implementa la interfaz de cliente LLM (y, si aplica, de embeddings) definida en `backend/ai/`.
+1. Implementa la interfaz de cliente LLM (y, si aplica, de embeddings) definida en `teaf/_internal/ai/`.
 2. Ubica la implementación dentro del subgrafo `Providers` de [`ai-provider-architecture.mmd`](../diagrams/ai-provider-architecture.mmd) — actualiza el diagrama.
 3. No requiere ADR si respeta la interfaz ya aceptada; sí lo requiere si el proveedor exige cambiar la interfaz misma (por ejemplo, un modelo de function calling incompatible con el contrato actual).
 4. El proveedor se selecciona vía `config/` por entorno — nunca hardcodeado en `services/`.
 
 ## 7. Cómo agregar nuevos conectores
 
-1. Todo conector (SAP, Salesforce, Control-M u otro sistema futuro) se implementa sobre `backend/webhooks/`, dependiente de `Security` (y de `Scheduler` si requiere polling periódico — ver dependencia de Control-M Connector en [MODULE-CATALOG.md](MODULE-CATALOG.md)).
+1. Todo conector (SAP, Salesforce, Control-M u otro sistema futuro) se implementa sobre `teaf/_internal/webhooks/`, dependiente de `Security` (y de `Scheduler` si requiere polling periódico — ver dependencia de Control-M Connector en [MODULE-CATALOG.md](MODULE-CATALOG.md)).
 2. Da de alta el conector en `MODULE-CATALOG.md` antes de implementarlo, siguiendo el mismo proceso que cualquier módulo nuevo (sección 1).
-3. Un conector nunca accede a `Database` directamente ni contiene lógica de negocio de una integración concreta más allá de la traducción del payload externo (ver `backend/webhooks/README.md`).
+3. Un conector nunca accede a `Database` directamente ni contiene lógica de negocio de una integración concreta más allá de la traducción del payload externo (ver `teaf/_internal/webhooks/README.md`).
 
 ## 8. Cómo mantener compatibilidad
 

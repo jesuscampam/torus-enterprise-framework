@@ -1,6 +1,6 @@
 # Capability Registry — TEAF
 
-El **Capability Model** es el vocabulario que usa TEAF para describir "qué puede hacer" una instancia en ejecución — más fino que un módulo (`ModuleRegistry`, Sprint 2.2) y más operativo que un feature flag (ver [SELF-DESCRIBING-RUNTIME.md](SELF-DESCRIBING-RUNTIME.md)). Vive en `backend/runtime/capabilities/`. Ver visión general en [PLATFORM-INTELLIGENCE.md](PLATFORM-INTELLIGENCE.md).
+El **Capability Model** es el vocabulario que usa TEAF para describir "qué puede hacer" una instancia en ejecución — más fino que un módulo (`ModuleRegistry`, Sprint 2.2) y más operativo que un feature flag (ver [SELF-DESCRIBING-RUNTIME.md](SELF-DESCRIBING-RUNTIME.md)). Vive en `teaf/_internal/runtime/capabilities/`. Ver visión general en [PLATFORM-INTELLIGENCE.md](PLATFORM-INTELLIGENCE.md).
 
 > Ninguna capacidad real se registra en este Sprint (ver Sprint 2.4, "NO IMPLEMENTAR") — solo la infraestructura para hacerlo. La primera capacidad real la registrará el módulo correspondiente cuando deje de ser `contracts_only`.
 
@@ -38,8 +38,8 @@ El **Capability Model** es el vocabulario que usa TEAF para describir "qué pued
 ## 3. `CapabilityBuilder` — construcción fluida
 
 ```python
-from backend.runtime.capabilities.builder import CapabilityBuilder
-from backend.runtime.capabilities.enums import CapabilityCategory
+from teaf._internal.runtime.capabilities.builder import CapabilityBuilder
+from teaf._internal.runtime.capabilities.enums import CapabilityCategory
 
 capability = (
     CapabilityBuilder(id="database.query", name="database-query")
@@ -56,7 +56,7 @@ Cada `with_*`/`as_*` devuelve `self` para encadenar; `build()` construye la `Cap
 ## 4. `CapabilityRegistry` — el inventario
 
 ```python
-from backend.runtime.capabilities.registry import CapabilityRegistry
+from teaf._internal.runtime.capabilities.registry import CapabilityRegistry
 
 registry = CapabilityRegistry()
 registry.register(capability)                 # CapabilityAlreadyRegisteredException si el id ya existe
@@ -75,7 +75,7 @@ En producción, **usa siempre `Runtime.register_capability()`/`Runtime.remove_ca
 Un futuro servidor MCP necesitará descubrir, de una sola llamada, todas las capacidades que expone el framework — sin conocer de antemano cada módulo. `CapabilityProviderRegistry` (`provider_registry.py`) resuelve ese caso de uso **sin implementar MCP**:
 
 ```python
-from backend.runtime.capabilities.provider_registry import CapabilityProviderRegistry
+from teaf._internal.runtime.capabilities.provider_registry import CapabilityProviderRegistry
 
 provider_registry = CapabilityProviderRegistry()
 provider_registry.register("database", database_capability_provider)
@@ -84,24 +84,24 @@ provider_registry.register("security", security_capability_provider)
 all_capabilities = provider_registry.discover_all_capabilities()  # agrega get_capabilities() de todos
 ```
 
-**Decisión de diseño clave**: `CapabilityProviderRegistry` no importa `backend/contracts/` (donde vive el contrato real `CapabilityProvider`, ver `backend/contracts/capability_provider.py`) — usa un `typing.Protocol` estructural local, `CapabilityProviderLike`, con la misma forma (`get_capabilities() -> Sequence[Any]`). Cualquier implementación real de `CapabilityProvider` encaja aquí por *duck typing*, sin herencia ni import cruzado — así `backend/runtime/` conserva la regla "nunca depende de `contracts/` ni `providers/`" (ver [RUNTIME.md](../runtime/RUNTIME.md)) incluso al prepararse para un futuro consumidor externo.
+**Decisión de diseño clave**: `CapabilityProviderRegistry` no importa `teaf/_internal/contracts/` (donde vive el contrato real `CapabilityProvider`, ver `teaf/_internal/contracts/capability_provider.py`) — usa un `typing.Protocol` estructural local, `CapabilityProviderLike`, con la misma forma (`get_capabilities() -> Sequence[Any]`). Cualquier implementación real de `CapabilityProvider` encaja aquí por *duck typing*, sin herencia ni import cruzado — así `teaf/_internal/runtime/` conserva la regla "nunca depende de `contracts/` ni `providers/`" (ver [RUNTIME.md](../runtime/RUNTIME.md)) incluso al prepararse para un futuro consumidor externo.
 
 `Runtime` expone esto como `runtime.capability_provider_registry`, compuesto junto al resto de piezas del Runtime.
 
 ## 6. Preparación para IA: los contratos
 
-Dos contratos nuevos en `backend/contracts/`, sin implementación real:
+Dos contratos nuevos en `teaf/_internal/contracts/`, sin implementación real:
 
 - **`CapabilityProvider`** (`capability_provider.py`): `get_capabilities() -> Sequence[Any]` — lo que un módulo futuro implementa para anunciarse ante `CapabilityProviderRegistry`.
 - **`FrameworkKnowledgeProvider`** (`framework_knowledge.py`): `async describe_framework() -> Mapping[str, object]` y `async answer_question(question: str) -> str` — la forma que tendrá, en un Sprint futuro, un componente de IA capaz de responder preguntas sobre TEAF apoyándose en su propia introspección.
 
-Ambos siguen el mismo patrón que el resto de `backend/contracts/`: `ABC` puro, sin imports de `backend/`, cero implementación.
+Ambos siguen el mismo patrón que el resto de `teaf/_internal/contracts/`: `ABC` puro, sin imports de `teaf/_internal/`, cero implementación.
 
 ## 7. Ejemplo end-to-end
 
 ```python
-from backend.runtime.capabilities.builder import CapabilityBuilder
-from backend.runtime.capabilities.enums import CapabilityCategory
+from teaf._internal.runtime.capabilities.builder import CapabilityBuilder
+from teaf._internal.runtime.capabilities.enums import CapabilityCategory
 
 capability = (
     CapabilityBuilder(id="ai.generate-text", name="ai-generate-text")

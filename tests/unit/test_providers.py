@@ -5,17 +5,18 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from backend.contracts.database import DatabaseProvider
-from backend.providers.database.connection_manager import ConnectionManager
-from backend.providers.database.factory import DatabaseFactory
-from backend.providers.security.factory import SecurityFactory
-from backend.providers.security.rbac import Role
-from backend.providers.security.security_context import (
+from teaf._internal.contracts.database import DatabaseProvider
+from teaf._internal.providers.database.connection_manager import ConnectionManager
+from teaf._internal.providers.database.factory import DatabaseFactory
+from teaf._internal.providers.security.factory import SecurityFactory
+from teaf._internal.providers.security.rbac import Role
+from teaf._internal.providers.security.security_context import (
     ANONYMOUS,
     SecurityContext,
     get_security_context,
+    set_security_context,
 )
-from backend.providers.telemetry.telemetry_context import get_telemetry_context
+from teaf._internal.providers.telemetry.telemetry_context import get_telemetry_context
 
 
 def test_database_factory_is_abstract() -> None:
@@ -72,3 +73,20 @@ def test_telemetry_context_default_has_no_active_trace() -> None:
     context = get_telemetry_context()
     assert context.trace_id is None
     assert context.span_id is None
+
+
+def test_set_security_context_propagates_identity_to_core_context() -> None:
+    """Sprint 2.8 (ADR-008): ``JsonFormatter`` lee ``userId``/``tenant`` de
+    ``core/context.py``, no de ``SecurityContext`` — ``set_security_context``
+    debe seguir propagando ambos para que el logging estructurado los vea."""
+    from teaf._internal.core.context import get_tenant_id, get_user_id, set_identity_context
+
+    context = SecurityContext(principal_id="user-42", tenant_id="tenant-9")
+    set_security_context(context)
+
+    assert get_user_id() == "user-42"
+    assert get_tenant_id() == "tenant-9"
+
+    # Aislamiento entre pruebas.
+    set_security_context(ANONYMOUS)
+    set_identity_context(user_id=None, tenant_id=None)

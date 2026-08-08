@@ -16,7 +16,9 @@ def test_root_returns_instance_identity(client: TestClient) -> None:
 def test_health_returns_ok(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    body = response.json()
+    assert body["status"] == "ok"
+    assert "modules" in body
 
 
 def test_live_returns_alive(client: TestClient) -> None:
@@ -28,7 +30,9 @@ def test_live_returns_alive(client: TestClient) -> None:
 def test_ready_returns_ready(client: TestClient) -> None:
     response = client.get("/ready")
     assert response.status_code == 200
-    assert response.json() == {"status": "ready"}
+    body = response.json()
+    assert body["status"] == "ready"
+    assert "checks" in body
 
 
 def test_response_includes_correlation_id_header(client: TestClient) -> None:

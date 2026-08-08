@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from backend.core.registry import (
+from teaf._internal.core.registry import (
     ModuleDescriptor,
     ModuleLifecycleState,
     ModuleRegistry,

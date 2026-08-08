@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.descriptor import ModuleDescriptor
-from backend.sdk.exceptions import ModuleValidationException
-from backend.sdk.manifest import ModuleManifest
-from backend.sdk.validator import ModuleValidationResult, ModuleValidator
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.descriptor import ModuleDescriptor
+from teaf._internal.sdk.exceptions import ModuleValidationException
+from teaf._internal.sdk.manifest import ModuleManifest
+from teaf._internal.sdk.validator import ModuleValidationResult, ModuleValidator
 
 
 class _Greeter:

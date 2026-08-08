@@ -5,19 +5,19 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from backend.core.registry import ModuleRegistry
-from backend.runtime.runtime import Runtime
-from backend.sdk.builder import ModuleBuilder
-from backend.sdk.context import ModuleContext
-from backend.sdk.exceptions import (
+from teaf._internal.core.registry import ModuleRegistry
+from teaf._internal.runtime.runtime import Runtime
+from teaf._internal.sdk.builder import ModuleBuilder
+from teaf._internal.sdk.context import ModuleContext
+from teaf._internal.sdk.exceptions import (
     ModuleCompatibilityException,
     ModuleLifecycleException,
     ModuleRegistrationException,
     ModuleValidationException,
 )
-from backend.sdk.lifecycle import ModuleLifecycleState
-from backend.sdk.manifest import ModuleManifest
-from backend.sdk.module_base import ModuleBase
+from teaf._internal.sdk.lifecycle import ModuleLifecycleState
+from teaf._internal.sdk.manifest import ModuleManifest
+from teaf._internal.sdk.module_base import ModuleBase
 
 
 class _Greeter:

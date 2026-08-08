@@ -5,11 +5,11 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
-from backend.runtime.event_bus import Event
-from backend.runtime.exceptions import CircularDependencyException
-from backend.runtime.lifecycle import LifecycleStage
-from backend.runtime.runtime import Runtime, RuntimeState
+from teaf._internal.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
+from teaf._internal.runtime.event_bus import Event
+from teaf._internal.runtime.exceptions import CircularDependencyException
+from teaf._internal.runtime.lifecycle import LifecycleStage
+from teaf._internal.runtime.runtime import Runtime, RuntimeState
 
 
 def _registry(*descriptors: ModuleDescriptor) -> ModuleRegistry:

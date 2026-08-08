@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.modules.database.configuration import DatabaseConfiguration
-from backend.providers.database.engine import DatabaseDialect
+from teaf._internal.modules.database.configuration import DatabaseConfiguration
+from teaf._internal.providers.database.engine import DatabaseDialect
 
 
 def test_defaults_are_sqlite_in_memory() -> None:

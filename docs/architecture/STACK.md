@@ -84,6 +84,10 @@ Este documento justifica cada elección tecnológica oficial del framework: por 
 
 **Trade-offs aceptados**: mayor esfuerzo inicial de instrumentación manual frente a agentes "todo incluido" de APM comerciales.
 
+### Librerías — SDK oficial (Sprint 2.8, ADR-008)
+
+`opentelemetry-api`/`opentelemetry-sdk` 1.44.0 — el motor único de trazas y métricas de `teaf.observability`; nunca una abstracción propia por debajo, para heredar semantic conventions, sampling y context propagation ya estandarizados. `opentelemetry-exporter-otlp-proto-http` 1.44.0 exporta hacia cualquier backend compatible con OTLP (Azure Monitor, Grafana Tempo/Mimir, Jaeger, un Collector). `opentelemetry-exporter-prometheus` 0.65b0 + `prometheus-client` 0.26.0 exponen `/metrics` en formato Prometheus a partir de las mismas métricas OTel, sin un pipeline de instrumentación paralelo. Detalle completo en [ADR-008](adr/ADR-008-enterprise-observability-stack.md).
+
 ## Autenticación — JWT
 
 **Por qué**: estándar sin estado (stateless), ideal para arquitecturas Cloud Ready con múltiples instancias horizontalmente escalables sin sesión compartida; interoperable entre backend, frontend y futuras integraciones (SAP, Salesforce, Control-M).
@@ -91,6 +95,50 @@ Este documento justifica cada elección tecnológica oficial del framework: por 
 **Alternativas consideradas**: sesiones de servidor con estado (requieren almacenamiento compartido y complican el escalado horizontal, en contra de Cloud Ready).
 
 **Trade-offs aceptados**: la revocación de tokens requiere una estrategia explícita (expiración corta + refresh tokens), documentada en `SECURITY-STANDARD.md`.
+
+**Librería — PyJWT** (Sprint 2.7, ver [ADR-007](adr/ADR-007-enterprise-security-stack.md)): implementación de referencia del estándar (RFC 7519), soporta HS256 y RS256/ES256 (extra `[crypto]`, necesario para validar tokens firmados por Azure AD/Entra ID sin gestionar la criptografía a mano), API mínima y estable.
+
+**Alternativas consideradas**: `python-jose` (API más amplia pero menos mantenida activamente; superficie de ataque mayor sin beneficio adicional para el caso de uso de TEAF).
+
+## Identidad — Identity Providers (Sprint 2.7)
+
+**Por qué**: la plataforma de seguridad se diseña alrededor de un contrato `IdentityProvider` (no alrededor de JWT en sí) — JWT es uno de varios mecanismos de identidad, no el único. Esto permite añadir OAuth2/OIDC genérico, Keycloak, Auth0, Okta, Google, GitHub, SAML como implementaciones nuevas sin tocar el Runtime, el `ServiceContainer` ni el `SecurityMiddleware` — ver [ADR-007](adr/ADR-007-enterprise-security-stack.md) y [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md).
+
+**Alternativas consideradas**: acoplar la plataforma directamente a JWT (más simple a corto plazo, pero exige un rediseño estructural en cuanto una aplicación TORUS necesite LDAP/Active Directory o Microsoft Entra ID — un requisito ya confirmado, no hipotético).
+
+**Trade-offs aceptados**: una capa de indirección adicional (`IdentityProvider` → `AuthenticationResult` → `SecurityContext`) frente a decodificar un JWT directamente en el middleware.
+
+## LDAP / Active Directory — ldap3
+
+**Por qué**: cliente LDAP puro Python (sin enlazar contra `libldap` del sistema operativo como exige `python-ldap`), lo que preserva Docker First / Cloud Ready (imagen de contenedor sin dependencias nativas adicionales que instalar/mantener); soporta bind simple, búsqueda de grupos y TLS.
+
+**Alternativas consideradas**: `python-ldap` (requiere `libldap2-dev` en la imagen Docker — overhead operativo contrario a Cloud Ready, ver ADR-005).
+
+**Trade-offs aceptados**: `ldap3` es síncrono — las llamadas se ejecutan en threadpool (`anyio.to_thread`) para no bloquear el event loop, mismo patrón que cualquier librería síncrona consumida desde código async.
+
+## Cliente HTTP para OIDC/OAuth2 — httpx
+
+**Por qué**: ya es una dependencia del proyecto (usada en tests desde Sprint 2.1); promovida a dependencia de runtime en Sprint 2.7 porque `AzureADIdentityProvider`/`OpenIDConnectIdentityProvider` necesitan hacer descubrimiento OIDC (`.well-known/openid-configuration`), obtener JWKS y ejecutar el intercambio de código por token del Authorization Code Flow — todo async-nativo, coherente con el resto del framework.
+
+**Alternativas consideradas**: `requests` (síncrono, requeriría el mismo threadpool wrapping que se evita usando `httpx`).
+
+## Contraseñas — Argon2id (vía `argon2-cffi`), BCrypt como proveedor alternativo
+
+**Por qué**: Argon2id es el ganador de la Password Hashing Competition y la recomendación actual de OWASP; resistente a ataques por GPU/ASIC. `PasswordHasher` es un contrato (`teaf._internal.security.crypto.password_hasher.PasswordHasher`) — Argon2 es el proveedor por defecto, BCrypt (vía `bcrypt`) queda disponible como proveedor alternativo sin cambiar el contrato, para compatibilidad con hashes preexistentes de una aplicación migrada a TEAF.
+
+**Alternativas consideradas**: SHA-256/MD5 sin *salt* ni factor de coste (prohibido explícitamente por `SECURITY-STANDARD.md`, vulnerable a fuerza bruta con hardware moderno).
+
+**Trade-offs aceptados**: Argon2 consume más CPU/memoria por diseño (esa es la propiedad de seguridad deseada) — se configura el coste vía `Settings` para poder ajustarlo por entorno.
+
+## Caché distribuida — Redis vía `redis-py` (Sprint 3.0, ADR-012) — **extra opcional**
+
+**Por qué**: los almacenes de rate limiting, cuotas e idempotencia son por proceso, así que con varias réplicas cada una lleva su propia cuenta y un límite de 100 peticiones por minuto con 4 réplicas son 400 en la práctica. Es lo que bloquea el escalado horizontal de cualquier aplicación construida sobre TEAF. Redis aporta expiración nativa por clave con precisión de milisegundos (`PSETEX`/`PTTL`), cliente asíncrono maduro (`redis.asyncio`), licencia MIT y servicio gestionado en Azure (Azure Cache for Redis), coherente con el destino de producción de [ADR-005](adr/ADR-005-cloud-ready.md).
+
+**Es opcional, no obligatoria**: se declara como `[project.optional-dependencies]` (`pip install "teaf[redis]"`) y el import ocurre dentro de `connect()`, nunca en la cabecera del módulo — importar TEAF no requiere tener `redis` instalado. Sin configurar, no se construye el módulo, no se importa el paquete y el camino de la petición es idéntico; verificado con benchmarks, no solo afirmado.
+
+**Alternativas consideradas**: PostgreSQL, que ya está en el stack (descartado: un contador de rate limiting se escribe en cada petición, y llevar eso a la base transaccional acopla el camino caliente de *toda* petición a la salud del almacén de negocio); Memcached (sin expiración por clave en milisegundos ni tipos útiles para ventanas deslizantes); Hazelcast/Ignite (peso operativo desproporcionado). Detalle completo en [ADR-012](adr/ADR-012-redis-optional-infrastructure.md).
+
+**Trade-offs aceptados**: una dependencia más cuyos CVEs hay que seguir; dos caminos de código que probar en cada almacén (memoria y Redis); y `RedisQuotaStore.consume` es un read-modify-write no atómico que admite un ligero exceso sobre la cuota con varias réplicas — documentado en su docstring y en [CACHE.md §10](../modules/cache/CACHE.md), no escondido.
 
 ## UI — Material UI
 

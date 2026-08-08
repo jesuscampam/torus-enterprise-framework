@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import asyncio
 
-from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
-from backend.developer.runtime_api import DeveloperRuntimeAPI
-from backend.runtime.capabilities.builder import CapabilityBuilder
-from backend.runtime.features.flag import FeatureFlag
-from backend.runtime.runtime import Runtime
+from teaf._internal.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
+from teaf._internal.developer.runtime_api import DeveloperRuntimeAPI
+from teaf._internal.runtime.capabilities.builder import CapabilityBuilder
+from teaf._internal.runtime.features.flag import FeatureFlag
+from teaf._internal.runtime.runtime import Runtime
 
 
 class _Greeter:

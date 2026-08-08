@@ -17,7 +17,7 @@ Las aplicaciones construidas sobre TEAF deben poder desplegarse indistintamente 
 Se adopta **Cloud Ready** como principio arquitectónico obligatorio, con las siguientes reglas concretas aplicadas de forma transversal:
 
 - **Sin estado en proceso**: ninguna capa (`api/`, `services/`) mantiene estado de sesión en memoria local; la autenticación es stateless vía JWT (ver ADR futuro sobre seguridad) y cualquier estado compartido vive en PostgreSQL o en un almacén externo, nunca en el sistema de archivos del contenedor.
-- **Configuration by Environment**: toda credencial, endpoint o flag se resuelve a través de `backend/config/` leyendo variables de entorno, nunca hardcodeada.
+- **Configuration by Environment**: toda credencial, endpoint o flag se resuelve a través de `teaf/_internal/config/` leyendo variables de entorno, nunca hardcodeada.
 - **Docker First** (ADR-003) como mecanismo de empaquetado que garantiza portabilidad entre Render y Azure App Service.
 - **Observability First**: instrumentación con OpenTelemetry desde el diseño, para poder diagnosticar comportamiento en entornos distribuidos donde no hay acceso directo a la máquina.
 - Los componentes de background (`scheduler/`) y de integración (`webhooks/`) se diseñan asumiendo múltiples instancias concurrentes, evitando trabajos que dependan de ejecutarse en una única instancia sin coordinación explícita.

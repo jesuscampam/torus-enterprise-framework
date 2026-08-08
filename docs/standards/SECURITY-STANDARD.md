@@ -2,22 +2,31 @@
 
 Este documento define las prácticas de seguridad obligatorias del framework, en cumplimiento del principio **Security by Design**. Aplica a toda aplicación construida sobre TEAF, sin excepciones.
 
+> Este documento sigue siendo la fuente normativa de *qué* prácticas son obligatorias. *Cómo* TEAF las implementa concretamente (Sprint 2.7, `teaf.security`) está documentado en [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) y sus documentos relacionados (JWT.md, APIKEY.md, LDAP.md, AZURE-AD.md, RBAC.md, CLAIMS.md) — no se duplica aquí.
+
 ## 1. Autenticación (JWT)
+
+> Implementado por `teaf.security.JWTProvider` — ver [JWT.md](../security/JWT.md).
 
 - Toda API protegida exige un **JWT** válido, verificado por `middleware/` antes de que la petición llegue a `api/`.
 - Se emiten dos tipos de token:
   - **Access token**: de vida corta (recomendado 15 minutos), usado en cada petición vía header `Authorization: Bearer <token>`.
   - **Refresh token**: de vida más larga, almacenado de forma segura (httpOnly cookie o almacenamiento seguro del cliente), usado exclusivamente para obtener nuevos access tokens.
 - Los tokens se firman con algoritmos asimétricos (RS256) o HMAC con secreto robusto (HS256) gestionado vía secretos de entorno, nunca hardcodeado.
+- **La clave HMAC cumple el mínimo que exige su algoritmo** (RFC 7518 §3.2: al menos el tamaño de la salida del hash). Es obligatorio y se verifica **al arrancar**, no en cada petición: HS256 ≥ 32 bytes, HS384 ≥ 48, HS512 ≥ 64. Un secreto por debajo del mínimo impide que la aplicación arranque — validado en `Settings` y en `JWTProvider.__init__` (Sprint 3.0). El mensaje de error nombra algoritmo, longitud recibida y longitud exigida, y **nunca el secreto**. Los algoritmos asimétricos (RS\*/ES\*/PS\*) no aplican: la clave es un PEM. Ver [SECURITY-CONFIGURATION.md](../security/SECURITY-CONFIGURATION.md).
 - La revocación de sesión se implementa mediante lista de revocación o rotación de refresh tokens; un refresh token usado más de una vez se considera comprometido y revoca toda la cadena de sesión.
 
 ## 2. Autorización (RBAC)
+
+> Implementado por `teaf.security` (`@authorize()`, `StaticRoleResolver`, `PrincipalResolver`, `Policy`) — ver [RBAC.md](../security/RBAC.md).
 
 - El modelo de autorización estándar es **RBAC** (Role-Based Access Control): usuarios → roles → permisos.
 - La verificación de autorización ocurre en `security/`, invocada desde `api/` o `services/` según el nivel de granularidad (ruta vs. recurso específico), nunca implementada de forma ad-hoc y duplicada en cada endpoint.
 - El principio de **mínimo privilegio** rige el diseño de roles: ningún rol se define con permisos más amplios de los estrictamente necesarios.
 
 ## 3. Gestión de contraseñas y credenciales
+
+> Implementado por `teaf.security.Argon2PasswordHasher`/`BcryptPasswordHasher` — ver [SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md).
 
 - Las contraseñas se almacenan exclusivamente como hash con **bcrypt** o **argon2** (nunca SHA/MD5, nunca en texto plano).
 - Las credenciales de infraestructura (base de datos, integraciones SAP/Salesforce/Control-M, claves de IA) se gestionan vía variables de entorno resueltas por `config/`, respaldadas en producción por un gestor de secretos (Azure Key Vault).
@@ -53,6 +62,25 @@ TEAF exige mitigación explícita, a nivel de framework, de:
 ## 7. Headers de seguridad HTTP
 
 Toda respuesta HTTP incluye, como mínimo: `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (o CSP equivalente), `Content-Security-Policy` apropiada para el frontend servido.
+
+**Lo implementa el framework**, no el proxy: desde Sprint 2.9.2, `SecurityHeadersMiddleware` (`teaf/_internal/middleware/security_headers.py`) las emite en toda respuesta, gobernado por `Settings` y instalado siempre por `create_app`. El reparto de responsabilidad con el proxy inverso / WAF está decidido en [ADR-010](../architecture/adr/ADR-010-security-headers-and-forwarded-trust.md).
+
+| Cabecera | Valor por defecto | Configuración | Cuándo se emite |
+|---|---|---|---|
+| `X-Content-Type-Options` | `nosniff` | — | Siempre |
+| `X-Frame-Options` | `DENY` | `security_frame_options` (vacío la omite) | Siempre |
+| `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` | `security_content_security_policy` | Salvo en `/docs` y `/redoc` |
+| `Strict-Transport-Security` | `max-age=31536000` | `security_hsts_max_age_seconds` (`0` la omite) | **Solo sobre HTTPS** (RFC 6797 §7.2) |
+
+`security_headers_enabled: bool = True` las activa todas; a `False` no se emite ninguna.
+
+Tres matices que hay que conocer antes de confiar en esta tabla:
+
+- **HSTS solo viaja sobre HTTPS**, como exige RFC 6797 §7.2. Detrás de un proxy que termina TLS, la aplicación debe recibir el esquema correcto (uvicorn `--proxy-headers`), o no se emitirá.
+- **La CSP no se aplica a `/docs` ni `/redoc`**: Swagger UI y ReDoc cargan sus propios recursos y `default-src 'none'` los dejaría en blanco. El resto de cabeceras sí se aplican también ahí.
+- **La CSP por defecto es la de una API JSON, no la de un frontend.** Una aplicación TEAF que sirva HTML propio **debe** sustituirla por la política de su frontend; la de por defecto le impedirá cargar cualquier recurso.
+
+El middleware **nunca sobrescribe** una cabecera que la aplicación o el proxy ya hayan establecido, así que añadirlas también en el borde no genera conflicto.
 
 ## 8. Logging de auditoría
 

@@ -1,0 +1,261 @@
+{
+  "generatedAt": "2026-08-07T22:01:15.932318+00:00",
+  "environment": {
+    "python": "3.11.15",
+    "implementation": "CPython",
+    "system": "Linux",
+    "machine": "x86_64"
+  },
+  "results": [
+    {
+      "name": "Application() (construcción)",
+      "group": "Arranque",
+      "medianUs": 1848.449,
+      "p95Us": 2112.616,
+      "minUs": 1728.586,
+      "repeats": 20,
+      "peakMemoryBytes": 132793,
+      "note": "factory + Runtime + registro, sin ciclo de vida"
+    },
+    {
+      "name": "Arranque ASGI completo",
+      "group": "Arranque",
+      "medianUs": 4100.427,
+      "p95Us": 4346.612,
+      "minUs": 3799.891,
+      "repeats": 20,
+      "peakMemoryBytes": 175836,
+      "note": "construcción + startup + shutdown"
+    },
+    {
+      "name": "Bootstrap de un módulo",
+      "group": "Runtime y módulos",
+      "medianUs": 4117.846,
+      "p95Us": 4426.185,
+      "minUs": 3910.493,
+      "repeats": 20,
+      "peakMemoryBytes": 177924,
+      "note": "Application(modules=[...]) + ciclo de vida completo"
+    },
+    {
+      "name": "Runtime.describe()",
+      "group": "Runtime y módulos",
+      "medianUs": 1.666,
+      "p95Us": 8.176,
+      "minUs": 1.5,
+      "repeats": 50,
+      "peakMemoryBytes": 0,
+      "note": ""
+    },
+    {
+      "name": "Runtime.diagnostics()",
+      "group": "Runtime y módulos",
+      "medianUs": 6.403,
+      "p95Us": 11.058,
+      "minUs": 5.03,
+      "repeats": 50,
+      "peakMemoryBytes": 0,
+      "note": ""
+    },
+    {
+      "name": "resolve() SINGLETON",
+      "group": "Inyección de dependencias",
+      "medianUs": 185.376,
+      "p95Us": 336.647,
+      "minUs": 177.603,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 resoluciones"
+    },
+    {
+      "name": "resolve() TRANSIENT",
+      "group": "Inyección de dependencias",
+      "medianUs": 377.766,
+      "p95Us": 409.056,
+      "minUs": 361.419,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 resoluciones"
+    },
+    {
+      "name": "resolve() SCOPED",
+      "group": "Inyección de dependencias",
+      "medianUs": 241.576,
+      "p95Us": 311.257,
+      "minUs": 230.505,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 resoluciones dentro de un ámbito"
+    },
+    {
+      "name": "register() de un servicio",
+      "group": "Inyección de dependencias",
+      "medianUs": 0.508,
+      "p95Us": 1.856,
+      "minUs": 0.461,
+      "repeats": 50,
+      "peakMemoryBytes": 0,
+      "note": ""
+    },
+    {
+      "name": "Búsqueda de capacidad",
+      "group": "Capacidades",
+      "medianUs": 45.404,
+      "p95Us": 68.516,
+      "minUs": 44.736,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 búsquedas"
+    },
+    {
+      "name": "Listado de capacidades",
+      "group": "Capacidades",
+      "medianUs": 0.254,
+      "p95Us": 0.658,
+      "minUs": 0.235,
+      "repeats": 50,
+      "peakMemoryBytes": 0,
+      "note": ""
+    },
+    {
+      "name": "publish() sin suscriptores",
+      "group": "Event Bus",
+      "medianUs": 94.483,
+      "p95Us": 127.732,
+      "minUs": 92.558,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 publicaciones"
+    },
+    {
+      "name": "publish() con 1 suscriptor",
+      "group": "Event Bus",
+      "medianUs": 115.623,
+      "p95Us": 161.45,
+      "minUs": 111.115,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 publicaciones"
+    },
+    {
+      "name": "subscribe() + unsubscribe()",
+      "group": "Event Bus",
+      "medianUs": 146.718,
+      "p95Us": 168.676,
+      "minUs": 142.752,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 pares"
+    },
+    {
+      "name": "Abrir y cerrar un span",
+      "group": "Observabilidad",
+      "medianUs": 1777.326,
+      "p95Us": 1945.596,
+      "minUs": 1687.391,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 100 spans"
+    },
+    {
+      "name": "Counter.add()",
+      "group": "Observabilidad",
+      "medianUs": 1266.669,
+      "p95Us": 1388.239,
+      "minUs": 1209.804,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 registros"
+    },
+    {
+      "name": "Histogram.record()",
+      "group": "Observabilidad",
+      "medianUs": 1286.336,
+      "p95Us": 1915.021,
+      "minUs": 1250.42,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 registros"
+    },
+    {
+      "name": "Log estructurado (filtrado)",
+      "group": "Observabilidad",
+      "medianUs": 20.334,
+      "p95Us": 30.065,
+      "minUs": 20.21,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 100 logs por debajo del nivel activo"
+    },
+    {
+      "name": "RateLimiter.acquire()",
+      "group": "Protección de APIs",
+      "medianUs": 6668.679,
+      "p95Us": 7554.447,
+      "minUs": 6505.532,
+      "repeats": 10,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 peticiones (ventana fija)"
+    },
+    {
+      "name": "RequestValidator.validate_request()",
+      "group": "Protección de APIs",
+      "medianUs": 1110.815,
+      "p95Us": 1209.424,
+      "minUs": 1064.255,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 validaciones"
+    },
+    {
+      "name": "CorsPolicy.response_headers()",
+      "group": "Protección de APIs",
+      "medianUs": 1017.772,
+      "p95Us": 1454.837,
+      "minUs": 985.633,
+      "repeats": 20,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 respuestas (comodín de subdominio)"
+    },
+    {
+      "name": "Compresión GZip",
+      "group": "Protección de APIs",
+      "medianUs": 1290.552,
+      "p95Us": 1740.626,
+      "minUs": 1242.678,
+      "repeats": 10,
+      "peakMemoryBytes": 0,
+      "note": "lote de 100 respuestas de 4,434 B"
+    },
+    {
+      "name": "ApiAudit.record()",
+      "group": "Protección de APIs",
+      "medianUs": 561.197,
+      "p95Us": 810.24,
+      "minUs": 544.291,
+      "repeats": 10,
+      "peakMemoryBytes": 0,
+      "note": "lote de 1,000 registros"
+    },
+    {
+      "name": "FastAPI sin protección",
+      "group": "Cadena HTTP",
+      "medianUs": 2493.836,
+      "p95Us": 2723.523,
+      "minUs": 2277.036,
+      "repeats": 30,
+      "peakMemoryBytes": 0,
+      "note": ""
+    },
+    {
+      "name": "FastAPI con 4 middlewares",
+      "group": "Cadena HTTP",
+      "medianUs": 3567.918,
+      "p95Us": 3985.257,
+      "minUs": 3143.719,
+      "repeats": 30,
+      "peakMemoryBytes": 0,
+      "note": "rate limiting + CORS + validación + auditoría"
+    }
+  ]
+}

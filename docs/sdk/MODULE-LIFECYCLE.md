@@ -1,6 +1,6 @@
 # Module Lifecycle — TEAF
 
-El ciclo de vida de una instancia de `ModuleBase`: ocho estados (`ModuleLifecycleState`), siete hooks opcionales, y el orden exacto en que `bootstrap()`/`shutdown()` los recorre. Vive en `backend/sdk/lifecycle.py` y `backend/sdk/module_base.py`. Ver visión general en [SDK.md](SDK.md).
+El ciclo de vida de una instancia de `ModuleBase`: ocho estados (`ModuleLifecycleState`), siete hooks opcionales, y el orden exacto en que `bootstrap()`/`shutdown()` los recorre. Vive en `teaf/_internal/sdk/lifecycle.py` y `teaf/_internal/sdk/module_base.py`. Ver visión general en [SDK.md](SDK.md).
 
 ## 1. Los ocho estados
 
@@ -71,7 +71,7 @@ Cualquier excepción en los pasos 2-4 o dentro de un hook hace que `self.lifecyc
 
 ## 4. Compatibilidad Runtime/SDK
 
-`_check_compatibility` (privado, en `module_base.py`) compara `manifest.runtime_compatibility` contra `context.runtime.framework_version`, y `manifest.sdk_compatibility` contra `backend.sdk.SDK_VERSION` — ambas usando el mismo comparador interno, `_satisfies_constraint`:
+`_check_compatibility` (privado, en `module_base.py`) compara `manifest.runtime_compatibility` contra `context.runtime.framework_version`, y `manifest.sdk_compatibility` contra `teaf._internal.sdk.SDK_VERSION` — ambas usando el mismo comparador interno, `_satisfies_constraint`:
 
 | Constraint | Significado |
 |---|---|

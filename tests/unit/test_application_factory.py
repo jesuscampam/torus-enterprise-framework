@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from backend.config.settings import ProductionSettings, TestingSettings
-from backend.core.application import create_app
 from fastapi import FastAPI
+from teaf._internal.config.settings import ProductionSettings, TestingSettings
+from teaf._internal.core.application import create_app
 
 
 def test_create_app_returns_fastapi_instance() -> None:
@@ -13,8 +13,16 @@ def test_create_app_returns_fastapi_instance() -> None:
 
 
 def test_create_app_registers_system_routes() -> None:
-    app = create_app(settings=TestingSettings())
-    paths = {getattr(route, "path", None) for route in app.routes}
+    """Las rutas de sistema quedan registradas y publicadas en el esquema.
+
+    Se comprueban sobre ``app.openapi()`` y no recorriendo ``app.routes``:
+    desde FastAPI 0.141 / Starlette 1.4, ``include_router`` envuelve cada
+    router en un ``_IncludedRouter`` en vez de aplanar sus rutas en
+    ``app.routes``, así que recorrer esa lista ya no las ve (Sprint 3.0).
+    El esquema, además, es el contrato observable: comprobarlo verifica que
+    la ruta existe **y** que se publica, no solo lo primero.
+    """
+    paths = create_app(settings=TestingSettings()).openapi()["paths"]
     assert {"/", "/health", "/live", "/ready"}.issubset(paths)
 
 

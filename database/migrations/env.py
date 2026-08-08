@@ -14,15 +14,23 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
-from backend.providers.database.base_model import Base
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+from teaf._internal.providers.database.base_model import Base
 
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # ``disable_existing_loggers=False`` es obligatorio, no una preferencia:
+    # el valor por defecto de ``fileConfig`` es ``True`` y **desactiva todos
+    # los loggers ya creados**. Como ``DatabaseInstaller`` permite ejecutar
+    # migraciones dentro del propio proceso de la aplicación, arrancar con
+    # migraciones dejaba mudo al resto del framework a partir de ese punto —
+    # logging de peticiones, auditoría (SECURITY-STANDARD.md §8) y los avisos
+    # de seguridad incluidos. Detectado en Sprint 2.9.2 porque desactivaba el
+    # logger que emite el aviso de ``trust_forwarded_headers`` (ADR-010).
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 

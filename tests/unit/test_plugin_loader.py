@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import pytest
-from backend.runtime.container import ServiceContainer
-from backend.runtime.exceptions import PluginValidationException
-from backend.runtime.plugin_loader import Plugin, PluginLifecycleState, PluginLoader, PluginMetadata
+from teaf._internal.runtime.container import ServiceContainer
+from teaf._internal.runtime.exceptions import PluginValidationException
+from teaf._internal.runtime.plugin_loader import (
+    Plugin,
+    PluginLifecycleState,
+    PluginLoader,
+    PluginMetadata,
+)
 
 
 class _FakePlugin(Plugin):

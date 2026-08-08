@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.runtime.event_bus import Event, EventBus
+from teaf._internal.runtime.event_bus import Event, EventBus
 
 
 def test_publish_without_subscribers_does_nothing() -> None:

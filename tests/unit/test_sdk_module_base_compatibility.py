@@ -9,7 +9,7 @@ orquestación ya cubierta por ``test_sdk_module_base.py``).
 from __future__ import annotations
 
 import pytest
-from backend.sdk.module_base import _parse_numeric_version, _satisfies_constraint
+from teaf._internal.sdk.module_base import _parse_numeric_version, _satisfies_constraint
 
 
 def test_parse_numeric_version_extracts_leading_digits() -> None:

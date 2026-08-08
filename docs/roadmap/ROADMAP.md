@@ -32,7 +32,8 @@ Ninguna versión avanza sin aprobación explícita de la iteración anterior.
 **Objetivo**: activar las capacidades transversales de seguridad y observabilidad que hoy solo existen como estructura documentada.
 
 - Módulo `security/`: autenticación JWT (access + refresh tokens), autorización RBAC, hashing de credenciales.
-- Middlewares (`middleware/`): correlation-id, logging de requests, manejo centralizado de errores (RFC 7807), rate limiting.
+- Middlewares (`middleware/`): correlation-id, logging de requests, manejo centralizado de errores (RFC 7807).
+- Plataforma de protección y gobernanza de APIs (`api/`): rate limiting (cuatro algoritmos, seis dimensiones), cuotas de consumo, CORS, versionado, validación de borde, compresión, idempotencia y auditoría de API — entregada en el Sprint 2.9 (ver [ADR-009](../architecture/adr/ADR-009-enterprise-api-protection.md) y [docs/api/API-PROTECTION.md](../api/API-PROTECTION.md)).
 - Observabilidad real (`monitoring/`): instrumentación OpenTelemetry (trazas y métricas), exportación compatible con Azure Monitor.
 - Framework de manejo de errores y excepciones de dominio homogéneo en toda la capa `api/`.
 - Migraciones Alembic como flujo estándar de evolución de esquema, integradas en CI.
@@ -40,7 +41,7 @@ Ninguna versión avanza sin aprobación explícita de la iteración anterior.
 
 ## Versión 3 — Frontend Foundation
 
-**Objetivo**: dotar al frontend de una base reutilizable equivalente a la del backend.
+**Objetivo**: dotar al frontend de una base reutilizable equivalente a la del teaf._internal.
 
 - Shell de aplicación React + TypeScript + Material UI, con theming (`theme/`) parametrizable por aplicación (branding TORUS común, variantes por producto).
 - Sistema de autenticación en frontend (flujo JWT, renovación de sesión, rutas protegidas).

@@ -1,0 +1,289 @@
+"""Application Factory — punto de entrada único para construir la aplicación.
+
+Implementa el patrón Application Factory (ver
+docs/architecture/FRAMEWORK-BLUEPRINT.md, Sprint 2.1, ítem 1) y orquesta el
+flujo de inicialización documentado en la sección 7 del blueprint: carga de
+configuración, logging, middlewares, rutas base, DI y exposición de
+información de versión. Desde Sprint 2.3 (Runtime), también construye el
+``Runtime`` y lo conecta al ciclo de vida de FastAPI vía ``lifespan``.
+
+Nota arquitectónica — excepción explícita a la regla de dependencias:
+este módulo es el *composition root* del framework (equivalente al
+componente "Main" de Clean Architecture: es el único lugar autorizado a
+conocer y conectar todas las capas para ensamblar la aplicación). Por eso,
+y solo aquí, se permite importar ``backend/config/``, ``backend/middleware/``,
+``backend/monitoring/``, ``backend/providers/``, ``backend/runtime/`` y
+(desde Sprint 2.6.3, Module Registration API) ``backend/sdk/`` desde dentro
+de ``backend/core/`` — el resto de los archivos de ``core/``
+(``exceptions.py``, ``context.py``, ``logging.py``, ``version.py``,
+``dependencies.py``, ``registry.py``) permanecen, como exige la regla 1 de
+la sección 11 del blueprint, sin ninguna dependencia de otro módulo.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Mapping, Sequence
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+
+from teaf._internal.config.environment import Environment
+from teaf._internal.config.settings import Settings, get_settings
+from teaf._internal.core.logging import configure_logging, get_logger
+from teaf._internal.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
+from teaf._internal.core.version import get_version_info
+from teaf._internal.developer.runtime_api import DeveloperRuntimeAPI
+from teaf._internal.middleware.exception_handler import register_exception_handlers
+from teaf._internal.middleware.logging import RequestLoggingMiddleware
+from teaf._internal.middleware.request_id import RequestIdMiddleware
+from teaf._internal.middleware.security_headers import SecurityHeadersMiddleware
+from teaf._internal.monitoring.health import create_health_router
+from teaf._internal.monitoring.info import create_info_router
+from teaf._internal.runtime.api import create_runtime_router
+from teaf._internal.runtime.manifest import write_manifest
+from teaf._internal.runtime.runtime import Runtime
+from teaf._internal.sdk.context import ModuleContext
+from teaf._internal.sdk.module_base import ModuleBase
+from teaf._internal.shared.constants import DEFAULT_SERVICE_NAME
+
+#: Versión del propio framework TEAF (no de una aplicación construida sobre
+#: él). Se actualiza junto con CHANGELOG.md en cada release (ver
+#: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
+FRAMEWORK_VERSION = "0.10.2-alpha"
+
+#: Raíz del repositorio, para escribir ``runtime.manifest.json`` (ver
+#: Sprint 2.4, ítem 9) siempre en el mismo lugar sin depender del directorio
+#: de trabajo desde el que se lance el proceso.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+#: Subsistemas de infraestructura que en Sprint 2.2 solo tenían contratos y
+#: clases base (``teaf/_internal/contracts/`` + ``teaf/_internal/providers/``) —
+#: sin implementación ni conexión real. ``dependencies`` refleja las reglas
+#: ya fijadas en FRAMEWORK-BLUEPRINT.md, sección 5 (AI depende de Security);
+#: el ``DependencyGraph`` del Runtime las usa para detectar ciclos antes de
+#: arrancar. Un subsistema desaparece de esta lista en cuanto tiene un
+#: ``ModuleBase`` real (Sprint 2.6 para "database", Sprint 2.7 para
+#: "security", Sprint 2.8 para "telemetry" — su ``ModuleBase`` real,
+#: ``ObservabilityModule``, se registra como "observability", pero el
+#: placeholder original ya no aporta nada distinto: retirarlo evita dos
+#: entradas para el mismo subsistema) — de lo contrario su placeholder
+#: ``CONTRACTS_ONLY`` colisiona por nombre con el módulo real al
+#: registrarse en el mismo ``ModuleRegistry`` vía
+#: ``Application(modules=[...])`` (``ModuleRegistry.register()`` no
+#: permite dos módulos con el mismo nombre). ``DependencyGraph.edges()``
+#: ignora dependencias que no correspondan a un nodo registrado, así que
+#: retirar "security"/"telemetry" de aquí no rompe la dependencia
+#: declarada de "ai" hacia "security".
+_INFRASTRUCTURE_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("database", ()),
+    ("storage", ()),
+    ("ai", ("security",)),
+    ("scheduler", ()),
+    ("notification", ()),
+)
+
+
+def _configuration_summary(settings: Settings) -> Mapping[str, object]:
+    """Resumen serializable y no sensible de la configuración activa.
+
+    Expuesto vía ``GET /runtime/configuration`` y ``runtime.manifest.json``.
+
+    Es una **lista blanca**, y esa es la propiedad que lo hace seguro:
+    ``Settings`` sí contiene secretos desde Sprint 2.7 (``jwt_secret``,
+    ``api_key_hash_secret``, ``azure_ad_client_secret``), y ninguno aparece
+    aquí porque hay que añadir un campo explícitamente para exponerlo, no
+    excluirlo explícitamente para protegerlo. Un campo nuevo en ``Settings``
+    —secreto o no— queda fuera por omisión. Verificado con valores centinela
+    sobre los 12 endpoints de sistema (ver docs/SECURITY-REVIEW.md, H-3).
+    """
+    return {
+        "appName": settings.app_name,
+        "environment": settings.environment.value,
+        "debug": settings.debug,
+        "host": settings.host,
+        "port": settings.port,
+        "logLevel": settings.log_level,
+        "logFormat": settings.log_format,
+        "docsEnabled": settings.docs_enabled,
+    }
+
+
+async def _bootstrap_pending_modules(
+    modules: Sequence[ModuleBase], runtime: Runtime
+) -> list[ModuleBase]:
+    """Arranca, en orden, cada módulo pasado a ``Application(modules=[...])`` /
+    ``Application.add_module()`` (Sprint 2.6.3, Module Registration API) —
+    ningún consumidor llama a ``module.bootstrap()`` a mano. Devuelve los
+    módulos que completaron ``bootstrap()`` con éxito, para poder apagarlos
+    simétricamente en ``_shutdown_bootstrapped_modules``.
+    """
+    bootstrapped: list[ModuleBase] = []
+    for module in modules:
+        context = ModuleContext(runtime=runtime, module_id=module.get_manifest().descriptor.id)
+        await module.bootstrap(context)
+        bootstrapped.append(module)
+    return bootstrapped
+
+
+async def _shutdown_bootstrapped_modules(modules: Sequence[ModuleBase], runtime: Runtime) -> None:
+    """Apaga, en orden inverso, los módulos que ``_bootstrap_pending_modules`` arrancó."""
+    for module in reversed(modules):
+        context = ModuleContext(runtime=runtime, module_id=module.get_manifest().descriptor.id)
+        await module.shutdown(context)
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Conecta el ``Runtime`` al ciclo de vida de FastAPI (startup/shutdown) y,
+    desde Sprint 2.6.3, arranca/apaga los módulos pendientes de
+    ``app.state.pending_modules`` como parte de ese mismo ciclo."""
+    runtime: Runtime = app.state.runtime
+    await runtime.startup()
+
+    bootstrapped_modules = await _bootstrap_pending_modules(app.state.pending_modules, runtime)
+    # Leído por ``monitoring/health.py`` (``/health``/``/ready``, Sprint 2.8)
+    # para evaluar el ``ModuleHealth`` real de cada módulo bootstrapeado.
+    app.state.bootstrapped_modules = bootstrapped_modules
+
+    # El manifiesto es un artefacto de despliegue (ver Sprint 2.4, ítem 9) —
+    # no tiene sentido regenerarlo en cada instancia efímera de test, y un
+    # filesystem de solo lectura en producción no debe tumbar el arranque.
+    settings: Settings = app.state.settings
+    if settings.environment is not Environment.TESTING:
+        try:
+            write_manifest(
+                runtime,
+                _REPOSITORY_ROOT / "runtime.manifest.json",
+                configuration_summary=dict(app.state.configuration_summary),
+            )
+        except OSError as exc:
+            get_logger("teaf.runtime").warning(
+                "runtime_manifest_write_failed", extra={"context": {"error": str(exc)}}
+            )
+
+    try:
+        yield
+    finally:
+        await _shutdown_bootstrapped_modules(bootstrapped_modules, runtime)
+        await runtime.shutdown()
+
+
+def create_app(
+    settings: Settings | None = None, *, modules: Sequence[ModuleBase] | None = None
+) -> FastAPI:
+    """Construye y configura la instancia de FastAPI del framework.
+
+    Args:
+        settings: Configuración a usar. Si se omite, se resuelve con
+            ``get_settings()`` (permite inyectar una configuración distinta
+            en pruebas sin depender de variables de entorno globales).
+        modules: Módulos (``ModuleBase``) a arrancar automáticamente cuando
+            arranque el ciclo de vida ASGI de la aplicación resultante (ver
+            ``_lifespan``) — Sprint 2.6.3, Module Registration API. Se
+            almacenan en ``app.state.pending_modules`` (una lista mutable:
+            ``teaf.Application.add_module()`` puede seguir añadiendo a la
+            misma lista después de que ``create_app`` retorne, siempre que
+            sea antes de que el ciclo de vida arranque).
+    """
+    settings = settings or get_settings()
+    configuration_summary = _configuration_summary(settings)
+
+    configure_logging(
+        level=settings.log_level,
+        log_format=settings.log_format,
+        service_name=DEFAULT_SERVICE_NAME,
+        environment=settings.environment.value,
+        log_file=settings.log_file,
+    )
+    logger = get_logger("teaf.bootstrap")
+    logger.info(
+        "application_bootstrap_started",
+        extra={"context": {"environment": settings.environment}},
+    )
+
+    app = FastAPI(
+        title=settings.app_name,
+        version=FRAMEWORK_VERSION,
+        debug=settings.debug,
+        docs_url="/docs" if settings.docs_enabled else None,
+        redoc_url="/redoc" if settings.docs_enabled else None,
+        openapi_url="/openapi.json" if settings.docs_enabled else None,
+        lifespan=_lifespan,
+    )
+
+    # El orden de registro importa: Starlette ejecuta los middlewares en
+    # orden inverso al que se añaden (el último añadido es el más externo).
+    # RequestIdMiddleware debe ejecutarse antes que RequestLoggingMiddleware
+    # para que el correlation-id ya esté disponible al loguear la petición.
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(RequestIdMiddleware)
+    # El más externo de los tres, a propósito: así sus cabeceras alcanzan
+    # también a las respuestas de error, que se generan en capas más
+    # internas (``register_exception_handlers``). Ver ADR-010.
+    app.add_middleware(
+        SecurityHeadersMiddleware,
+        enabled=settings.security_headers_enabled,
+        hsts_max_age_seconds=settings.security_hsts_max_age_seconds,
+        frame_options=settings.security_frame_options,
+        content_security_policy=settings.security_content_security_policy,
+    )
+
+    register_exception_handlers(app)
+
+    version_info = get_version_info(
+        name=settings.app_name,
+        version=FRAMEWORK_VERSION,
+        environment=settings.environment.value,
+    )
+    app.include_router(create_health_router(version_info))
+
+    # ``settings``/``configuration_summary`` viven en app.state para que
+    # ``_lifespan`` (que solo recibe ``app``) pueda leerlos sin capturarlos
+    # como variables libres de un closure — mismo criterio que
+    # ``module_registry``/``runtime`` más abajo.
+    app.state.settings = settings
+    app.state.configuration_summary = configuration_summary
+
+    # Módulos pendientes de arrancar en ``_lifespan`` (Sprint 2.6.3) — lista
+    # mutable a propósito: ``teaf.Application.add_module()`` le sigue
+    # añadiendo elementos después de que ``create_app`` retorne.
+    pending_modules: list[ModuleBase] = list(modules) if modules is not None else []
+    app.state.pending_modules = pending_modules
+
+    registry = ModuleRegistry()
+    for module_name, module_dependencies in _INFRASTRUCTURE_MODULES:
+        registry.register(
+            ModuleDescriptor(
+                name=module_name,
+                version=FRAMEWORK_VERSION,
+                status=ModuleStatus.CONTRACTS_ONLY,
+                dependencies=module_dependencies,
+            )
+        )
+    # Expuesto vía app.state (no como singleton de proceso) para que cada
+    # instancia de aplicación tenga su propio registro aislado — ver la nota
+    # de diseño en backend/core/registry.py. Los routers lo consumen vía
+    # Depends(get_module_registry) (backend/providers/dependencies.py).
+    app.state.module_registry = registry
+
+    # Igual que module_registry: un Runtime por instancia de aplicación, no
+    # un singleton de proceso — arranca/se apaga vía _lifespan más arriba.
+    runtime = Runtime(registry=registry, framework_version=FRAMEWORK_VERSION)
+    app.state.runtime = runtime
+    # Fachada de consumo directo (sin HTTP) del mismo Runtime — ver Sprint 2.4,
+    # ítem 13. No se expone por ningún router; queda disponible en app.state
+    # para scripts/consolas/plugins que corran en el mismo proceso.
+    app.state.developer_api = DeveloperRuntimeAPI(
+        runtime, configuration_provider=lambda: configuration_summary
+    )
+
+    app.include_router(
+        create_info_router(version_info, registry, lambda: runtime.describe().as_dict())
+    )
+    app.include_router(
+        create_runtime_router(runtime, configuration_provider=lambda: configuration_summary)
+    )
+
+    logger.info("application_bootstrap_completed")
+    return app

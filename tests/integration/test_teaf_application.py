@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from backend.config.settings import TestingSettings
 from fastapi import FastAPI
 from teaf import Application, Runtime
+from teaf._internal.config.settings import TestingSettings
 from teaf.version import FRAMEWORK_VERSION
 
 

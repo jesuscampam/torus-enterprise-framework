@@ -8,25 +8,27 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 
 ---
 
-## Módulos ya estructurados (`backend/`)
+## Módulos ya estructurados (`teaf/_internal/`)
 
 | Módulo | Objetivo | Estado | Dependencias | Versión objetivo | Reutilización | Prioridad |
 |---|---|---|---|---|---|---|
-| [Core](../../backend/core/README.md) | Kernel del framework: bootstrap, DI, excepciones base | Documentado | — | V1 | 🟢 Alto | 🔴 Alta |
-| [Configuration](../../backend/config/README.md) | Configuración tipada por entorno, carga de secretos | Documentado | Core | V1 | 🟢 Alto | 🔴 Alta |
-| [Database](../modules/database/DATABASE.md) | Persistencia empresarial: SQLAlchemy 2.x, Unit of Work, Repository Pattern, migraciones Alembic — primer módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`backend/modules/database/` + `backend/providers/database/`) | Core | V1 | 🟢 Alto | 🔴 Alta |
-| API | Capa de routers/controladores versionados | Documentado (`backend/api/`) | Core, Security | V1 | 🟢 Alto | 🔴 Alta |
-| Services | Casos de uso / Service Layer | Documentado (`backend/services/`) | Repository | V1 | 🟢 Alto | 🔴 Alta |
-| Repository | Repository Pattern sobre `models/` | Documentado (`backend/repository/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
-| Models | Entidades ORM | Documentado (`backend/models/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
-| Schemas | Contratos Pydantic de entrada/salida | Documentado (`backend/schemas/`) | — | V1 | 🟢 Alto | 🔴 Alta |
-| [Security](../../backend/security/README.md) | JWT, RBAC, hashing | Documentado | Core | V2 | 🟢 Alto | 🔴 Alta |
-| Middleware | Correlation-id, rate limiting, manejo de errores | Documentado (`backend/middleware/`) | Security, Monitoring | V2 | 🟢 Alto | 🔴 Alta |
-| [Monitoring](../../backend/monitoring/README.md) (OpenTelemetry) | Trazas, métricas, health checks | Documentado | Core | V2 | 🟢 Alto | 🔴 Alta |
-| Shared | Utilidades y tipos genéricos | Documentado (`backend/shared/`) | — | V1 | 🟡 Medio | 🟡 Media |
-| [AI](../../backend/ai/README.md) | Abstracciones de cliente LLM, embeddings, vector store | Documentado | Core, Security | V4 | 🟡 Medio | 🟡 Media |
-| [Webhooks](../../backend/webhooks/README.md) | Framework de eventos entrantes/salientes | Documentado | Security | V4 | 🟡 Medio | 🟡 Media |
-| [Scheduler](../../backend/scheduler/README.md) | Tareas programadas coordinadas multi-instancia | Documentado | Core | V4 | 🟡 Medio | 🟡 Media |
+| [Core](../../teaf/_internal/core/README.md) | Kernel del framework: bootstrap, DI, excepciones base | Documentado | — | V1 | 🟢 Alto | 🔴 Alta |
+| [Configuration](../../teaf/_internal/config/README.md) | Configuración tipada por entorno, carga de secretos | Documentado | Core | V1 | 🟢 Alto | 🔴 Alta |
+| [Database](../modules/database/DATABASE.md) | Persistencia empresarial: SQLAlchemy 2.x, Unit of Work, Repository Pattern, migraciones Alembic — primer módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/database/` + `teaf/_internal/providers/database/`) | Core | V1 | 🟢 Alto | 🔴 Alta |
+| [API Protection](../api/API-PROTECTION.md) | Protección y gobernanza de APIs: rate limiting (4 algoritmos), cuotas, CORS, versionado, validación de borde, compresión, idempotencia y auditoría — cuarto módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/api/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
+| [Cache](../modules/cache/CACHE.md) | Almacén clave-valor con expiración, en memoria o sobre Redis (extra opcional) — estado compartido entre réplicas para rate limiting, cuotas e idempotencia; quinto módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/cache/` + `teaf/_internal/providers/cache/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
+| Services | Casos de uso / Service Layer | Documentado (`teaf/_internal/services/`) | Repository | V1 | 🟢 Alto | 🔴 Alta |
+| Repository | Repository Pattern sobre `models/` | Documentado (`teaf/_internal/repository/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
+| Models | Entidades ORM | Documentado (`teaf/_internal/models/`) | Database | V1 | 🟢 Alto | 🔴 Alta |
+| Schemas | Contratos Pydantic de entrada/salida | Documentado (`teaf/_internal/schemas/`) | — | V1 | 🟢 Alto | 🔴 Alta |
+| [Security](../security/SECURITY-ARCHITECTURE.md) | Autenticación pluggable (`IdentityProvider`: Anonymous/JWT/API Key/LDAP/Azure AD), RBAC, políticas, hashing — segundo módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/security/` + `teaf/_internal/security/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
+| Middleware | Correlation-id, rate limiting, manejo de errores | Documentado (`teaf/_internal/middleware/`) | Security, Observability | V2 | 🟢 Alto | 🔴 Alta |
+| [Observability](../observability/OBSERVABILITY.md) (OpenTelemetry) | Logging estructurado, tracing distribuido, métricas, health checks compuestos, diagnóstico agregado del Runtime — tercer módulo construido sobre el [Module SDK](../sdk/SDK.md) | Implementado (`teaf/_internal/modules/observability/` + `teaf/_internal/observability/`) | Core | V2 | 🟢 Alto | 🔴 Alta |
+| [Monitoring](../../teaf/_internal/monitoring/README.md) | Rutas de sistema (`/health`, `/ready`, `/live`, `/info`) — consume `CompositeHealthChecker` de Observability. | Documentado | Core, Observability | V2 | 🟢 Alto | 🔴 Alta |
+| Shared | Utilidades y tipos genéricos | Documentado (`teaf/_internal/shared/`) | — | V1 | 🟡 Medio | 🟡 Media |
+| [AI](../../teaf/_internal/ai/README.md) | Abstracciones de cliente LLM, embeddings, vector store | Documentado | Core, Security | V4 | 🟡 Medio | 🟡 Media |
+| [Webhooks](../../teaf/_internal/webhooks/README.md) | Framework de eventos entrantes/salientes | Documentado | Security | V4 | 🟡 Medio | 🟡 Media |
+| [Scheduler](../../teaf/_internal/scheduler/README.md) | Tareas programadas coordinadas multi-instancia | Documentado | Core | V4 | 🟡 Medio | 🟡 Media |
 
 ## Módulos planeados (sin carpeta aún)
 
@@ -56,4 +58,4 @@ La columna "Dependencias" refleja el **grafo estático oficial de dependencias e
 
 1. Todo módulo nuevo se agrega primero aquí (con su ficha completa) antes de crear la carpeta correspondiente — sigue [`/templates/module-template.md`](../../templates/module-template.md).
 2. Al pasar de "Planeado" a "Documentado", enlaza el `README.md` real de la carpeta creada.
-3. Cuando exista código ejecutable, el estado pasa a `Implementado` — usado por primera vez en Sprint 2.6 para el módulo Database.
+3. Cuando exista código ejecutable, el estado pasa a `Implementado` — usado por primera vez en Sprint 2.6 para el módulo Database, y después para Security (2.7), Observability (2.8), API Protection (2.9) y Cache (3.0).

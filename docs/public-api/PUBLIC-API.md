@@ -26,30 +26,48 @@ app = Application()
 uvicorn app:app   # si lo anterior vive en app.py
 ```
 
-Ver [`examples/`](../../examples/) para tres ejemplos completos y ejecutables.
+Ver [`examples/`](../../examples/) para cuatro ejemplos completos y ejecutables.
 
-## 3. Los catorce símbolos principales
+## 3. Registrar módulos (Module Registration API, Sprint 2.6.3)
 
-| Símbolo | Qué es | Fachada (`teaf/`) | Envuelve (`backend/`) |
+Un consumidor registra sus propios módulos usando exclusivamente `Application` — nunca conoce el `Runtime`, nunca llama a `module.bootstrap()`, nunca usa `asyncio.run()` ni threads:
+
+```python
+from teaf import Application
+
+app = Application(modules=[TaskModule(), CustomerModule()])
+```
+
+Forma equivalente, encadenable:
+
+```python
+app = Application().add_module(TaskModule()).add_module(CustomerModule())
+```
+
+Los módulos pasados así arrancan automáticamente cuando arranca el ciclo de vida ASGI de la aplicación — al servirla con `uvicorn app:app` en producción, o al entrar en su lifespan en un script (p. ej. con `TestClient`, ver [`examples/module-registration/`](../../examples/module-registration/)). El orden de arranque es el orden de registro; el apagado ocurre en orden inverso. Un `id` de módulo duplicado, o un manifiesto inválido, hace fallar el arranque de la aplicación con la misma excepción que ya lanzaba `module.bootstrap()` manual (`ModuleRegistrationException`/`ModuleValidationException`) — el contrato de errores no cambia, solo quién lo invoca.
+
+## 4. Los catorce símbolos principales
+
+| Símbolo | Qué es | Fachada (`teaf/`) | Envuelve (`teaf/_internal/`) |
 |---|---|---|---|
-| `Application` | Construye y sirve una aplicación TEAF completa; callable ASGI. | `application.py` | `backend.core.application.create_app` |
-| `Runtime` | Orquestador de ciclo de vida: contenedor, capacidades, eventos, módulos. | `runtime.py` | `backend.runtime.runtime.Runtime` |
-| `Module` | Alias corto de `ModuleBase` — hereda de él para escribir un módulo. | `modules.py` | `backend.sdk.module_base.ModuleBase` |
-| `ModuleBase` | Mismo objeto que `Module`, nombre explícito del SDK. | `modules.py` | `backend.sdk.module_base.ModuleBase` |
-| `ModuleBuilder` | Construcción fluida de un `ModuleManifest`. | `modules.py` | `backend.sdk.builder.ModuleBuilder` |
-| `ModuleContext` | Contexto pasado a cada hook de un módulo (`runtime`, `logger`, `configuration`). | `modules.py` | `backend.sdk.context.ModuleContext` |
-| `ModuleManifest` | El manifiesto completo que describe un módulo. | `modules.py` | `backend.sdk.manifest.ModuleManifest` |
-| `ServiceContainer` | Contenedor de inyección de dependencias por contrato. | `services.py` | `backend.runtime.container.ServiceContainer` |
-| `EventBus` | Publicación/suscripción interna del framework. | `events.py` | `backend.runtime.event_bus.EventBus` |
-| `CapabilityRegistry` | Inventario de capacidades registradas. | `capabilities.py` | `backend.runtime.capabilities.registry.CapabilityRegistry` |
-| `ModuleRegistry` | Inventario de módulos registrados (introspección). | `modules.py` | `backend.core.registry.ModuleRegistry` |
-| `Health` | Vocabulario de salud (`UNKNOWN`/`HEALTHY`/`DEGRADED`/`UNHEALTHY`). | `health.py` | `backend.runtime.capabilities.enums.CapabilityHealth` |
-| `Configuration` | Configuración tipada por entorno. | `configuration.py` | `backend.config.settings.Settings` |
+| `Application` | Construye y sirve una aplicación TEAF completa; callable ASGI. | `application.py` | `teaf._internal.core.application.create_app` |
+| `Runtime` | Orquestador de ciclo de vida: contenedor, capacidades, eventos, módulos. | `runtime.py` | `teaf._internal.runtime.runtime.Runtime` |
+| `Module` | Alias corto de `ModuleBase` — hereda de él para escribir un módulo. | `modules.py` | `teaf._internal.sdk.module_base.ModuleBase` |
+| `ModuleBase` | Mismo objeto que `Module`, nombre explícito del SDK. | `modules.py` | `teaf._internal.sdk.module_base.ModuleBase` |
+| `ModuleBuilder` | Construcción fluida de un `ModuleManifest`. | `modules.py` | `teaf._internal.sdk.builder.ModuleBuilder` |
+| `ModuleContext` | Contexto pasado a cada hook de un módulo (`runtime`, `logger`, `configuration`). | `modules.py` | `teaf._internal.sdk.context.ModuleContext` |
+| `ModuleManifest` | El manifiesto completo que describe un módulo. | `modules.py` | `teaf._internal.sdk.manifest.ModuleManifest` |
+| `ServiceContainer` | Contenedor de inyección de dependencias por contrato. | `services.py` | `teaf._internal.runtime.container.ServiceContainer` |
+| `EventBus` | Publicación/suscripción interna del framework. | `events.py` | `teaf._internal.runtime.event_bus.EventBus` |
+| `CapabilityRegistry` | Inventario de capacidades registradas. | `capabilities.py` | `teaf._internal.runtime.capabilities.registry.CapabilityRegistry` |
+| `ModuleRegistry` | Inventario de módulos registrados (introspección). | `modules.py` | `teaf._internal.core.registry.ModuleRegistry` |
+| `Health` | Vocabulario de salud (`UNKNOWN`/`HEALTHY`/`DEGRADED`/`UNHEALTHY`). | `health.py` | `teaf._internal.runtime.capabilities.enums.CapabilityHealth` |
+| `Configuration` | Configuración tipada por entorno. | `configuration.py` | `teaf._internal.config.settings.Settings` |
 | `Version` | Fotografía inmutable de los cinco números de versión de TEAF. | `version.py` | agrega varios (ver [VERSIONING.md](VERSIONING.md)) |
 
-## 4. Símbolos compañeros
+## 5. Símbolos compañeros
 
-Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `backend.*` — se exportan por necesidad práctica, no por descuido (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)):
+Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `teaf._internal.*` — se exportan por necesidad práctica, no por descuido (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)):
 
 | Símbolo | Necesario para |
 |---|---|
@@ -59,15 +77,88 @@ Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `b
 | `ModuleCategory` | `ModuleBuilder.with_category(ModuleCategory.INTEGRATION)` |
 | `get_configuration` | Función homóloga de `Configuration`/`get_settings()`. |
 
-## 5. Qué NO expone `teaf`
+## 6. Plataforma de seguridad (`teaf.security`, Sprint 2.7)
 
-Ninguna clase de `backend.core`, `backend.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `backend.sdk` (más allá de lo listado arriba), `backend.contracts`, `backend.providers` o `backend.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule` ni ningún módulo real (Sprint 2.6 sigue siendo opt-in, ni siquiera se importa desde `teaf/`), `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+Además de los catorce símbolos principales, `teaf`/`teaf.security` reexportan la plataforma de seguridad empresarial completa (autenticación pluggable vía el contrato `IdentityProvider`, RBAC, políticas, JWT, API Keys, LDAP, Azure AD, hashing de contraseñas y criptografía) — más de 50 símbolos, documentados íntegramente en [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) en vez de repetidos aquí. Mismo patrón que el resto de este documento: `from teaf import SecurityContext` funciona igual que `from teaf.security import SecurityContext`.
 
-## 6. Documentos relacionados
+```python
+from teaf import Application
+from teaf.security import (
+    AnonymousIdentityProvider, JWTIdentityProvider, JWTProvider,
+    IdentityProviderRegistry, PrincipalResolver, StaticRoleResolver,
+    SecurityMiddleware, authorize, current_principal,
+)
+```
+
+Ver los 8 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-seguridad-sprint-27-adr-007).
+
+## 7. Plataforma de observabilidad (`teaf.observability`, Sprint 2.8)
+
+Además de los catorce símbolos principales, `teaf`/`teaf.observability` reexportan la plataforma de observabilidad empresarial completa (logging estructurado, tracing distribuido y métricas sobre OpenTelemetry, health checks compuestos, exportadores Console/OTLP/Prometheus + 9 preparados) — documentada íntegramente en [docs/observability/OBSERVABILITY.md](../observability/OBSERVABILITY.md) en vez de repetida aquí. Mismo patrón que la sección 6: `from teaf import Tracer` funciona igual que `from teaf.observability import Tracer`.
+
+```python
+from opentelemetry.sdk.trace import TracerProvider
+from teaf import ConsoleExporter, OtelTracer, SpanKind, get_logger
+
+provider = TracerProvider()
+ConsoleExporter().configure_tracing(provider)
+tracer = OtelTracer(provider.get_tracer("orders-service"))
+
+logger = get_logger("orders.checkout")
+with tracer.start_span("create_order", kind=SpanKind.SERVER) as span:
+    logger.info("order_created", extra={"context": {"orderId": "ord-1"}})
+```
+
+Ver los 6 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-observabilidad-sprint-28-adr-008).
+
+## 8. Plataforma de protección de APIs (`teaf.api`, Sprint 2.9)
+
+Además de los catorce símbolos principales, `teaf`/`teaf.api` reexportan la plataforma de protección y gobernanza de APIs completa (rate limiting con cuatro algoritmos, cuotas, CORS, versionado, validación de borde, compresión, idempotencia y auditoría) — documentada íntegramente en [docs/api/API-PROTECTION.md](../api/API-PROTECTION.md) en vez de repetida aquí. Mismo patrón que las secciones 6-7: `from teaf import ApiGateway` funciona igual que `from teaf.api import ApiGateway`.
+
+```python
+from fastapi import FastAPI
+from teaf import ApiGateway, CorsPolicy, RateLimiter, RateLimitRule
+
+app = FastAPI()
+ApiGateway(
+    rate_limiter=RateLimiter([RateLimitRule(name="por-ip", limit=100, window_seconds=60)]),
+    cors=CorsPolicy(allow_origins=("https://app.torus.com",)),
+).install(app)
+```
+
+**Excepción documentada a la regla de la sección 9**: `ApiProtectionModule` **sí** se expone públicamente, a diferencia de `DatabaseModule`/`SecurityModule`/`ObservabilityModule`. La protección de APIs se activa como una unidad —ocho subsistemas con configuración, orden de middlewares y ciclo de vida compartidos—, así que obligar a recomponerla pieza a pieza en cada aplicación sería repetición sin ganancia de desacoplamiento. Componer manualmente sigue siendo posible: es el resto de `teaf.api`. Ver [ADR-009](../architecture/adr/ADR-009-enterprise-api-protection.md), "Decisiones de ubicación y superficie".
+
+Ver los 7 ejemplos ejecutables en [`examples/README.md`](../../examples/README.md#plataforma-de-protección-de-apis-sprint-29-adr-009).
+
+## 9. Caché distribuida (`teaf.cache`, Sprint 3.0)
+
+Siete símbolos que permiten compartir estado entre réplicas: `CacheProvider` (el contrato), `CacheModule`, `CacheConfiguration`, `CacheBackend`, `InMemoryCacheProvider`, `RedisCacheProvider` y `RedisCacheConfiguration`. Documentación completa en [docs/modules/cache/CACHE.md](../modules/cache/CACHE.md).
+
+Una aplicación de **una sola instancia no necesita nada de aquí**: el backend por defecto es en memoria y TEAF arranca sin infraestructura desplegada. En cuanto hay varias réplicas, los almacenes en memoria de la protección de APIs pasan a ser por proceso y un límite de 100 req/min con 4 réplicas son 400 en la práctica.
+
+```python
+from teaf import ApiProtectionModule, Application, CacheBackend, CacheConfiguration, CacheModule
+
+cache = CacheModule(CacheConfiguration(backend=CacheBackend.REDIS))
+app = Application(modules=[cache, ApiProtectionModule(cache_provider=cache.provider)])
+```
+
+`RedisCacheProvider` requiere el extra opcional `pip install "teaf[redis]"`; el import es perezoso, así que construirlo sin el paquete no falla — falla al conectar, con un mensaje que dice qué instalar.
+
+**Segunda excepción documentada a la regla de la sección 10**: `CacheModule` se expone, por el mismo motivo que `ApiProtectionModule`. Todo el valor de la caché distribuida está en que alguien abra la conexión al arrancar y la cierre al apagar; obligar a recomponer ese ciclo de vida en cada aplicación no desacopla nada, solo reparte conexiones que nadie cierra. Ver [ADR-012](../architecture/adr/ADR-012-redis-optional-infrastructure.md) §4.
+
+## 10. Qué NO expone `teaf`
+
+Ninguna clase de `teaf._internal.core`, `teaf._internal.runtime` (más allá de `Runtime`/`ServiceContainer`/`EventBus`/`CapabilityRegistry`), `teaf._internal.sdk` (más allá de lo listado arriba), `teaf._internal.contracts` (más allá de `CacheProvider`), `teaf._internal.providers` (más allá de los de caché) o `teaf._internal.modules` — ver [IMPORT-GUIDE.md](IMPORT-GUIDE.md) para la regla completa y cómo se verifica. En particular, no se exponen: `DatabaseModule`, `SecurityModule` ni `ObservabilityModule` (siguen siendo opt-in, ni siquiera se importan desde `teaf/` — una aplicación compone la plataforma de seguridad/observabilidad a partir de las piezas públicas de `teaf.security`/`teaf.observability`, ver secciones 6-7). Las **dos únicas excepciones** son `ApiProtectionModule` (sección 8) y `CacheModule` (sección 9), por los motivos allí documentados. Tampoco se exponen, `DeveloperRuntimeAPI`, ni ninguna clase de infraestructura de introspección avanzada (`ModuleInspector`, `ModuleCertification`, `ModuleScaffolder`) — esas siguen siendo herramientas internas de desarrollo del propio framework, no parte de la superficie de autoría de un consumidor externo.
+
+## 11. Documentos relacionados
 
 | Documento | Contenido |
 |---|---|
 | [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md) | Qué archivo de `teaf/` contiene qué, y por qué está separado así. |
 | [IMPORT-GUIDE.md](IMPORT-GUIDE.md) | Namespaces públicos/privados, el verificador de límites. |
 | [VERSIONING.md](VERSIONING.md) | Los cinco números de versión y las reglas de compatibilidad. |
-| [MIGRATION-GUIDE.md](MIGRATION-GUIDE.md) | Tabla de equivalencia `backend.*` → `teaf.*`. |
+| [MIGRATION-GUIDE.md](MIGRATION-GUIDE.md) | Tabla de equivalencia `teaf._internal.*` → `teaf.*`. |
+| [SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md) | La plataforma de seguridad empresarial completa (sección 6). |
+| [OBSERVABILITY.md](../observability/OBSERVABILITY.md) | La plataforma de observabilidad empresarial completa (sección 7). |
+| [API-PROTECTION.md](../api/API-PROTECTION.md) | La plataforma de protección de APIs completa (sección 8). |

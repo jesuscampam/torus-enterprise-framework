@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import asyncio
 
-from backend.modules.database.health import DatabaseHealth
-from backend.providers.database.engine import ConnectionParameters, DatabaseDialect, create_engine
-from backend.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
-from backend.runtime.capabilities.enums import CapabilityHealth
+from teaf._internal.modules.database.health import DatabaseHealth
+from teaf._internal.providers.database.engine import (
+    ConnectionParameters,
+    DatabaseDialect,
+    create_engine,
+)
+from teaf._internal.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
+from teaf._internal.runtime.capabilities.enums import CapabilityHealth
 
 
 def test_check_starts_unknown_before_refresh() -> None:

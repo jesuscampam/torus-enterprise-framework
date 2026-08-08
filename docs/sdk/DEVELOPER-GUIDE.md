@@ -7,8 +7,8 @@ Guía práctica, de punta a punta, para crear un módulo con el SDK: generar el 
 Sin CLI en este Sprint — se invoca directamente desde Python (una futura CLI llamará a este mismo servicio):
 
 ```python
-from backend.sdk.enums import ModuleCategory
-from backend.sdk.scaffolder import ModuleScaffolder, write_to_disk
+from teaf._internal.sdk.enums import ModuleCategory
+from teaf._internal.sdk.scaffolder import ModuleScaffolder, write_to_disk
 from pathlib import Path
 
 scaffold = ModuleScaffolder().scaffold(
@@ -48,7 +48,7 @@ class GreeterModule(ModuleBase):
 Útil en tests o en una consola interactiva, sin necesitar un `Runtime`:
 
 ```python
-from backend.sdk.inspector import ModuleInspector
+from teaf._internal.sdk.inspector import ModuleInspector
 
 inspector = ModuleInspector(GreeterModule())
 inspector.describe()       # manifiesto aplanado + estado del lifecycle
@@ -59,7 +59,7 @@ inspector.services()       # (ModuleService(contract=Greeter, ...),)
 ## 4. Generar documentación con `ModuleDocumentationGenerator`
 
 ```python
-from backend.sdk.documentation_generator import ModuleDocumentationGenerator
+from teaf._internal.sdk.documentation_generator import ModuleDocumentationGenerator
 
 doc = ModuleDocumentationGenerator().generate(GreeterModule().get_manifest())
 Path("modules/greeter/GREETER.md").write_text(doc, encoding="utf-8")  # escribirlo es cosa tuya
@@ -72,7 +72,7 @@ El generador **nunca** escribe archivos por sí mismo (ver Sprint 2.5, ítem 14)
 Antes de considerar el módulo listo para compartirse (marketplace de módulos, un Sprint futuro — ver [ROADMAP.md](../roadmap/ROADMAP.md)):
 
 ```python
-from backend.sdk.certification import ModuleCertification
+from teaf._internal.sdk.certification import ModuleCertification
 
 result = ModuleCertification().certify(GreeterModule())
 if not result.certified:
@@ -83,9 +83,9 @@ if not result.certified:
 
 ```python
 import asyncio
-from backend.core.registry import ModuleRegistry
-from backend.runtime.runtime import Runtime
-from backend.sdk.context import ModuleContext
+from teaf._internal.core.registry import ModuleRegistry
+from teaf._internal.runtime.runtime import Runtime
+from teaf._internal.sdk.context import ModuleContext
 
 async def main() -> None:
     runtime = Runtime(registry=ModuleRegistry(), framework_version="0.5.0-alpha")

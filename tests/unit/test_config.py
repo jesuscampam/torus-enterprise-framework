@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from backend.config.environment import Environment, get_environment
-from backend.config.settings import ProductionSettings, TestingSettings, get_settings
-from backend.core.exceptions import ConfigurationException
+from teaf._internal.config.environment import Environment, get_environment
+from teaf._internal.config.settings import ProductionSettings, TestingSettings, get_settings
+from teaf._internal.core.exceptions import ConfigurationException
 
 
 def test_get_environment_defaults_to_development(monkeypatch: pytest.MonkeyPatch) -> None:

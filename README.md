@@ -85,7 +85,8 @@ La justificación de cada elección tecnológica está documentada en **[docs/ar
 
 ```
 /
-├── backend/        # API, capas de servicio, repositorio, dominio e infraestructura (FastAPI)
+├── teaf/             # API pública (from teaf import ...) + teaf/_internal/ (implementación
+│                      # privada: API, capas de servicio, repositorio, dominio e infraestructura, FastAPI)
 ├── frontend/        # Aplicación React + TypeScript + Material UI
 ├── database/        # Migraciones (Alembic) y datos semilla
 ├── docker/           # Definiciones de contenedores por componente
@@ -113,7 +114,7 @@ Detalle completo en **[docs/roadmap/ROADMAP.md](docs/roadmap/ROADMAP.md)**.
 
 ## Cómo iniciar el proyecto
 
-> **Estado actual: v0.6.1-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence + Module SDK + Database Module + API Pública (Sprint 2.5.1).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), expone contratos y clases base para base de datos, seguridad, telemetría, storage e IA, tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, puede describirse a sí mismo vía `GET /runtime/*` y un Developer API en proceso, ofrece el SDK oficial para construir módulos (`backend/sdk/`) y su primer módulo real construido sobre él (el Database Module), y ahora se instala como un **paquete Python profesional**: `pip install -e .` y `from teaf import Application, Module, ModuleBuilder, ...` — la única API pública soportada, sin conocer `backend/` por dentro (ver [docs/public-api/](docs/public-api/) y [`examples/`](examples/)). Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
+> **Estado actual: v0.10.0-alpha — bootstrap + infraestructura + Runtime + Platform Intelligence + Module SDK + Database Module + API Pública + Internal Namespace Refactor + Module Registration API + Enterprise Security Platform + Enterprise Observability Platform + Enterprise API Protection Platform + Cache Module (Sprint 3.0).** El backend arranca de extremo a extremo (configuración, logging, middlewares, health checks), tiene un Runtime real ejecutando ciclo de vida, contenedor de servicios, pipelines y grafo de dependencias, puede describirse a sí mismo vía `GET /runtime/*` y un Developer API en proceso, ofrece el SDK oficial para construir módulos (`teaf/_internal/sdk/`) y cuatro módulos reales construidos sobre él (Database Module, Security Module, Observability Module y API Protection Module), y se instala como un **paquete Python profesional**: `pip install -e .` y `from teaf import Application, Module, ModuleBuilder, ...` — la única API pública soportada, sin conocer `teaf/_internal/` por dentro (ver [docs/public-api/](docs/public-api/) y [`examples/`](examples/)). Registrar módulos propios no requiere conocer el `Runtime`: `Application(modules=[TaskModule()])` los arranca automáticamente (ver [PUBLIC-API.md, sección 3](docs/public-api/PUBLIC-API.md#3-registrar-módulos-module-registration-api-sprint-263)). La plataforma de seguridad empresarial (`from teaf.security import ...`) cubre autenticación pluggable (Anonymous/JWT/API Key/LDAP/Azure AD, vía el contrato `IdentityProvider`), RBAC, políticas y hashing de contraseñas (Argon2id/BCrypt) — ver [docs/security/SECURITY-ARCHITECTURE.md](docs/security/SECURITY-ARCHITECTURE.md). La plataforma de observabilidad empresarial (`from teaf.observability import ...`) cubre logging estructurado, tracing distribuido, métricas y health checks compuestos sobre OpenTelemetry, con exportadores Console/OTLP/Prometheus — ver [docs/observability/OBSERVABILITY.md](docs/observability/OBSERVABILITY.md). La plataforma de protección de APIs (`from teaf.api import ...`) cubre rate limiting (cuatro algoritmos, seis dimensiones), cuotas de consumo, CORS, versionado, validación de borde, compresión, idempotencia y auditoría, componibles con una sola llamada (`ApiGateway.install(app)`) — ver [docs/api/API-PROTECTION.md](docs/api/API-PROTECTION.md). El Sprint 2.9.1 endureció todo lo anterior sin añadir funcionalidad: arranque **5,5× más rápido**, una fuga de memoria corregida, `mypy --strict` sin errores, 10 puertas de calidad en **un solo comando** (`python scripts/quality_gates.py`), suites de [benchmarks](benchmarks/README.md) y [pruebas de carga](loadtests/README.md), y compatibilidad hacia atrás verificada de forma mecánica. El Sprint 2.9.2 cerró la línea 2.9 alineando el contrato de seguridad con su implementación: las cabeceras de [SECURITY-STANDARD.md §7](docs/standards/SECURITY-STANDARD.md) se emiten de verdad ([ADR-010](docs/architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) y la auditoría de vulnerabilidades de dependencias es una **puerta de calidad** más. El Sprint 3.0 cerró los cuatro pendientes que quedaban: `fastapi 0.141.1`/`starlette 1.4.1` deja el informe de vulnerabilidades **a cero, sin ninguna excepción aceptada**; `api_trusted_proxies` cierra el spoofing de la IP del cliente ([ADR-011](docs/architecture/adr/ADR-011-trusted-proxy-architecture.md)); el **módulo de caché** (`from teaf import CacheModule`, en memoria o sobre Redis como extra opcional) hace que rate limiting, cuotas e idempotencia sean correctos con varias réplicas y **desbloquea el escalado horizontal** ([ADR-012](docs/architecture/adr/ADR-012-redis-optional-infrastructure.md)); y el secreto JWT pasa a exigir la longitud mínima de su algoritmo (RFC 7518 §3.2) verificada al arrancar. 12 puertas de calidad en un solo comando. Ver [docs/PRODUCTION-READINESS.md](docs/PRODUCTION-READINESS.md) para el estado real frente a producción. Ver `docs/roadmap/ROADMAP.md` para lo que llega en cada versión siguiente.
 
 ```bash
 git clone https://github.com/jesuscampam/torus-enterprise-framework.git
@@ -124,7 +125,8 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 
 cp .env.example .env
-uvicorn backend.main:app --reload
+python -c "from teaf import Application; open('app.py', 'w').write('from teaf import Application\n\napp = Application()\n')"
+uvicorn app:app --reload
 ```
 
 Verifica que responde: `curl http://localhost:8000/health` y `curl http://localhost:8000/info` (versión y módulos registrados). Documentación interactiva (Swagger) en `http://localhost:8000/docs`.
@@ -133,14 +135,14 @@ Ejecutar la suite de pruebas: `python -m pytest`.
 
 Para profundizar:
 
-1. **[docs/core/CORE.md](docs/core/CORE.md)** explica la arquitectura del Core implementado, cómo extenderlo y por qué el entry point es `backend.main:app`.
+1. **[docs/core/CORE.md](docs/core/CORE.md)** explica la arquitectura del Core implementado y cómo extenderlo — el entry point público es `from teaf import Application; app = Application()` (ver [`teaf/application.py`](teaf/application.py)).
 2. **[docs/infrastructure/INFRASTRUCTURE.md](docs/infrastructure/INFRASTRUCTURE.md)** explica los contratos, providers, el registro de módulos y cómo se conectará una implementación real en el futuro.
 3. **[docs/runtime/RUNTIME.md](docs/runtime/RUNTIME.md)** explica el ciclo de vida, el contenedor de servicios, los pipelines, el grafo de dependencias, el event bus y el plugin loader.
 4. **[docs/architecture/FRAMEWORK-BLUEPRINT.md](docs/architecture/FRAMEWORK-BLUEPRINT.md)** es la arquitectura técnica oficial completa, con diagramas.
 5. **[docs/standards/](docs/standards/)** contiene las convenciones obligatorias de API, base de datos, código, seguridad y logging.
 6. Los **[ADR](docs/architecture/adr/)** explican el porqué de cada decisión estructural.
-7. Recorre `backend/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
-8. **[docs/public-api/](docs/public-api/)** explica la API pública instalable (`pip install -e .`, `from teaf import ...`) y los tres ejemplos ejecutables de **[`examples/`](examples/)**.
+7. Recorre `teaf/_internal/` y `frontend/` — cada subcarpeta documenta, en su propio `README.md`, su responsabilidad dentro de la arquitectura.
+8. **[docs/public-api/](docs/public-api/)** explica la API pública instalable (`pip install -e .`, `from teaf import ...`, cómo registrar módulos con `Application(modules=[...])`) y los cuatro ejemplos ejecutables de **[`examples/`](examples/)**.
 
 ## Contribuir
 

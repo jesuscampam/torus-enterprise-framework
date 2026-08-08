@@ -58,23 +58,24 @@ TEAF aplica Clean Architecture con Domain-Driven Design ligero. Las flechas indi
                         │  database/ + models/ (infra)   │  SQLAlchemy, PostgreSQL
                         └─────────────────────────────────┘
 
-  Transversales a todas las capas: core/ · config/ · security/ · monitoring/ · shared/ · ai/ · webhooks/ · scheduler/
+  Transversales a todas las capas: core/ · config/ · security/ · observability/ · monitoring/ · shared/ · ai/ · webhooks/ · scheduler/
 ```
 
-### Descripción de cada capa (backend)
+### Descripción de cada capa (`teaf/_internal/`)
 
 | Capa | Responsabilidad | No debe contener |
 |---|---|---|
-| `api/` | Exponer contratos HTTP versionados (routers/controladores), (de)serialización vía `schemas/`. | Lógica de negocio ni acceso directo a datos. |
+| `api/` | Doble responsabilidad desde el Sprint 2.9: exponer contratos HTTP versionados (routers/controladores, (de)serialización vía `schemas/`) **y** la plataforma de protección y gobernanza de APIs — rate limiting, cuotas, CORS, versionado, validación de borde, compresión, idempotencia y auditoría (ver [ADR-009](adr/ADR-009-enterprise-api-protection.md) y [docs/api/API-PROTECTION.md](../api/API-PROTECTION.md)). | Lógica de negocio ni acceso directo a datos. |
 | `core/` | Kernel del framework: bootstrap de la aplicación, contenedor de inyección de dependencias, excepciones base, ciclo de vida. | Reglas de negocio específicas de una aplicación. |
 | `services/` | Casos de uso de aplicación: orquesta repositorios, aplica reglas de negocio, coordina transacciones. | SQL, detalles HTTP, detalles de framework web. |
 | `repository/` | Contratos (interfaces) e implementaciones de acceso a datos — Repository Pattern. | Lógica de negocio. |
 | `database/` | Motor y sesión de SQLAlchemy, `Base` declarativa, gestión del ciclo de conexión. | Reglas de negocio ni entidades de dominio puras. |
 | `models/` | Entidades ORM (capa de persistencia). | Lógica de aplicación. |
 | `schemas/` | DTOs Pydantic — contratos de entrada/salida de la API, independientes de los modelos ORM. | Acceso a datos. |
-| `security/` | Autenticación (JWT), autorización (RBAC), hashing, políticas de permisos. | Lógica de negocio no relacionada con seguridad. |
+| `security/` | Autenticación pluggable (`IdentityProvider`: Anonymous/JWT/API Key/LDAP/Azure AD), autorización (RBAC + políticas), hashing (Argon2id/BCrypt), criptografía. Implementación completa desde Sprint 2.7 — ver [docs/security/SECURITY-ARCHITECTURE.md](../security/SECURITY-ARCHITECTURE.md). | Lógica de negocio no relacionada con seguridad. |
 | `middleware/` | Componentes transversales HTTP: correlation-id, logging de requests, rate limiting, manejo centralizado de errores. | Casos de uso de negocio. |
-| `monitoring/` | Observabilidad: instrumentación OpenTelemetry, métricas, health checks. | Lógica de negocio. |
+| `observability/` | Plataforma de observabilidad empresarial: tracing/métricas sobre OpenTelemetry (`Tracer`/`Meter`), exportadores (Console/OTLP/Prometheus), health checks compuestos, diagnóstico agregado del Runtime. Implementación completa desde Sprint 2.8 — ver [docs/observability/OBSERVABILITY.md](../observability/OBSERVABILITY.md). | Lógica de negocio no relacionada con observabilidad. |
+| `monitoring/` | Rutas de sistema (`/health`, `/ready`, `/live`, `/info`) — consume `observability/` para evaluar salud real, nunca reimplementa la evaluación. | Lógica de negocio. |
 | `shared/` | Utilidades, constantes y tipos genéricos reutilizables entre capas. | Dependencias hacia capas superiores (`api`, `services`). |
 | `config/` | Configuración tipada por entorno (dev/staging/prod), carga de secretos. | Valores hardcodeados de negocio. |
 | `ai/` | Abstracciones AI-Ready: interfaces de cliente LLM, prompts, embeddings, vector stores. | Acoplamiento directo a un proveedor de IA concreto en las capas superiores. |

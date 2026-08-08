@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
-from backend.runtime.discovery import ModuleDiscovery
+from teaf._internal.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
+from teaf._internal.runtime.discovery import ModuleDiscovery
 
 
 def _registry_with(*descriptors: ModuleDescriptor) -> ModuleRegistry:

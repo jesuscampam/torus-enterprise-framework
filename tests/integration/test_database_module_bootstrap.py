@@ -14,18 +14,18 @@ import asyncio
 import uuid
 from typing import cast
 
-from backend.contracts.database import DatabaseProvider
-from backend.contracts.unit_of_work import UnitOfWork
-from backend.core.registry import ModuleRegistry
-from backend.modules.database.module import DatabaseModule
-from backend.providers.database.base_model import AuditMixin, Base
-from backend.providers.database.sqlalchemy_repository import SQLAlchemyRepository
-from backend.providers.database.sqlalchemy_unit_of_work import SQLAlchemyUnitOfWork
-from backend.runtime.capabilities.enums import CapabilityHealth
-from backend.runtime.runtime import Runtime
-from backend.sdk.context import ModuleContext
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
+from teaf._internal.contracts.database import DatabaseProvider
+from teaf._internal.contracts.unit_of_work import UnitOfWork
+from teaf._internal.core.registry import ModuleRegistry
+from teaf._internal.modules.database.module import DatabaseModule
+from teaf._internal.providers.database.base_model import AuditMixin, Base
+from teaf._internal.providers.database.sqlalchemy_repository import SQLAlchemyRepository
+from teaf._internal.providers.database.sqlalchemy_unit_of_work import SQLAlchemyUnitOfWork
+from teaf._internal.runtime.capabilities.enums import CapabilityHealth
+from teaf._internal.runtime.runtime import Runtime
+from teaf._internal.sdk.context import ModuleContext
 
 
 class _Account(Base, AuditMixin):

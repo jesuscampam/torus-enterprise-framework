@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import pytest
-from backend.runtime.capabilities.builder import CapabilityBuilder
-from backend.runtime.capabilities.enums import (
+from teaf._internal.runtime.capabilities.builder import CapabilityBuilder
+from teaf._internal.runtime.capabilities.enums import (
     CapabilityCategory,
     CapabilityHealth,
     CapabilityStatus,
 )
-from backend.runtime.capabilities.metadata import CapabilityMetadata
-from backend.runtime.capabilities.provider_registry import CapabilityProviderRegistry
-from backend.runtime.capabilities.registry import CapabilityRegistry
-from backend.runtime.exceptions import (
+from teaf._internal.runtime.capabilities.metadata import CapabilityMetadata
+from teaf._internal.runtime.capabilities.provider_registry import CapabilityProviderRegistry
+from teaf._internal.runtime.capabilities.registry import CapabilityRegistry
+from teaf._internal.runtime.exceptions import (
     CapabilityAlreadyRegisteredException,
     CapabilityNotFoundException,
 )

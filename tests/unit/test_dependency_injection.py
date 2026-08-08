@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.core.dependencies import singleton_provider
+from teaf._internal.core.dependencies import singleton_provider
 
 
 def test_singleton_provider_caches_single_instance() -> None:

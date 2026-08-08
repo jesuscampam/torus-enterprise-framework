@@ -34,7 +34,10 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 | Seguridad | Autenticación JWT (access + refresh) en `security/` | 🔴 | Épica 1 |
 | Seguridad | Autorización RBAC (roles, permisos) | 🔴 | Autenticación JWT |
 | Seguridad | Hashing de credenciales (bcrypt/argon2) | 🔴 | Autenticación JWT |
-| Middlewares | Correlation-id, logging de requests, rate limiting | 🔴 | Épica 1 |
+| Middlewares | Correlation-id, logging de requests | 🔴 | Épica 1 |
+| Protección de APIs | Rate limiting: ventana fija/deslizante, cubo de tokens/con fuga, por usuario/API Key/tenant/IP/endpoint/rol (entregado en Sprint 2.9, [ADR-009](../architecture/adr/ADR-009-enterprise-api-protection.md)) | 🔴 | Middlewares |
+| Protección de APIs | Cuotas de consumo por período, ancho de banda, payload y concurrencia | 🔴 | Rate limiting |
+| Protección de APIs | CORS, versionado de API, validación de borde, compresión, idempotencia y auditoría de API | 🔴 | Middlewares |
 | Middlewares | Manejo centralizado de errores (RFC 7807) | 🔴 | Middlewares base |
 | Observabilidad | Instrumentación OpenTelemetry (trazas y métricas) en `monitoring/` | 🔴 | Épica 1 |
 | Observabilidad | Exportación compatible con Azure Monitor | 🟡 | Instrumentación OpenTelemetry |
@@ -80,6 +83,48 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 | Performance | Pruebas de carga y estrés sobre el esqueleto del framework | 🟡 | Épica 1 |
 | Developer Experience | CLI/generador de proyectos (`teaf new app`) | 🟢 | Épicas 1-3 |
 | Documentación | Portal de documentación navegable generado desde `docs/` | 🟢 | — |
+
+### Cerrado en Sprint 3.0
+
+Los cuatro puntos que la línea 2.9 dejó aplazados quedan resueltos. Ninguno de ellos sigue condicionando la declaración de v1.0-beta (ver [PRODUCTION-READINESS.md](../PRODUCTION-READINESS.md)).
+
+| Historia | Desenlace |
+|---|---|
+| Proveedores Redis de rate limiting, cuotas e idempotencia | ✅ Implementados sobre `CacheProvider` ([ADR-012](../architecture/adr/ADR-012-redis-optional-infrastructure.md)). Desbloquea el escalado horizontal |
+| Actualizar FastAPI para cerrar las 7 vulnerabilidades de `starlette` | ✅ `fastapi 0.141.1` / `starlette 1.4.1`. [accepted-vulnerabilities.json](../security/accepted-vulnerabilities.json) queda **vacío**: no hay ninguna vulnerabilidad aceptada |
+| Lista de proxies de confianza (`trusted_proxies`) — cierre de H-2 | ✅ `api_trusted_proxies` con verificación de la IP de conexión y lectura de la cadena de derecha a izquierda ([ADR-011](../architecture/adr/ADR-011-trusted-proxy-architecture.md)) |
+| Longitud mínima del secreto JWT | ✅ Derivada del algoritmo (RFC 7518 §3.2), validada en `Settings` y en `JWTProvider.__init__` |
+
+#### Cerrado en Sprint 2.9.2
+
+| Historia | Desenlace |
+|---|---|
+| `SecurityHeadersMiddleware` (H-1) | ✅ Implementado + 31 pruebas ([ADR-010](../architecture/adr/ADR-010-security-headers-and-forwarded-trust.md)) |
+| `pip-audit` como puerta de calidad | ✅ Puerta `dependencies`; encontró 13 avisos reales y `pyjwt` se actualizó |
+| Comentario obsoleto sobre secretos (H-3) | ✅ Corregido |
+| Valor por defecto de `trust_forwarded_headers` (H-2) | ⚠️ Mitigado en 2.9.2 (aviso + pruebas anti-spoofing); **cerrado en 3.0** con `api_trusted_proxies` |
+
+### Pendiente tras Sprint 3.0
+
+| Feature | Historia | Prioridad | Dependencias |
+|---|---|---|---|
+| Caché | `RedisQuotaStore.consume` es un read-modify-write **no atómico**: dos réplicas concurrentes pueden permitir un ligero exceso sobre la cuota. Resolverlo exige un script Lua o `INCRBYFLOAT` con semántica distinta de la del contrato actual — es un cambio de diseño, no un arreglo. Documentado en su docstring y en [CACHE.md §10](../modules/cache/CACHE.md) | 🟡 | Sprint 3.0 |
+| Seguridad | Soportar la cabecera `Forwarded` (RFC 7239) además de `X-Forwarded-For`. Es el estándar formal, pero hoy ningún proxy mayoritario (nginx, Azure Front Door, AWS ALB, Cloudflare) la emite por defecto | 🟢 | [ADR-011](../architecture/adr/ADR-011-trusted-proxy-architecture.md) |
+| Aplicación de referencia | Corregir `test_task_module_appears_in_runtime_info` (espera `>= 8` módulos, obtiene 6 desde que los Sprints 2.7/2.8 retiraron los placeholders). Corresponde a su propio repositorio | 🟢 | — |
+| Herramientas de desarrollo | `loadtests/harness.py` importa `resource` (POSIX-only) a nivel de módulo — igual que tenía `runtime.py` antes del Windows Compatibility Patch (v0.10.1-alpha). No bloquea `from teaf import Application` porque no está en su cadena de import, así que quedó fuera de ese parche por alcance; correspondería el mismo tratamiento (`process_metrics.py`) si se quiere ejecutar `python -m loadtests` en Windows | 🟢 | [PLATFORM-COMPATIBILITY.md](../PLATFORM-COMPATIBILITY.md) |
+| Compatibilidad de plataforma | Validar el Windows Compatibility Patch (v0.10.1-alpha) en una máquina Windows real: `pip install -e .`, `from teaf import Application`, arranque con `uvicorn`, HTTP. Verificado hoy solo en Linux y "compatible por diseño, no verificado" en Windows/macOS — ver [PLATFORM-COMPATIBILITY.md](../PLATFORM-COMPATIBILITY.md) | 🔴 | Acceso a una máquina Windows |
+
+### Fuera del alcance de Sprint 3.0 — sprints siguientes
+
+Declarado explícitamente para que no se implemente por adelantado:
+
+| Sprint | Alcance |
+|---|---|
+| 3.1 | Observabilidad completa (más allá de la base de Sprint 2.8) |
+| 3.2 | Gestión empresarial de secretos / Vault |
+| 3.3 | EventBus distribuido sobre Redis Streams |
+| 3.4 | Resiliencia avanzada: retry, circuit breaker, bulkhead |
+| Futuro | Messaging, multi-tenancy, workflows, CLI, UI administrativa |
 
 ---
 

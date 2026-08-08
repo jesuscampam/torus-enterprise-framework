@@ -1,6 +1,6 @@
 # Unit of Work — TEAF
 
-`SQLAlchemyUnitOfWork` y `SQLAlchemyUnitOfWorkFactory` (`backend/providers/database/sqlalchemy_unit_of_work.py`), la implementación funcional del contrato `UnitOfWork` (`backend/contracts/unit_of_work.py`, Sprint 2.2). Ver [DATABASE.md](DATABASE.md) para dónde encaja en el módulo completo.
+`SQLAlchemyUnitOfWork` y `SQLAlchemyUnitOfWorkFactory` (`teaf/_internal/providers/database/sqlalchemy_unit_of_work.py`), la implementación funcional del contrato `UnitOfWork` (`teaf/_internal/contracts/unit_of_work.py`, Sprint 2.2). Ver [DATABASE.md](DATABASE.md) para dónde encaja en el módulo completo.
 
 ## 1. Contrato
 

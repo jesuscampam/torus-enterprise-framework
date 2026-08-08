@@ -52,7 +52,7 @@ Toda tabla de negocio incluye como mínimo:
 
 ## 8. Pooling de conexiones
 
-- La configuración del pool de conexiones (tamaño mínimo/máximo, timeout, reciclado) se resuelve vía `backend/config/` por entorno, nunca hardcodeada en `database/`.
+- La configuración del pool de conexiones (tamaño mínimo/máximo, timeout, reciclado) se resuelve vía `teaf/_internal/config/` por entorno, nunca hardcodeada en `database/`.
 - El tamaño del pool debe dimensionarse considerando el número de instancias horizontalmente escalables (principio Cloud Ready) para no agotar las conexiones máximas de PostgreSQL.
 
 ## 9. Multi-tenancy y aislamiento de datos

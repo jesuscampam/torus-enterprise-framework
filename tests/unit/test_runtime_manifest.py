@@ -6,16 +6,16 @@ import asyncio
 import json
 from pathlib import Path
 
-from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
-from backend.runtime.capabilities.builder import CapabilityBuilder
-from backend.runtime.manifest import (
+from teaf._internal.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
+from teaf._internal.runtime.capabilities.builder import CapabilityBuilder
+from teaf._internal.runtime.manifest import (
     KNOWN_CONTRACTS,
     KNOWN_FACTORIES,
     KNOWN_PROVIDERS,
     generate_manifest,
     write_manifest,
 )
-from backend.runtime.runtime import Runtime
+from teaf._internal.runtime.runtime import Runtime
 
 
 def _running_runtime() -> Runtime:

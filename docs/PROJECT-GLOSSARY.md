@@ -6,7 +6,7 @@ Términos usados de forma consistente en toda la documentación y el código de 
 
 **ADR (Architecture Decision Record)** — Registro formal de una decisión arquitectónica: contexto, problema, decisión y consecuencias. Ver [docs/architecture/adr/](architecture/adr/README.md).
 
-**AI Ready** — Principio arquitectónico por el cual el framework provee abstracciones (`backend/ai/`) para integrar Inteligencia Artificial sin acoplar el dominio a un proveedor concreto. Ver [ARCHITECTURE.md](architecture/ARCHITECTURE.md).
+**AI Ready** — Principio arquitectónico por el cual el framework provee abstracciones (`teaf/_internal/ai/`) para integrar Inteligencia Artificial sin acoplar el dominio a un proveedor concreto. Ver [ARCHITECTURE.md](architecture/ARCHITECTURE.md).
 
 **Audit (Auditoría)** — Registro inmutable de acciones sensibles (login, cambios de permisos, bajas) con fines de trazabilidad y cumplimiento. Ver [MODULE-CATALOG.md](architecture/MODULE-CATALOG.md).
 
@@ -18,7 +18,7 @@ Términos usados de forma consistente en toda la documentación y el código de 
 
 **CODEOWNERS** — Archivo de GitHub que define quién debe aprobar cambios en cada parte del repositorio. Ver [.github/CODEOWNERS](../.github/CODEOWNERS).
 
-**Core** — Módulo/carpeta (`backend/core/`) que actúa como kernel transversal del framework: bootstrap, inyección de dependencias, excepciones base.
+**Core** — Módulo/carpeta (`teaf/_internal/core/`) que actúa como kernel transversal del framework: bootstrap, inyección de dependencias, excepciones base.
 
 **Definition of Done (DoD)** — Criterios que determinan cuándo una historia o funcionalidad puede considerarse terminada. Ver [DEFINITION-OF-DONE.md](standards/DEFINITION-OF-DONE.md).
 
@@ -34,7 +34,7 @@ Términos usados de forma consistente en toda la documentación y el código de 
 
 **MCP (Model Context Protocol)** — Protocolo estándar para exponer herramientas y contexto a agentes de IA de forma interoperable. Módulo planeado en TEAF (ver [MODULE-CATALOG.md](architecture/MODULE-CATALOG.md)).
 
-**Middleware** — Componente que intercepta toda petición HTTP (o su respuesta) para resolver una preocupación transversal: autenticación, logging, rate limiting. Ver `backend/middleware/`.
+**Middleware** — Componente que intercepta toda petición HTTP (o su respuesta) para resolver una preocupación transversal: autenticación, logging, rate limiting. Ver `teaf/_internal/middleware/`.
 
 **Migración (Migration)** — Cambio versionado y reversible del esquema de base de datos, gestionado con Alembic. Ver [DATABASE-STANDARD.md](standards/DATABASE-STANDARD.md).
 
@@ -46,13 +46,13 @@ Términos usados de forma consistente en toda la documentación y el código de 
 
 **Quality Gate** — Criterio mínimo no negociable que un cambio debe cumplir antes de fusionarse al framework. Ver [QUALITY-GATES.md](standards/QUALITY-GATES.md).
 
-**Repository (Repositorio de datos)** — Abstracción de acceso a datos que oculta los detalles del motor de persistencia detrás de una interfaz (Repository Pattern). Ver `backend/repository/`.
+**Repository (Repositorio de datos)** — Abstracción de acceso a datos que oculta los detalles del motor de persistencia detrás de una interfaz (Repository Pattern). Ver `teaf/_internal/repository/`.
 
 **RBAC (Role-Based Access Control)** — Modelo de autorización basado en roles y permisos asociados. Ver [SECURITY-STANDARD.md](standards/SECURITY-STANDARD.md).
 
-**Scheduler** — Módulo responsable de tareas programadas (cron) y trabajos diferidos, coordinados de forma segura entre múltiples instancias. Ver `backend/scheduler/`.
+**Scheduler** — Módulo responsable de tareas programadas (cron) y trabajos diferidos, coordinados de forma segura entre múltiples instancias. Ver `teaf/_internal/scheduler/`.
 
-**Service Layer (Capa de servicios)** — Capa donde vive la lógica de casos de uso y orquestación de negocio, entre `api/` y `repository/`. Ver `backend/services/`.
+**Service Layer (Capa de servicios)** — Capa donde vive la lógica de casos de uso y orquestación de negocio, entre `api/` y `repository/`. Ver `teaf/_internal/services/`.
 
 **Storage** — Módulo planeado de abstracción de almacenamiento de archivos/blobs. Ver [MODULE-CATALOG.md](architecture/MODULE-CATALOG.md).
 
@@ -60,4 +60,4 @@ Términos usados de forma consistente en toda la documentación y el código de 
 
 **Telemetry (Telemetría)** — Datos de trazas, métricas y logs recolectados de un sistema en ejecución, base de la observabilidad.
 
-**Webhook** — Mecanismo de notificación de eventos entre sistemas vía HTTP, entrante o saliente. Ver `backend/webhooks/`.
+**Webhook** — Mecanismo de notificación de eventos entre sistemas vía HTTP, entrante o saliente. Ver `teaf/_internal/webhooks/`.

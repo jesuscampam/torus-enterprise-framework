@@ -23,6 +23,15 @@ _FACADE_MODULES: dict[str, set[str]] = {
     "teaf.capabilities": {"CapabilityCategory", "CapabilityRegistry"},
     "teaf.health": {"Health"},
     "teaf.configuration": {"Configuration", "get_configuration"},
+    "teaf.cache": {
+        "CacheBackend",
+        "CacheConfiguration",
+        "CacheModule",
+        "CacheProvider",
+        "InMemoryCacheProvider",
+        "RedisCacheConfiguration",
+        "RedisCacheProvider",
+    },
 }
 
 
@@ -41,10 +50,20 @@ def test_facade_module_importable_in_isolation(module_name: str) -> None:
 
 
 def test_facades_do_not_import_each_other() -> None:
-    """Ninguna fachada de teaf/ importa otra fachada de teaf/ — solo backend/ (ver
-    docs/public-api/PACKAGE-STRUCTURE.md, sección 3)."""
+    """Ninguna fachada de teaf/ importa otra fachada de teaf/ — solo teaf/_internal/
+    (ver docs/public-api/PACKAGE-STRUCTURE.md, sección 3).
+
+    ``teaf._internal.*`` está deliberadamente excluido de esta prohibición:
+    es la implementación privada (Sprint 2.6.2, ver ADR-006) que cada
+    fachada sí debe importar. Lo prohibido es que una fachada importe *otra
+    fachada hermana* (p. ej. ``teaf.application`` importando desde
+    ``teaf.runtime``), no que importe su propia implementación interna.
+    """
     import ast
     from pathlib import Path
+
+    def _imports_another_facade(dotted: str) -> bool:
+        return dotted.startswith("teaf.") and not dotted.startswith("teaf._internal")
 
     teaf_dir = Path(__file__).resolve().parents[2] / "teaf"
     for module_name in _FACADE_MODULES:
@@ -52,11 +71,11 @@ def test_facades_do_not_import_each_other() -> None:
         tree = ast.parse(file_path.read_text(encoding="utf-8"), filename=str(file_path))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module:
-                assert not node.module.startswith(
-                    "teaf."
+                assert not _imports_another_facade(
+                    node.module
                 ), f"{file_path} importa de otra fachada teaf/ ({node.module})"
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    assert not alias.name.startswith(
-                        "teaf."
+                    assert not _imports_another_facade(
+                        alias.name
                     ), f"{file_path} importa de otra fachada teaf/ ({alias.name})"

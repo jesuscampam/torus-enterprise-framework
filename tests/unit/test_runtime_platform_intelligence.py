@@ -10,18 +10,18 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from backend.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
-from backend.runtime.capabilities.builder import CapabilityBuilder
-from backend.runtime.container import Lifetime
-from backend.runtime.exceptions import (
+from teaf._internal.core.registry import ModuleDescriptor, ModuleRegistry, ModuleStatus
+from teaf._internal.runtime.capabilities.builder import CapabilityBuilder
+from teaf._internal.runtime.container import Lifetime
+from teaf._internal.runtime.exceptions import (
     CapabilityNotFoundException,
     FeatureNotFoundException,
     PluginValidationException,
     ServiceNotRegisteredException,
 )
-from backend.runtime.features.flag import FeatureFlag
-from backend.runtime.plugin_loader import Plugin
-from backend.runtime.runtime import Runtime
+from teaf._internal.runtime.features.flag import FeatureFlag
+from teaf._internal.runtime.plugin_loader import Plugin
+from teaf._internal.runtime.runtime import Runtime
 
 
 class _Greeter:
@@ -168,8 +168,8 @@ def test_diagnostics_before_startup_has_no_startup_time() -> None:
     assert diagnostics.startup_time is None
     assert diagnostics.running_time_seconds == 0.0
     assert diagnostics.framework_version == "0.4.0-alpha"
-    assert diagnostics.memory_placeholder == "not-implemented"
-    assert diagnostics.cpu_placeholder == "not-implemented"
+    assert diagnostics.memory_rss_bytes is not None and diagnostics.memory_rss_bytes > 0
+    assert diagnostics.cpu_time_seconds is not None and diagnostics.cpu_time_seconds >= 0.0
 
 
 def test_diagnostics_after_startup_reflects_counts_and_configuration() -> None:

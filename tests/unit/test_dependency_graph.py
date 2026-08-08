@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from backend.core.registry import ModuleDescriptor, ModuleStatus
-from backend.runtime.dependency_graph import DependencyGraph
-from backend.runtime.exceptions import CircularDependencyException
+from teaf._internal.core.registry import ModuleDescriptor, ModuleStatus
+from teaf._internal.runtime.dependency_graph import DependencyGraph
+from teaf._internal.runtime.exceptions import CircularDependencyException
 
 
 def _descriptor(name: str, *dependencies: str) -> ModuleDescriptor:

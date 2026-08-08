@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+from typing import cast
 
-from backend.providers.database.engine import ConnectionParameters, DatabaseDialect, create_engine
-from backend.providers.database.sqlalchemy_factory import SQLAlchemyDatabaseFactory
-from backend.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from teaf._internal.providers.database.engine import (
+    ConnectionParameters,
+    DatabaseDialect,
+    create_engine,
+)
+from teaf._internal.providers.database.sqlalchemy_factory import SQLAlchemyDatabaseFactory
+from teaf._internal.providers.database.sqlalchemy_provider import SQLAlchemyDatabaseProvider
 
 
 def _memory_engine() -> AsyncEngine:
@@ -21,7 +26,7 @@ def test_session_adapter_execute_flush_close() -> None:
         provider = SQLAlchemyDatabaseProvider(engine)
         session = provider.get_session()
         result = await session.execute(text("SELECT 7"))
-        value = result.scalar()
+        value = cast("int | None", result.scalar())
         await session.flush()
         await session.close()
         await engine.dispose()

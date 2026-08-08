@@ -1,6 +1,6 @@
 # Module Specification v1 — TEAF
 
-`ModuleSpecification` (`backend/sdk/specification.py`) es el contrato formal que todo módulo TEAF debe cumplir: diez secciones obligatorias, declaradas — no implementadas — en `ModuleSpecificationSection`. Las reglas concretas que comprueban cada sección viven en `ModuleValidator` (`backend/sdk/validator.py`). Separar "qué debe cumplirse" de "cómo se comprueba" es lo que permite versionar la especificación (`SPEC_VERSION`) sin tocar el motor de validación. Ver visión general en [SDK.md](SDK.md).
+`ModuleSpecification` (`teaf/_internal/sdk/specification.py`) es el contrato formal que todo módulo TEAF debe cumplir: diez secciones obligatorias, declaradas — no implementadas — en `ModuleSpecificationSection`. Las reglas concretas que comprueban cada sección viven en `ModuleValidator` (`teaf/_internal/sdk/validator.py`). Separar "qué debe cumplirse" de "cómo se comprueba" es lo que permite versionar la especificación (`SPEC_VERSION`) sin tocar el motor de validación. Ver visión general en [SDK.md](SDK.md).
 
 ## 1. Las diez secciones
 
@@ -18,7 +18,7 @@
 | Validation Rules | Las propias reglas de `ModuleValidator` | — (metasección) |
 
 ```python
-from backend.sdk.specification import CURRENT_SPECIFICATION
+from teaf._internal.sdk.specification import CURRENT_SPECIFICATION
 
 CURRENT_SPECIFICATION.version    # "1.0"
 CURRENT_SPECIFICATION.describe() # {"version": "1.0", "sections": [...10 nombres...]}
