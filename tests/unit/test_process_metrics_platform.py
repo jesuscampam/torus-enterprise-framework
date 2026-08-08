@@ -110,24 +110,110 @@ def test_current_cpu_time_seconds_matches_pre_patch_behavior_on_this_platform() 
     assert value >= 0.0
 
 
-def test_posix_path_is_untouched_byte_for_byte() -> None:
+def test_posix_path_matches_a_direct_getrusage_call() -> None:
     """Compara la salida contra una llamada directa a ``resource.getrusage``,
-    la misma que hacía ``Runtime`` antes de este módulo."""
+    la misma que hacía ``Runtime`` antes de este módulo.
+
+    Usa el factor de unidades del propio módulo en vez de un ``1024``
+    literal: en Darwin el factor correcto es ``1``, y fijar ``1024`` aquí
+    haría que esta prueba «confirmara» precisamente el error que
+    ``_RU_MAXRSS_TO_BYTES`` corrige.
+    """
     import resource
 
     from teaf._internal.runtime.process_metrics import (
+        _RU_MAXRSS_TO_BYTES,
         current_cpu_time_seconds,
         current_memory_rss_bytes,
     )
 
     direct = resource.getrusage(resource.RUSAGE_SELF)
-    assert current_memory_rss_bytes() == direct.ru_maxrss * 1024
+    assert current_memory_rss_bytes() == direct.ru_maxrss * _RU_MAXRSS_TO_BYTES
     # El tiempo de CPU avanza entre ambas lecturas; solo se comprueba que
     # coincide en la fórmula (utime + stime), con margen para el propio
     # coste de haber llamado a getrusage() dos veces.
     via_module = current_cpu_time_seconds()
     assert via_module is not None
     assert via_module >= direct.ru_utime + direct.ru_stime
+
+
+def test_ru_maxrss_is_scaled_by_the_unit_this_platform_actually_uses() -> None:
+    """En Linux ``ru_maxrss`` viene en KiB, así que el factor debe ser 1024.
+
+    Comprobación adicional contra el kernel: ``VmHWM`` de ``/proc/self/status``
+    es el mismo pico de RSS, en KiB y sin ambigüedad de unidades. Si el factor
+    fuese el equivocado, ambos diferirían en tres órdenes de magnitud.
+    """
+    if sys.platform != "linux":
+        pytest.skip("la comprobación contra /proc/self/status es específica de Linux")
+
+    from teaf._internal.runtime.process_metrics import (
+        _RU_MAXRSS_TO_BYTES,
+        current_memory_rss_bytes,
+    )
+
+    assert _RU_MAXRSS_TO_BYTES == 1024
+
+    hwm_kib = 0
+    for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
+        if line.startswith("VmHWM:"):
+            hwm_kib = int(line.split()[1])
+            break
+    assert hwm_kib > 0, "no se pudo leer VmHWM de /proc/self/status"
+
+    reported = current_memory_rss_bytes()
+    assert reported is not None
+    # Mismo orden de magnitud: ru_maxrss y VmHWM no tienen por qué coincidir
+    # al byte, pero sí deben estar dentro de un factor 2 entre sí.
+    assert 0.5 <= reported / (hwm_kib * 1024) <= 2.0
+
+
+@pytest.mark.parametrize(
+    ("platform", "expected_factor"),
+    [
+        ("linux", 1024),
+        ("freebsd13", 1024),
+        # Darwin es el caso que el parche original tenía mal: ru_maxrss ya
+        # viene en bytes, así que multiplicar por 1024 reportaba 1024x.
+        ("darwin", 1),
+    ],
+)
+def test_ru_maxrss_unit_factor_per_posix_platform(platform: str, expected_factor: int) -> None:
+    """El factor se decide al importar, así que se comprueba recargando el
+    módulo bajo cada plataforma simulada."""
+    import importlib
+
+    import teaf._internal.runtime.process_metrics as pm
+
+    original = sys.platform
+    try:
+        # Asignación directa en vez de ``monkeypatch``: el ``importlib.reload``
+        # de restauración tiene que correr con la plataforma real ya puesta, y
+        # el teardown de monkeypatch ocurriría después del cuerpo del test.
+        sys.platform = platform
+        reloaded = importlib.reload(pm)
+        assert reloaded._RU_MAXRSS_TO_BYTES == expected_factor
+    finally:
+        sys.platform = original
+        importlib.reload(pm)
+
+
+def test_macos_selects_the_posix_backend_not_the_windows_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """macOS es POSIX: debe usar ``resource``, nunca el camino de ``ctypes``."""
+    monkeypatch.setattr(sys, "platform", "darwin")
+
+    module = _load_process_metrics_fresh()
+
+    # Si el despacho fuese por "no es Linux -> Windows", esto llamaría a
+    # ctypes.windll y reventaría en esta máquina. Que devuelva un número
+    # demuestra que macOS cae en la rama POSIX.
+    value = module.current_memory_rss_bytes()
+    assert value is not None
+    assert value > 0
+    assert module._kernel32 is None
+    assert module._psapi is None
 
 
 # -- Camino Windows: estructural, con la API de Windows sustituida por un doble -----------
@@ -167,6 +253,34 @@ def test_module_imports_without_error_under_simulated_windows(
 
     assert hasattr(module, "_kernel32")
     assert hasattr(module, "_psapi")
+
+
+def test_module_loads_on_simulated_windows_with_resource_made_unimportable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """La reproducción más fiel del bug original que se puede montar en Linux.
+
+    Además de simular ``sys.platform == "win32"``, deja ``resource``
+    **inutilizable**: poner ``None`` en ``sys.modules`` hace que
+    ``import resource`` lance ``ImportError``, que es exactamente lo que pasa
+    en un Windows real, donde el módulo no existe. Si la guarda de plataforma
+    se rompiera, este test fallaría con el mismo error que reportó el usuario.
+    """
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setitem(sys.modules, "resource", None)
+    monkeypatch.setattr(
+        ctypes,
+        "windll",
+        types.SimpleNamespace(kernel32=MagicMock(), psapi=MagicMock()),
+        raising=False,
+    )
+
+    module = _load_process_metrics_fresh()
+
+    # El camino de CPU en Windows no usa ni ``resource`` ni ``ctypes``.
+    value = module.current_cpu_time_seconds()
+    assert value is not None
+    assert value >= 0.0
 
 
 def test_windows_memory_reads_the_field_the_fake_os_call_writes(

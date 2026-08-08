@@ -6,25 +6,30 @@ parche, `from teaf import Application` **no funcionaba en Windows**.
 
 ## Estado por plataforma
 
-| Plataforma | Import (`from teaf import Application`) | Arranque (`Runtime`) | HTTP (`/`, `/health`, `/info`, `/runtime/info`) |
-|---|---|---|---|
-| **Linux** | ✅ Verificado — es donde corre toda la suite de TEAF | ✅ Verificado | ✅ Verificado |
-| **macOS** | ✅ Compatible por diseño (POSIX, mismo camino que Linux) — no verificado en este Sprint | ✅ Compatible por diseño | ✅ Compatible por diseño |
-| **Windows** | ✅ Compatible por diseño — **no verificado en un Windows real** (ver «Qué significa cada estado» abajo) | ✅ Compatible por diseño | ✅ Compatible por diseño |
+| Plataforma | Import (`from teaf import Application`) | Arranque (`Runtime`) | HTTP (`/`, `/health`, `/info`, `/runtime/info`) | Métricas de proceso |
+|---|---|---|---|---|
+| **Linux** | ✅ Verificado — es donde corre toda la suite de TEAF | ✅ Verificado | ✅ Verificado | ✅ Verificado (contrastado contra `/proc/self/status`) |
+| **macOS** | ✅ Compatible por diseño (POSIX, mismo camino que Linux) | ✅ Compatible por diseño | ✅ Compatible por diseño | ⚠️ Compatible por diseño — unidad de `ru_maxrss` corregida, **no ejecutado en un Mac real** |
+| **Windows** | ✅ Compatible por diseño | ✅ Compatible por diseño | ✅ Compatible por diseño | ⚠️ Compatible por diseño — `ctypes`/`psapi` probado solo contra un doble, **no en un Windows real** |
 
 ### Qué significa cada estado
 
 - **Verificado**: se ejecutó de verdad en esa plataforma y se observó el resultado.
-- **Compatible por diseño, no verificado**: el código no contiene ninguna API exclusiva de esa
-  plataforma que se sepa (auditoría completa más abajo), y la parte que sí difiere por plataforma
-  (`process_metrics.py`) se probó de forma estructural — simulando la superficie de Windows dentro
-  de un intérprete Linux — pero **no contra un Windows real**. No hay una máquina Windows en el
-  entorno donde se desarrolló este parche.
+- **Compatible por diseño, no verificado**: el código no contiene ninguna API exclusiva de otra
+  plataforma que se sepa (auditoría completa más abajo), y la parte que sí difiere
+  (`process_metrics.py`) se probó **simulando** esa plataforma dentro de un intérprete Linux —
+  `sys.platform` sustituido, y en el caso de Windows también `ctypes.windll` y un `resource`
+  deliberadamente inutilizable. Es verificación de la mecánica, no de la plataforma: en el entorno
+  donde se desarrolló esto **no hay ni una máquina Windows ni un Mac**.
+
+  Lo que esto sí descarta con certeza: que el import falle, que el despacho elija el backend
+  equivocado, o que la estructura `ctypes` esté mal montada. Lo que **no** puede descartar: que la
+  API real del sistema devuelva algo distinto de lo que devuelve el doble.
 
 No se declara "Windows soportado" sin matices por esta misma razón: hacerlo sin haber ejecutado
 `pip install -e .` y `from teaf import Application` en un Windows real sería exactamente el tipo de
 afirmación no verificada que este documento existe para no hacer. **Validación pendiente**, primer
-paso de quien tenga acceso a una máquina Windows:
+paso de quien tenga acceso a una máquina Windows (en un Mac, el equivalente con `python3`):
 
 ```powershell
 python --version
@@ -75,10 +80,10 @@ process_metrics.py
 resource   os.times() + ctypes/psapi
 ```
 
-| Cifra | POSIX | Windows |
-|---|---|---|
-| Tiempo de CPU | `resource.getrusage(RUSAGE_SELF)` — **sin cambios** respecto a antes del parche | `os.times()` — documentada por la librería estándar como disponible en Unix **y** Windows, devuelve el mismo par (usuario, sistema) |
-| Memoria residente | `resource.getrusage(RUSAGE_SELF).ru_maxrss * 1024` — **sin cambios** | `GetProcessMemoryInfo` (`psapi.dll`) vía `ctypes`, leyendo `WorkingSetSize` — el análogo práctico de RSS en Windows |
+| Métrica | Linux | macOS | Windows |
+|---|---|---|---|
+| Memoria residente | `resource.getrusage(RUSAGE_SELF).ru_maxrss` × **1024** (viene en KiB) | `resource.getrusage(RUSAGE_SELF).ru_maxrss` × **1** (ya viene en bytes) | `GetProcessMemoryInfo` (`psapi.dll`) vía `ctypes` → `WorkingSetSize` |
+| Tiempo de CPU | `resource.getrusage(RUSAGE_SELF)` → `ru_utime + ru_stime` | igual que Linux | `os.times()` → `user + system` |
 
 Dos decisiones que merece la pena explicar:
 
@@ -91,8 +96,37 @@ Dos decisiones que merece la pena explicar:
   exclusivo de Windows (`ctypes.windll`) queda aislado dentro de un `if sys.platform == "win32":`,
   para que el archivo se pueda importar —y comprobar con `mypy --strict`— en cualquier plataforma.
 
-**El camino POSIX no cambió una sola línea** respecto a lo que hacía `Runtime` antes de que
-existiera este módulo. Ninguna aplicación en Linux o macOS ve una diferencia de comportamiento.
+**En Linux el camino POSIX es idéntico** al de antes: mismo valor, mismo código, misma ruta de
+ejecución. En macOS **sí cambia, y a propósito** — ver la sección siguiente.
+
+## `ru_maxrss` no usa la misma unidad en todos los POSIX
+
+Es la única diferencia real de semántica entre Linux y macOS en este módulo, y merece su propia
+sección porque es silenciosa: no falla, simplemente devuelve un número equivocado.
+
+| Sistema | Unidad de `ru_maxrss` | Fuente |
+|---|---|---|
+| Linux | KiB | `getrusage(2)`: *"maximum resident set size used (in kilobytes)"* |
+| FreeBSD | KiB | `getrusage(2)`: *"in kilobytes"* |
+| macOS / Darwin | **bytes** | `getrusage(2)`: *"the maximum resident set size utilized (in bytes)"* |
+
+La primera versión de este módulo (v0.10.1-alpha, antes de esta corrección) multiplicaba por 1024
+sin mirar la plataforma. En Linux era correcto; **en macOS reportaba 1024 veces la memoria real** —
+del orden de gigabytes donde había megabytes.
+
+Corregido con `_RU_MAXRSS_TO_BYTES`, un factor que se resuelve una sola vez al importar. Es el
+mismo reparto que hace **mypy** en `mypy/dmypy_server.py` (`factor = 1` en `darwin`, `1024` en el
+resto), lo que sirve de corroboración independiente de que la divergencia es real y de cuál es el
+lado correcto.
+
+> **Cambio de comportamiento en macOS, declarado.** Es la única desviación de la regla "no cambiar
+> el comportamiento existente de Linux/macOS" de este sprint. Se corrige porque el valor anterior
+> era sencillamente incorrecto, no una convención distinta: `memory_rss_bytes` promete bytes y en
+> macOS no los devolvía. Linux no se ve afectado.
+
+Cubierto por pruebas: el factor se comprueba para `linux`, `freebsd` y `darwin` simulados, y en
+Linux se contrasta además contra `VmHWM` de `/proc/self/status`, que es el mismo pico de RSS en una
+unidad sin ambigüedad.
 
 ## Otras dependencias exclusivas de una plataforma — auditoría
 
@@ -100,8 +134,20 @@ Además de `resource`, se buscó en todo el repositorio: `fcntl`, `pwd`, `grp`, 
 `pty`, `signal` (con señales específicas de POSIX), `os.uname`, `os.fork`, `os.getuid`,
 `os.getgid`, y rutas fijas de tipo `/etc/`.
 
-**Resultado: ninguna**, ni dentro de `teaf/` ni en el resto del repositorio (`scripts/`,
-`benchmarks/`, `database/migrations/`).
+Resultado, clasificando cada hallazgo de **código propio** (se excluye `.venv/`: alembic, click,
+pip y setuptools usan `fcntl`/`termios`/`pwd` bajo sus propias guardas y funcionan en Windows):
+
+| Archivo | Línea | API | ¿En la cadena de import pública? | Acción |
+|---|---|---|---|---|
+| `teaf/_internal/runtime/process_metrics.py` | 61 | `import resource` | Sí | ✅ **Guardado** por `if sys.platform != "win32":` — es el arreglo |
+| `tests/unit/test_process_metrics_platform.py` | 122 | `import resource` | No (suite de pruebas) | ✅ Dentro de una función de test; solo se ejecuta en POSIX |
+| `loadtests/harness.py` | 27 | `import resource` | **No** | ⚠️ Sin guarda, pero fuera de alcance — ver abajo |
+
+Ninguna otra: cero `fcntl`, `pwd`, `grp`, `termios`, `tty`, `pty`, `os.uname`, `os.fork`,
+`os.getuid`, `os.getgid` o rutas `/etc/` en código propio.
+
+Que `loadtests/harness.py` está fuera de la cadena pública **está comprobado, no supuesto**:
+importar `teaf` en un intérprete limpio y mirar `sys.modules` no trae ningún módulo `loadtests`.
 
 Dos coincidencias de la búsqueda inicial de "resource" resultaron ser falsos positivos, no
 relacionados con el módulo estándar:
@@ -121,6 +167,22 @@ import de la aplicación — así que queda fuera del alcance de este parche por
 implementarlo en este patch"*. Corregirlo sería una repetición mecánica del mismo patrón que este
 documento ya describe, sin ningún hallazgo nuevo que justifique tocar una herramienta de desarrollo
 fuera de alcance.
+
+## Limitaciones — las métricas no son perfectamente equivalentes entre plataformas
+
+Las APIs subyacentes no son la misma cosa, así que **no se afirma equivalencia exacta**. Lo que sí
+es equivalente es el *propósito*: una cifra de diagnóstico comparable consigo misma a lo largo del
+tiempo, dentro de la misma plataforma.
+
+| Diferencia | Detalle |
+|---|---|
+| **Pico vs. instantánea (memoria)** | En POSIX, `ru_maxrss` es el **máximo histórico** de RSS del proceso — nunca baja. En Windows, `WorkingSetSize` es el valor **actual** — sube y baja. Comparar la memoria de un proceso Linux con la de uno Windows no es una comparación entre iguales; el equivalente exacto de `ru_maxrss` en Windows sería `PeakWorkingSetSize`, que **no** se usa aquí para no cambiar el significado del campo respecto a la implementación original. |
+| **Working Set ≠ RSS** | `WorkingSetSize` cuenta las páginas del proceso residentes en RAM, incluidas las compartidas; la contabilidad de páginas compartidas difiere de la de Linux. Es el análogo práctico, no idéntico. |
+| **Resolución del tiempo de CPU** | `getrusage` reporta con resolución de microsegundos; `GetProcessTimes` —lo que hay debajo de `os.times()` en Windows— tiene una granularidad típica de ~15,6 ms. Para tiempos de CPU cortos, Windows es apreciablemente menos preciso. |
+| **`ru_maxrss` en macOS** | Unidad distinta a la de Linux; normalizada — ver la sección anterior. |
+
+Ninguna de estas diferencias afecta al arranque, al enrutamiento ni al ciclo de vida: las dos
+cifras son observabilidad y ya eran `int | None`/`float | None`.
 
 ## Qué no cambió
 

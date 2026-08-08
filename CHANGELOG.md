@@ -7,7 +7,43 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.10.1-alpha](#0101-alpha---2026-08-08).
+Sin cambios todavía sobre [0.10.2-alpha](#0102-alpha---2026-08-08).
+
+## [0.10.2-alpha] - 2026-08-08
+
+Cross-Platform Runtime Compatibility. Completa el trabajo multiplataforma que empezó
+[0.10.1-alpha](#0101-alpha---2026-08-08) cerrando el lado macOS. Sin dependencias externas nuevas,
+sin cambios en la API pública (`PUBLIC_API_VERSION` sigue en `2.0.0`).
+
+### Fixed
+
+- **La memoria reportada en macOS era 1024 veces la real.** `_posix_memory_rss_bytes` multiplicaba
+  `ru_maxrss` por 1024 sin mirar la plataforma, pero **`ru_maxrss` no usa la misma unidad en todos
+  los POSIX**: en Linux y FreeBSD viene en KiB, y en macOS/Darwin **ya viene en bytes**
+  (`getrusage(2)` de cada sistema lo documenta explícitamente). El defecto era silencioso — no
+  fallaba, solo devolvía un número equivocado en `GET /runtime/info`.
+  - Corregido con `_RU_MAXRSS_TO_BYTES`, un factor resuelto una sola vez al importar (`1` en
+    `darwin`, `1024` en el resto). Es el mismo reparto que hace **mypy** en `dmypy_server.py`,
+    corroboración independiente de cuál es el lado correcto.
+  - **Linux no se ve afectado**: mismo valor, mismo código, misma ruta de ejecución.
+  - Es la única desviación deliberada de "no cambiar el comportamiento existente de Linux/macOS"
+    de este sprint, y se hace porque el valor anterior era incorrecto, no una convención distinta:
+    `memory_rss_bytes` promete bytes y en macOS no los devolvía. Declarado en
+    [PLATFORM-COMPATIBILITY.md](docs/PLATFORM-COMPATIBILITY.md).
+
+### Added
+
+- **5 pruebas nuevas** (15 en total en `test_process_metrics_platform.py`): el factor de unidades
+  para `linux`/`freebsd`/`darwin` simulados, un contraste en Linux contra `VmHWM` de
+  `/proc/self/status` —el mismo pico de RSS en una unidad sin ambigüedad—, y una prueba de que
+  macOS despacha al backend POSIX y **nunca** toca `ctypes.windll`.
+- [PLATFORM-COMPATIBILITY.md](docs/PLATFORM-COMPATIBILITY.md) gana la matriz de métricas por
+  plataforma (Linux · macOS · Windows) y una sección de **limitaciones** que documenta que las
+  cifras **no son perfectamente equivalentes** entre sistemas: `ru_maxrss` es un *pico histórico*
+  mientras `WorkingSetSize` es un *valor actual*; Working Set no es exactamente RSS; y
+  `GetProcessTimes` tiene ~15,6 ms de granularidad frente a los microsegundos de `getrusage`.
+- Nota explícita de que el camino Windows **no filtra recursos**: `GetCurrentProcess()` devuelve un
+  *pseudo-handle*, no un handle real, así que no hay nada que cerrar.
 
 ## [0.10.1-alpha] - 2026-08-08
 
