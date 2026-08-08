@@ -50,7 +50,7 @@ from teaf._internal.shared.constants import DEFAULT_SERVICE_NAME
 #: Versión del propio framework TEAF (no de una aplicación construida sobre
 #: él). Se actualiza junto con CHANGELOG.md en cada release (ver
 #: docs/standards/GIT-STANDARD.md, sección 6, Versionado Semántico).
-FRAMEWORK_VERSION = "0.10.0-alpha"
+FRAMEWORK_VERSION = "0.10.1-alpha"
 
 #: Raíz del repositorio, para escribir ``runtime.manifest.json`` (ver
 #: Sprint 2.4, ítem 9) siempre en el mismo lugar sin depender del directorio

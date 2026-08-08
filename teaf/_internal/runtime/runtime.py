@@ -14,7 +14,6 @@ docs/runtime/RUNTIME.md).
 
 from __future__ import annotations
 
-import resource
 import sys
 import uuid
 from collections.abc import Mapping
@@ -36,6 +35,10 @@ from teaf._internal.runtime.features.manager import FeatureManager
 from teaf._internal.runtime.lifecycle import LifecycleManager, LifecycleStage
 from teaf._internal.runtime.pipeline import ShutdownPipeline, StartupPipeline
 from teaf._internal.runtime.plugin_loader import Plugin, PluginLoader
+from teaf._internal.runtime.process_metrics import (
+    current_cpu_time_seconds,
+    current_memory_rss_bytes,
+)
 from teaf._internal.runtime.self_description import RuntimeSelfDescription
 from teaf._internal.runtime.service_discovery import ServiceDiscovery
 
@@ -269,15 +272,17 @@ class Runtime:
         )
 
     @staticmethod
-    def _current_memory_rss_bytes() -> int:
-        """Memoria residente del proceso — ``ru_maxrss`` viene en KiB en Linux."""
-        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+    def _current_memory_rss_bytes() -> int | None:
+        """Memoria residente del proceso. Ver ``process_metrics.py`` — la
+        implementación difiere por plataforma; ``None`` si no se puede
+        obtener, nunca una excepción."""
+        return current_memory_rss_bytes()
 
     @staticmethod
-    def _current_cpu_time_seconds() -> float:
-        """Tiempo de CPU acumulado del proceso (usuario + sistema)."""
-        usage = resource.getrusage(resource.RUSAGE_SELF)
-        return usage.ru_utime + usage.ru_stime
+    def _current_cpu_time_seconds() -> float | None:
+        """Tiempo de CPU acumulado del proceso (usuario + sistema). Ver
+        ``process_metrics.py``."""
+        return current_cpu_time_seconds()
 
     def self_description(self) -> RuntimeSelfDescription:
         """El Runtime describiéndose a sí mismo (ver ``GET /runtime/self``)."""

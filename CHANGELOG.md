@@ -7,7 +7,50 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.10.0-alpha](#0100-alpha---2026-08-07).
+Sin cambios todavía sobre [0.10.1-alpha](#0101-alpha---2026-08-08).
+
+## [0.10.1-alpha] - 2026-08-08
+
+Windows Compatibility Patch. Corrige un defecto que impedía `from teaf import Application` en
+Windows. Sin funcionalidad nueva, sin cambios de comportamiento en Linux/Unix, sin ruptura de API
+pública.
+
+### Fixed
+
+- **`ModuleNotFoundError: No module named 'resource'` en Windows.** `teaf/_internal/runtime/runtime.py`
+  importaba `resource` —módulo estándar exclusivo de POSIX, sin equivalente en Windows— a nivel de
+  módulo. Como `Runtime` está en la cadena de import de `from teaf import Application` (vía
+  `teaf.api` → `ApiProtectionModule` → `ModuleContext` → `Runtime`), cualquier intento de importar
+  TEAF en Windows fallaba antes de que la aplicación que lo consume ejecutara una sola línea propia.
+  Reportado al integrar `teaf-reference-app` en Windows.
+
+### Added
+
+- **`teaf._internal.runtime.process_metrics`** — abstracción de plataforma para las dos únicas
+  cifras que usaban `resource`: memoria residente y tiempo de CPU, expuestas por
+  `Runtime.diagnostics()` vía `GET /runtime/info`. Diagnóstico auxiliar, no comportamiento
+  funcional — ya eran `int | None`/`float | None` desde Sprint 2.8. El camino POSIX
+  (`resource.getrusage`) no cambia una sola línea; Windows obtiene su propia implementación real
+  —`os.times()` para CPU (documentada como portátil por la librería estándar), `ctypes` +
+  `GetProcessMemoryInfo` (`psapi.dll`) para memoria—, sin dependencia nueva.
+- [`docs/PLATFORM-COMPATIBILITY.md`](docs/PLATFORM-COMPATIBILITY.md) — causa raíz, la abstracción,
+  auditoría completa de otras APIs exclusivas de plataforma (ninguna encontrada), y el estado real
+  de verificación por plataforma: **Linux verificado**; **Windows y macOS compatibles por diseño,
+  no verificados en una máquina real** — no se declara soporte sin haberlo comprobado.
+- `tests/unit/test_process_metrics_platform.py` (10 pruebas) y
+  `tests/integration/test_windows_compatibility.py` (4 pruebas): regresión del import guardado por
+  plataforma (AST), el camino POSIX byte a byte, y una simulación estructural de la superficie de
+  Windows (`ctypes.windll` sustituido por un doble) — documentada explícitamente como verificación
+  de mecánica, no como validación en un Windows real.
+
+### Auditoría
+
+Búsqueda completa en el repositorio de otras dependencias exclusivas de plataforma (`fcntl`, `pwd`,
+`grp`, `termios`, `tty`, `pty`, `signal` específico de POSIX, `os.uname`, `os.fork`, `os.getuid`,
+`os.getgid`, rutas `/etc/`): **ninguna**, ni dentro de `teaf/` ni en el resto del repositorio.
+`loadtests/harness.py` también usa `resource`, pero es herramienta de desarrollo fuera del paquete
+distribuido y no bloquea `from teaf import Application` — queda documentado, no corregido, por su
+propia regla de alcance.
 
 ## [0.10.0-alpha] - 2026-08-07
 

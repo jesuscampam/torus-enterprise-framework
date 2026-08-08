@@ -8,11 +8,17 @@ Sprint 2.4, consumida por ``GET /runtime/info`` y por ``Runtime.diagnostics()``.
 ``memory_rss_bytes``/``cpu_time_seconds`` son reales desde Sprint 2.8 (ver
 ADR-008) — antes, ``memory_placeholder``/``cpu_placeholder`` eran literales
 explícitos ``"not-implemented"``. Se calculan en el propio
-``Runtime.diagnostics()`` (``runtime.py``) vía ``resource.getrusage()``
-(estándar de Python, sin dependencia nueva). ``teaf._internal.observability.diagnostics``
-(Sprint 2.8) construye el ``DiagnosticReport`` agregado — envuelve esta
-misma clase (``as_dict()``) junto al ``HealthReport`` de
-``CompositeHealthChecker``, sin recalcular ninguno de sus campos.
+``Runtime.diagnostics()`` (``runtime.py``) delegando en
+``teaf._internal.runtime.process_metrics`` (Windows Compatibility Patch,
+v0.10.1-alpha), que resuelve la implementación real por plataforma —
+``resource.getrusage()`` en POSIX, ``ctypes``/``os.times()`` en Windows—,
+siempre de la librería estándar, sin dependencia nueva. Que sigan siendo
+``int | None``/``float | None`` es justamente lo que permite que la cifra
+falte en una plataforma sin que el resto del diagnóstico se vea afectado.
+``teaf._internal.observability.diagnostics`` (Sprint 2.8) construye el
+``DiagnosticReport`` agregado — envuelve esta misma clase (``as_dict()``)
+junto al ``HealthReport`` de ``CompositeHealthChecker``, sin recalcular
+ninguno de sus campos.
 """
 
 from __future__ import annotations

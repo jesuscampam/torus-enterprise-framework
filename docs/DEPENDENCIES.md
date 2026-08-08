@@ -2,7 +2,9 @@
 
 Qué depende TEAF de terceros, por qué esa versión, y cómo se comprueba que no arrastra
 vulnerabilidades conocidas. La justificación de **qué tecnología** se elige está en
-[STACK.md](architecture/STACK.md); aquí está la de **qué versión** y su estado de seguridad.
+[STACK.md](architecture/STACK.md); aquí está la de **qué versión** y su estado de seguridad. Para
+qué depende TEAF del **sistema operativo** —y las dos únicas cifras cuya implementación difiere
+entre POSIX y Windows— ver [PLATFORM-COMPATIBILITY.md](PLATFORM-COMPATIBILITY.md).
 
 ## Política
 
