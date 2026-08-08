@@ -175,8 +175,9 @@ coste reducido solo en `TestingSettings` y documentado.
 
 ### Dependencias
 
-Los dos manifiestos están **exactamente sincronizados**: 18 paquetes de runtime, mismas versiones,
-sin divergencias, sin duplicados, todas fijadas con `==`.
+Los dos manifiestos están **exactamente sincronizados**: 20 paquetes de runtime, mismas versiones,
+sin divergencias, sin duplicados, todas fijadas con `==`. Desde el Sprint 3.0.3 esto último no es
+solo una afirmación: `tests/unit/test_packaging_metadata.py` falla si alguna línea abandona el `==`.
 
 | Comprobación | Resultado |
 |---|---|

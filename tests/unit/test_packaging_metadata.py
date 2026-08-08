@@ -96,6 +96,39 @@ def test_pyproject_dependencies_match_requirements_txt() -> None:
     assert declared == from_requirements
 
 
+def test_every_runtime_dependency_is_pinned_exactly() -> None:
+    """La política de [DEPENDENCIES.md](../../docs/DEPENDENCIES.md) —"versiones fijadas
+    con ``==``, nunca rangos abiertos"— vivía solo en prosa, y nada la hacía cumplir.
+
+    Sprint 3.0.3 la convierte en prueba. El motivo no es estético: el sprint nació
+    porque una dependencia **transitiva** con código nativo no tenía wheel para
+    Python 3.14, y se descubrió que ``starlette`` y ``greenlet`` entraban sin techo
+    (``starlette>=0.46.0``, ``greenlet>=1``) y flotaban entre instalaciones del
+    mismo commit. Un rango abierto en este fichero es una regresión silenciosa a
+    ese estado.
+    """
+    requirements = (_REPO_ROOT / "requirements.txt").read_text(encoding="utf-8")
+    unpinned = [
+        line.strip()
+        for line in requirements.splitlines()
+        if line.strip() and not line.strip().startswith("#") and "==" not in line
+    ]
+    assert not unpinned, f"dependencias sin fijar con '==': {unpinned}"
+
+
+def test_starlette_and_greenlet_stay_pinned_as_direct_dependencies() -> None:
+    """Regresión concreta del Sprint 3.0.3.
+
+    Ambas son transitivas —de ``fastapi`` y de ``sqlalchemy[asyncio]``— y ninguna
+    aparecía en los manifiestos. Si alguien las retira por considerarlas
+    "redundantes con lo que ya arrastra FastAPI", vuelve la deriva que este sprint
+    cerró, y con ``greenlet`` además vuelve el riesgo de compilación nativa.
+    """
+    declared = set(_load_pyproject()["project"]["dependencies"])  # type: ignore[index]
+    assert "starlette==1.4.1" in declared
+    assert "greenlet==3.5.4" in declared
+
+
 def test_teaf_is_installed_as_an_editable_distribution_matching_source() -> None:
     """Confirma que ``pip install -e .`` (ejecutado como parte de la validación del
     Sprint) instaló la misma versión que declara el código fuente — no una copia

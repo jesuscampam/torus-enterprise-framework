@@ -31,7 +31,13 @@ dependencies = [
     "uvicorn[standard]==0.34.0",
     "pydantic==2.12.0",
     "pydantic-settings==2.7.0",
+    # starlette y greenlet son transitivas (de fastapi y de sqlalchemy[asyncio])
+    # que sus dueños declaran sin techo — `starlette>=0.46.0`, `greenlet>=1` — y
+    # por tanto flotaban entre instalaciones. Se fijan en Sprint 3.0.3; el
+    # razonamiento completo está en requirements.txt y en docs/DEPENDENCIES.md.
+    "starlette==1.4.1",
     "sqlalchemy[asyncio]==2.0.45",
+    "greenlet==3.5.4",
     "alembic==1.14.0",
     "aiosqlite==0.20.0",
     "asyncpg==0.31.0",

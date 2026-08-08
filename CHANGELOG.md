@@ -40,6 +40,18 @@ fijadas a versiones anteriores a 3.14. Sin cambios en la API pública (`PUBLIC_A
   `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` **no se usa**: desactiva la comprobación de versión de
   PyO3 y construye contra una ABI no validada para 3.14. Es un `--force`, no una corrección.
 
+- **`starlette` y `greenlet` pasan a estar fijadas** (`==1.4.1` y `==3.5.4`). Ninguna aparecía en los
+  manifiestos: entraban como transitivas de `fastapi` y de `sqlalchemy[asyncio]`, cuyos constraints
+  no tienen techo (`starlette>=0.46.0`, `greenlet>=1`). El efecto era medible — el mismo commit
+  instalaba **starlette 1.4.1** en el entorno de desarrollo y **1.6.0** en una instalación limpia en
+  3.14, es decir, distinta cadena HTTP con el mismo código.
+  - `starlette 1.4.1` es la versión contra la que se validó `fastapi 0.141.1` en el Sprint 3.0 y la
+    que corrigió sus 7 CVE; fijarla no introduce nada nuevo, congela lo ya probado. Tiene un efecto
+    añadido: los middlewares de TEAF heredan de `BaseHTTPMiddleware`, así que la versión de starlette
+    entra en el snapshot de API pública — fijarla evita que `api-surface.json` se mueva solo.
+  - `greenlet 3.5.4` se fija sobre todo por ser **código nativo**: un greenlet futuro sin wheel para
+    el Python de turno reproduce exactamente el fallo que originó este sprint.
+
 ### Changed
 
 - **Clasificadores `Programming Language :: Python :: 3.12`, `:: 3.13` y `:: 3.14`** en
@@ -48,10 +60,24 @@ fijadas a versiones anteriores a 3.14. Sin cambios en la API pública (`PUBLIC_A
 
 ### Added
 
-- **5 pruebas nuevas** en `tests/unit/test_python_version_support.py` y 1 en
+- **5 pruebas nuevas** en `tests/unit/test_python_version_support.py` y 3 en
   `test_packaging_metadata.py`, que fijan que **la metadata no mienta**: que `requires-python` y los
   clasificadores coincidan, que el rango declarado no tenga huecos, que 3.13 no se pierda al ganar
   3.14, y que el intérprete que ejecuta la suite caiga dentro de lo declarado.
+- **La política de pins deja de ser solo prosa.** `docs/DEPENDENCIES.md` decía desde siempre
+  "versiones fijadas con `==`, nunca rangos abiertos", y nada lo comprobaba — de ahí que dos
+  transitivas llevaran flotando sin que saltara nada. Ahora una prueba falla si alguna línea de
+  `requirements.txt` abandona el `==`, y otra fija que `starlette` y `greenlet` sigan declaradas.
+- **Auditoría del cierre transitivo completo**: 58 paquetes de runtime, de los que **7 llevan código
+  nativo sin fijar** — la clase de fallo exacta de este sprint. `pydantic-core` está controlada de
+  facto (`pydantic` la fija exacto) y `greenlet` se fija aquí; las otras 5 (`cryptography`, `cffi`,
+  `argon2-cffi-bindings`, `markupsafe`, `protobuf`) **se dejan a propósito**: ninguna bloquea hoy y
+  elegirles versión sin un bloqueo que lo justifique sería la actualización a ciegas que el sprint
+  prohíbe. Cerrarlo bien exige un lockfile, que es decisión de arquitectura con ADR.
+- **Matriz de wheels para macOS ARM64 + CPython 3.14** en `docs/DEPENDENCIES.md`. No hay Mac en el
+  entorno, así que no se ejecutó nada allí — pero sí se verificó, consultando PyPI, **qué wheel
+  elegiría pip en esa plataforma exacta**, que es el mecanismo que falló. Ninguno de los 20 paquetes
+  cae al *sdist*: ninguno compila, ni con Rust ni con C.
 - [PLATFORM-COMPATIBILITY.md](docs/PLATFORM-COMPATIBILITY.md) gana la sección **Versiones de
   Python**, con la misma distinción VERIFICADO / COMPATIBLE POR DISEÑO que ya aplicaba a los
   sistemas operativos.
@@ -78,32 +104,35 @@ fijadas a versiones anteriores a 3.14. Sin cambios en la API pública (`PUBLIC_A
    - **Decisión sujeta a revisión de un CODEOWNER** ([CLAUDE.md](CLAUDE.md) §8): quien revise puede
      concluir que un cambio de firma, aun sin efecto observable, merece MAJOR igualmente.
 
-2. **La puerta `benchmarks` falla en este anfitrión, y no por este cambio.** Seis mediciones salen
+2. **La puerta `benchmarks` falló a mitad del sprint, y no por este cambio.** Seis mediciones salían
    +64 % a +80 % sobre la baseline. Se descartó la hipótesis obvia con un experimento controlado:
    los mismos benchmarks, en la misma máquina y en el mismo momento, **con el pin anterior
-   `pydantic==2.10.4`**, dan la misma regresión (GZip: 2048.70 µs con 2.10.4 frente a 2048.12 µs con
-   2.12.0 — el mismo número). Además, lo que se degrada incluye compresión GZip y resolución del
-   contenedor de DI, que no tocan `pydantic` ni por asomo. Es el anfitrión, más lento que cuando se
-   registró la baseline.
-   - **La baseline NO se ha regenerado**: reescribirla sería exactamente el "hacer pasar el gate"
-     que este repositorio prohíbe. La puerta queda en rojo, declarada aquí, para que se revise en
-     una máquina estable.
+   `pydantic==2.10.4`**, daban la misma regresión (GZip: 2048.70 µs con 2.10.4 frente a 2048.12 µs
+   con 2.12.0 — el mismo número). Además, lo degradado incluía compresión GZip y resolución del
+   contenedor de DI, que no tocan `pydantic` ni por asomo. Era el anfitrión.
+   - **La baseline no se regeneró**, y el episodio acabó dándole la razón a esa decisión: en la
+     validación final la puerta **volvió sola a verde** sin tocar un solo número de `baseline.json`.
+     De haberla reescrito para "arreglar" el rojo, hoy estaría inflada un 70 % de forma permanente.
+     Contado en [BENCHMARKS.md](docs/BENCHMARKS.md) como caso práctico.
 
 ### Verificado / no verificado
 
-- **Verificado**: instalación limpia y **1.272 pruebas en verde** sobre tres intérpretes reales —
-  CPython **3.11.15**, **3.13.12** y **3.14.0rc2** (vía `uv`), con resultados idénticos. En 3.14 se
-  ejercitaron además `from teaf import Application`, `Version.as_dict()`, el ciclo
-  `bootstrapping → running → stopped` del `Runtime` y los cuatro endpoints de sistema, con
-  `memoryRssBytes` y `cpuTimeSeconds` reales. La subida de `pydantic` de 2.10 a 2.12 —dos versiones
-  menores— **no produjo ningún cambio de comportamiento observable** en la API pública.
-- **No verificado**: Python **3.12** (declarado, sin intérprete disponible en este entorno);
-  `asyncpg 0.31.0` contra un PostgreSQL real; Python 3.14.**6** (lo probado es 3.14.0rc2, mismo ABI
-  `cp314`); y la combinación *Windows o macOS × 3.14*, que hereda las reservas ya declaradas para
-  esas plataformas.
+- **Verificado**: en **cuatro** intérpretes reales — CPython **3.11.15**, **3.12.3**, **3.13.12** y
+  **3.14.0rc2** (vía `uv`) — cada uno en un **venv recreado desde cero**, con `pip install -e .` y
+  **1.281 pruebas en verde**, resultados idénticos en los cuatro. En 3.14 se ejercitaron además
+  `from teaf import Application`, `Version.as_dict()`, el ciclo `bootstrapping → running → stopped`
+  del `Runtime` y los cuatro endpoints de sistema, con `memoryRssBytes` y `cpuTimeSeconds` reales.
+  La subida de `pydantic` de 2.10 a 2.12 —dos versiones menores— **no produjo ningún cambio de
+  comportamiento observable** en la API pública.
+  - *(Corrección a la primera versión de esta entrada, que daba 3.12 por no verificado "sin
+    intérprete disponible": sí lo hay, `/usr/bin/python3.12`. Ahora está verificado de verdad.)*
+- **No verificado**: `asyncpg 0.31.0` contra un PostgreSQL real; Python 3.14.**6** (lo probado es
+  3.14.0rc2, mismo ABI `cp314` pero distinta compilación); y la combinación *Windows o macOS × 3.14*,
+  que hereda las reservas ya declaradas para esas plataformas. De macOS ARM64 sí se verificó la
+  **disponibilidad de wheels**, que es el mecanismo que falló, no la ejecución.
 - **Pendiente, deliberado**: no se creó CI con matriz de versiones — es infraestructura nueva, fuera
-  del alcance del sprint. Anotado en [BACKLOG.md](docs/roadmap/BACKLOG.md), junto con la deuda
-  preexistente de que **`starlette` no está fijado** en `requirements.txt`.
+  del alcance del sprint. Anotado en [BACKLOG.md](docs/roadmap/BACKLOG.md), junto con el lockfile
+  que haría falta para fijar las 5 transitivas nativas restantes.
 
 ### Qué no cambió
 

@@ -5,12 +5,23 @@ fastapi==0.141.1
 uvicorn[standard]==0.34.0
 pydantic==2.12.0
 pydantic-settings==2.7.0
+# Transitiva de fastapi, que la pide como `starlette>=0.46.0` — sin techo. Se
+# fija explícitamente (Sprint 3.0.3) porque flotaba: aquí resolvía 1.4.1 y una
+# instalación limpia traía 1.6.0, o sea el mismo repo con distinta cadena HTTP.
+# 1.4.1 es la versión contra la que se validó FastAPI 0.141.1 en el Sprint 3.0
+# y la que corrigió sus 7 CVE. Los middlewares de TEAF heredan de
+# BaseHTTPMiddleware, así que su versión entra en la superficie pública.
+starlette==1.4.1
 
 # Sprint 2.6 — Enterprise Persistence Foundation (teaf/_internal/modules/database/)
 sqlalchemy[asyncio]==2.0.45
 alembic==1.14.0
 aiosqlite==0.20.0
 asyncpg==0.31.0
+# Transitiva de sqlalchemy[asyncio], que la pide como `greenlet>=1` — sin techo.
+# Se fija (Sprint 3.0.3) por ser **código nativo**: un greenlet futuro sin wheel
+# para el Python de turno reproduce exactamente el fallo que causó este sprint.
+greenlet==3.5.4
 
 # Sprint 2.7 — Enterprise Security Platform (teaf/_internal/security/), ver ADR-007
 pyjwt[crypto]==2.13.0

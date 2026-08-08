@@ -103,7 +103,7 @@ nueva.
 
 ### 2. Auditoría de vulnerabilidades de dependencias
 
-No hay `pip-audit` ni `safety` en el entorno, así que el árbol de 18 dependencias **no se ha
+No hay `pip-audit` ni `safety` en el entorno, así que el árbol de 20 dependencias **no se ha
 contrastado contra ninguna base de datos de vulnerabilidades**. Las versiones están fijadas y son
 recientes, pero eso es conocimiento, no verificación. Es la mayor laguna de la revisión.
 

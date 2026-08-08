@@ -194,10 +194,10 @@ cifras son observabilidad y ya eran `int | None`/`float | None`.
 
 | Versión | Estado | Cómo se comprobó |
 |---|---|---|
-| **3.11** | ✅ Verificado | Intérprete por defecto del entorno de desarrollo. **1.272 pruebas en verde** |
-| **3.12** | ⚠️ Compatible por diseño | Declarada en los clasificadores; **no ejecutada** — no hay 3.12 en este entorno. Está entre dos versiones verificadas |
-| **3.13** | ✅ Verificado | CPython 3.13.12. Instalación limpia + **1.272 pruebas en verde** |
-| **3.14** | ✅ Verificado | CPython **3.14.0rc2** (vía `uv`). Instalación limpia + **1.272 pruebas en verde**, resultados idénticos a 3.11 y 3.13 |
+| **3.11** | ✅ Verificado | CPython 3.11.15. Venv nuevo + `pip install -e .` + **1.281 pruebas en verde** |
+| **3.12** | ✅ Verificado | CPython 3.12.3. Venv nuevo + `pip install -e .` + **1.281 pruebas en verde** |
+| **3.13** | ✅ Verificado | CPython 3.13.12. Venv nuevo + `pip install -e .` + **1.281 pruebas en verde** |
+| **3.14** | ✅ Verificado | CPython **3.14.0rc2** (vía `uv`). Venv nuevo + `pip install -e .` + **1.281 pruebas en verde**, resultados idénticos a las otras tres |
 
 Los mismos dos estados que el resto de este documento: **Verificado** es "se ejecutó de verdad y se
 observó el resultado"; **Compatible por diseño** es "nada indica que falle, pero nadie lo corrió".
@@ -219,9 +219,22 @@ retiradas en 3.13/3.14 (`datetime.utcnow`, `distutils`, `asyncio.get_event_loop`
 fijadas a versiones sin soporte para 3.14 — el detalle, en
 [DEPENDENCIES.md](DEPENDENCIES.md#sprint-303--compatibilidad-con-python-314).
 
-**Sin verificar en 3.14 en otro sistema operativo.** Todo lo anterior se ejecutó en Linux. La
+Los cuatro intérpretes se probaron en **entornos virtuales recreados desde cero**, no reutilizando
+uno ya poblado: un fallo de instalación solo aparece instalando. En los cuatro se resuelven las
+mismas versiones exactas, incluidas `starlette==1.4.1` y `greenlet==3.5.4` — las dos transitivas que
+antes flotaban y que el Sprint 3.0.3 fijó.
+
+**Sin verificar en 3.14 en otro sistema operativo.** Todo lo anterior se ejecutó en Linux x86_64. La
 combinación *Windows o macOS × Python 3.14* hereda las mismas reservas que la tabla del principio
 de este documento: ninguna de las dos plataformas se ha ejecutado de verdad.
+
+Para macOS ARM64 concretamente —que es donde se reportó el fallo original, con Python 3.14.6— lo que
+sí se ha verificado sin disponer de un Mac es **qué wheel elegiría pip en esa plataforma**, que es
+el mecanismo exacto que falló. Ninguno de los 20 paquetes fijados cae al *sdist*, así que **ninguno
+compila**; la tabla completa está en
+[DEPENDENCIES.md](DEPENDENCIES.md#macos-arm64--cpython-314-ningún-paquete-compila). Es verificación
+del mecanismo, no de la ejecución: sigue sin ejecutarse en un Mac, y **3.14.6 tampoco se ha
+ejecutado** — lo probado es 3.14.0rc2, mismo ABI `cp314` pero distinta compilación.
 
 ## Qué no cambió
 

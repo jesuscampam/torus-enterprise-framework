@@ -165,17 +165,71 @@ afectado de 199; ninguno añadido ni eliminado). La equivalencia queda fijada po
 ([CLAUDE.md](../CLAUDE.md) §8): quien revise puede sostener que un cambio de firma merece MAJOR
 aunque no altere el comportamiento.
 
-### Deuda detectada, fuera de alcance
+### macOS arm64 + CPython 3.14: ningún paquete compila
 
-`starlette` **no está fijado** en `requirements.txt`: entra como transitiva de FastAPI, cuyo
-constraint (`>=0.46.0`) no tiene techo. Consecuencia observada: una instalación limpia en 3.14 trajo
-`starlette 1.6.0`, mientras este contenedor tiene `1.4.1`. Es anterior a este sprint y contradice la
-política de "versiones fijadas con `==`" de este mismo documento. No se corrige aquí porque fijarlo
-es una decisión de dependencias por derecho propio, no un efecto colateral de dar soporte a 3.14.
+El fallo original se dio en macOS Apple Silicon con Python 3.14.6, y **aquí no hay ni Mac ni arm64**,
+así que no se puede ejecutar. Lo que sí se puede verificar sin un Mac es el mecanismo que falló: **qué
+wheel elegiría pip** en esa plataforma exacta. Consultado a PyPI para cada paquete fijado:
+
+| Paquete | macOS arm64 + CPython 3.14 |
+|---|---|
+| `pydantic-core` 2.41.1 | `cp314-cp314-macosx_11_0_arm64` — nativo ✅ |
+| `asyncpg` 0.31.0 | `cp314-cp314-macosx_11_0_arm64` — nativo ✅ |
+| `greenlet` 3.5.4 | `cp314-cp314-macosx_11_0_universal2` — universal2 cubre arm64 ✅ |
+| `cffi` 2.1.1 | `cp314-cp314-macosx_11_0_arm64` — nativo ✅ |
+| `cryptography` 50.0.0 | `cp311-abi3-macosx_11_0_arm64` — abi3 ✅ |
+| `argon2-cffi-bindings` 25.1.0 | `cp39-abi3-macosx_11_0_arm64` — abi3 ✅ |
+| `bcrypt` 4.2.1 | `cp37-abi3-macosx_10_12_universal2` — abi3 ✅ |
+| `sqlalchemy` 2.0.45 | `py3-none-any` — **puro Python, sin aceleración C en Mac** ⚠️ |
+| fastapi, uvicorn, pydantic, pydantic-settings, starlette, alembic, aiosqlite, pyjwt, prometheus-client… | puro Python ✅ |
+
+**Ninguno cae al *sdist*, así que ninguno compila** — ni Rust ni C. Es la diferencia exacta con
+`pydantic-core 2.27.2`, que sí compilaba y por eso reventaba en PyO3.
+
+Dos matices que conviene no perder: `greenlet` publica `universal2`, no un wheel `arm64` explícito
+(buscar la cadena `arm64` da un falso negativo); y `sqlalchemy` **no publica wheel `cp314` para
+macOS** —solo para Linux y Windows—, así que en un Mac se instala la variante pura. Funciona
+igual; pierde la aceleración en C.
+
+### `starlette` y `greenlet`: dos transitivas que flotaban, ahora fijadas
+
+Ambas entraban sin techo y **cambiaban de versión entre instalaciones del mismo commit**:
+
+| Paquete | Quién la arrastra | Constraint del dueño | Deriva observada | Ahora |
+|---|---|---|---|---|
+| `starlette` | `fastapi` | `>=0.46.0` (sin techo) | 1.4.1 en el entorno de desarrollo, **1.6.0** en una instalación limpia en 3.14 | `==1.4.1` |
+| `greenlet` | `sqlalchemy[asyncio]` | `>=1` (sin techo) | — | `==3.5.4` |
+
+Por qué esas versiones: `starlette 1.4.1` es contra la que se validó `fastapi 0.141.1` en el Sprint
+3.0 y la que corrigió sus 7 CVE; fijarla no introduce nada nuevo, solo congela lo probado. Tiene un
+efecto añadido: los middlewares de TEAF (`SecurityMiddleware`, `ObservabilityMiddleware`,
+`CorsMiddleware`…) heredan de `BaseHTTPMiddleware`, así que la versión de starlette entra en el
+snapshot de API pública — fijarla evita que `api-surface.json` se mueva solo. `greenlet 3.5.4` es la
+resolución actual, y se fija sobre todo por ser **código nativo**: un greenlet futuro sin wheel para
+el Python de turno reproduce este sprint entero.
+
+La política queda además **verificada por prueba**, no solo escrita:
+`tests/unit/test_packaging_metadata.py` falla si alguna línea de `requirements.txt` deja de usar `==`.
+
+### Deuda estructural: 5 transitivas nativas siguen sin fijar
+
+El cierre transitivo real de runtime son **58 paquetes**, de los que 20 están fijados. De los 38
+restantes, **7 llevan código nativo** — la clase de fallo exacta que causó este sprint:
+
+| Transitiva nativa | Estado |
+|---|---|
+| `pydantic-core` | Controlada de facto: `pydantic` la fija exacto (`==2.41.1`) |
+| `greenlet` | **Fijada** en este sprint |
+| `cryptography`, `cffi`, `argon2-cffi-bindings`, `markupsafe`, `protobuf` | **Sin fijar** |
+
+Las cinco últimas no se fijan aquí a propósito: ninguna bloquea hoy, y elegirles versión sin un
+bloqueo que lo justifique es la "actualización a ciegas" que este sprint prohíbe. Hacerlo bien exige
+un **lockfile**, que es una decisión de arquitectura y necesita su ADR ([CLAUDE.md](../CLAUDE.md)
+§12). Anotado en [BACKLOG.md](roadmap/BACKLOG.md).
 
 ## Dependencias de runtime
 
-18 paquetes fijados en [`requirements.txt`](../requirements.txt). Todas con licencia MIT, BSD o
+20 paquetes fijados en [`requirements.txt`](../requirements.txt). Todas con licencia MIT, BSD o
 Apache-2.0 — compatibles con uso empresarial.
 
 Cuatro no se importan directamente y **es deliberado**: `pydantic` (transitiva de FastAPI y
