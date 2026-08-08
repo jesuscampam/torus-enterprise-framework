@@ -7,7 +7,114 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.10.2-alpha](#0102-alpha---2026-08-08).
+Sin cambios todavía sobre [0.10.3-alpha](#0103-alpha---2026-08-08).
+
+## [0.10.3-alpha] - 2026-08-08
+
+Compatibilidad con Python 3.14. Hasta esta versión, `pip install -e .` **fallaba en Python 3.14**.
+El código de TEAF no tenía nada que ver: el bloqueo estaba íntegramente en tres dependencias
+fijadas a versiones anteriores a 3.14. Sin cambios en la API pública (`PUBLIC_API_VERSION` sigue en
+`2.0.0`), sin dependencias nuevas y **sin perder soporte para 3.11, 3.12 ni 3.13**.
+
+### Fixed
+
+- **TEAF ya se instala y funciona en Python 3.14.** Tres pins actualizados, y solo tres — cada uno
+  con un bloqueo demostrado detrás, ninguno "por estar al día":
+  - `pydantic` **2.10.4 → 2.12.0**. Su `pydantic-core==2.27.2` no publica wheel `cp314`, así que pip
+    caía al *sdist* y compilaba con Rust; **PyO3 0.22.6 no admite Python 3.14** y la compilación
+    aborta. No es falta de toolchain: es un techo del propio compilador, y por eso instalar Rust a
+    mano no lo resuelve. 2.12.0 es la primera `pydantic` que fija `pydantic-core==2.41.1`, con
+    wheels `cp314`; `pydantic-core` los publica desde 2.35.0, pero ninguna `pydantic` lo fija antes,
+    de modo que no había salto menor posible.
+  - `asyncpg` **0.30.0 → 0.31.0**. Tampoco publicaba wheel `cp314`. Compila con C —86 s medidos
+    aquí— pero falla en cualquier máquina sin toolchain. 0.31.0 es la primera versión con wheel.
+    **Este bloqueante no estaba en el informe original**; lo encontró la auditoría.
+  - `sqlalchemy[asyncio]` **2.0.36 → 2.0.45**. Instala en 3.14 por el fallback `py3-none-any`, pero
+    **revienta al importar**: `TypeError: descriptor '__getitem__' requires a 'typing.Union' object
+    but received a 'tuple'` (`sqlalchemy/util/typing.py:478`). Bisecado: 2.0.37 ya importa; 2.0.45
+    además trae wheels `cp314` con las extensiones en C. Este fallo **contradice la clasificación
+    de la auditoría inicial de este mismo sprint**, que lo dio por "instala, solo pierde
+    aceleración" leyendo los tags publicados — se descubrió al ejecutar de verdad sobre un CPython
+    3.14, no analizando metadata.
+
+  `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` **no se usa**: desactiva la comprobación de versión de
+  PyO3 y construye contra una ABI no validada para 3.14. Es un `--force`, no una corrección.
+
+### Changed
+
+- **Clasificadores `Programming Language :: Python :: 3.12`, `:: 3.13` y `:: 3.14`** en
+  `pyproject.toml`. `requires-python` **se queda en `>=3.11`**: ganar 3.14 no cuesta las versiones
+  anteriores, y subir el suelo habría roto a los consumidores de 3.11/3.12.
+
+### Added
+
+- **5 pruebas nuevas** en `tests/unit/test_python_version_support.py` y 1 en
+  `test_packaging_metadata.py`, que fijan que **la metadata no mienta**: que `requires-python` y los
+  clasificadores coincidan, que el rango declarado no tenga huecos, que 3.13 no se pierda al ganar
+  3.14, y que el intérprete que ejecuta la suite caiga dentro de lo declarado.
+- [PLATFORM-COMPATIBILITY.md](docs/PLATFORM-COMPATIBILITY.md) gana la sección **Versiones de
+  Python**, con la misma distinción VERIFICADO / COMPATIBLE POR DISEÑO que ya aplicaba a los
+  sistemas operativos.
+- [DEPENDENCIES.md](docs/DEPENDENCIES.md) gana la auditoría completa de los **17 paquetes con
+  extensión nativa**, la tabla de qué significa cada *tag* de wheel, y la corrección explícita de
+  la clasificación errónea de `sqlalchemy`.
+
+### Dos hallazgos que la validación destapó — ninguno bloquea, ambos exigen revisión humana
+
+1. **La puerta `public-api` detectó 4 cambios de firma en `teaf.Configuration`**, todos heredados de
+   `pydantic.main.BaseModel` — ninguno es código de TEAF: `model_dump` y `model_dump_json` cambian
+   el defecto de `by_alias` (`False` → `None`), y `model_post_init` renombra su parámetro
+   (`_BaseModel__context` → `context`, ahora posicional-solo). El sprint obliga a **detenerse ante
+   cambios de comportamiento observables**, así que se midió en vez de suponer: se levantó un
+   entorno con `pydantic==2.10.4` y se volcó la configuración completa en ambas versiones. Las **484
+   líneas de salida son idénticas** — `by_alias=None` significa "usa `serialize_by_alias` del
+   modelo", que en `Settings` no está puesto y resuelve a `False`. Es decir: **la firma cambia, el
+   comportamiento no**.
+   - Por eso **`PUBLIC_API_VERSION` se queda en `2.0.0`** y se regeneró el fichero de referencia
+     `docs/public-api/api-surface.json` (1 símbolo afectado de 199, ninguno añadido ni eliminado).
+   - La equivalencia queda fijada por una prueba nueva en `tests/unit/test_config.py`, para que
+     activar `serialize_by_alias` en el futuro —que sí rompería
+     `from_mapping(settings.model_dump())`— falle de forma visible.
+   - **Decisión sujeta a revisión de un CODEOWNER** ([CLAUDE.md](CLAUDE.md) §8): quien revise puede
+     concluir que un cambio de firma, aun sin efecto observable, merece MAJOR igualmente.
+
+2. **La puerta `benchmarks` falla en este anfitrión, y no por este cambio.** Seis mediciones salen
+   +64 % a +80 % sobre la baseline. Se descartó la hipótesis obvia con un experimento controlado:
+   los mismos benchmarks, en la misma máquina y en el mismo momento, **con el pin anterior
+   `pydantic==2.10.4`**, dan la misma regresión (GZip: 2048.70 µs con 2.10.4 frente a 2048.12 µs con
+   2.12.0 — el mismo número). Además, lo que se degrada incluye compresión GZip y resolución del
+   contenedor de DI, que no tocan `pydantic` ni por asomo. Es el anfitrión, más lento que cuando se
+   registró la baseline.
+   - **La baseline NO se ha regenerado**: reescribirla sería exactamente el "hacer pasar el gate"
+     que este repositorio prohíbe. La puerta queda en rojo, declarada aquí, para que se revise en
+     una máquina estable.
+
+### Verificado / no verificado
+
+- **Verificado**: instalación limpia y **1.272 pruebas en verde** sobre tres intérpretes reales —
+  CPython **3.11.15**, **3.13.12** y **3.14.0rc2** (vía `uv`), con resultados idénticos. En 3.14 se
+  ejercitaron además `from teaf import Application`, `Version.as_dict()`, el ciclo
+  `bootstrapping → running → stopped` del `Runtime` y los cuatro endpoints de sistema, con
+  `memoryRssBytes` y `cpuTimeSeconds` reales. La subida de `pydantic` de 2.10 a 2.12 —dos versiones
+  menores— **no produjo ningún cambio de comportamiento observable** en la API pública.
+- **No verificado**: Python **3.12** (declarado, sin intérprete disponible en este entorno);
+  `asyncpg 0.31.0` contra un PostgreSQL real; Python 3.14.**6** (lo probado es 3.14.0rc2, mismo ABI
+  `cp314`); y la combinación *Windows o macOS × 3.14*, que hereda las reservas ya declaradas para
+  esas plataformas.
+- **Pendiente, deliberado**: no se creó CI con matriz de versiones — es infraestructura nueva, fuera
+  del alcance del sprint. Anotado en [BACKLOG.md](docs/roadmap/BACKLOG.md), junto con la deuda
+  preexistente de que **`starlette` no está fijado** en `requirements.txt`.
+
+### Qué no cambió
+
+- **Ni una línea del código del framework.** Se auditó el árbol en busca de APIs retiradas en
+  3.13/3.14 (`datetime.utcnow`, `distutils`, `asyncio.get_event_loop`, `imp`,
+  `pkgutil.find_loader`): ninguna aparece.
+- **FastAPI 0.141.1 y Starlette** no se actualizan: no hay incompatibilidad demostrable —
+  `fastapi` pide `pydantic>=2.9.0`, que 2.12.0 cumple.
+- `mypy`, `black` y `pydantic-settings` se quedan como estaban: instalan en 3.14 y no hay bloqueo
+  que justifique subirlos.
+- **`teaf-reference-app`**: no se ha modificado.
 
 ## [0.10.2-alpha] - 2026-08-08
 

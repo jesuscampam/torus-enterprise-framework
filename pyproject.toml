@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "teaf"
-version = "0.10.2-alpha"
+version = "0.10.3-alpha"
 description = "TORUS Enterprise Application Framework — a modular, API-first, Cloud-ready and AI-ready Python framework."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -17,6 +17,9 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Framework :: FastAPI",
     "Typing :: Typed",
 ]
@@ -26,12 +29,12 @@ classifiers = [
 dependencies = [
     "fastapi==0.141.1",
     "uvicorn[standard]==0.34.0",
-    "pydantic==2.10.4",
+    "pydantic==2.12.0",
     "pydantic-settings==2.7.0",
-    "sqlalchemy[asyncio]==2.0.36",
+    "sqlalchemy[asyncio]==2.0.45",
     "alembic==1.14.0",
     "aiosqlite==0.20.0",
-    "asyncpg==0.30.0",
+    "asyncpg==0.31.0",
     "pyjwt[crypto]==2.13.0",
     "argon2-cffi==23.1.0",
     "bcrypt==4.2.1",

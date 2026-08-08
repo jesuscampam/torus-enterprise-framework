@@ -4273,7 +4273,7 @@
             "name": "by_alias",
             "kind": "KEYWORD_ONLY",
             "required": false,
-            "default": "False"
+            "default": "None"
           },
           {
             "name": "exclude_unset",
@@ -4294,6 +4294,12 @@
             "default": "False"
           },
           {
+            "name": "exclude_computed_fields",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "False"
+          },
+          {
             "name": "round_trip",
             "kind": "KEYWORD_ONLY",
             "required": false,
@@ -4304,6 +4310,12 @@
             "kind": "KEYWORD_ONLY",
             "required": false,
             "default": "True"
+          },
+          {
+            "name": "fallback",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
           },
           {
             "name": "serialize_as_any",
@@ -4320,6 +4332,12 @@
             "kind": "KEYWORD_ONLY",
             "required": false,
             "default": "None"
+          },
+          {
+            "name": "ensure_ascii",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "False"
           },
           {
             "name": "include",
@@ -4343,7 +4361,7 @@
             "name": "by_alias",
             "kind": "KEYWORD_ONLY",
             "required": false,
-            "default": "False"
+            "default": "None"
           },
           {
             "name": "exclude_unset",
@@ -4364,6 +4382,12 @@
             "default": "False"
           },
           {
+            "name": "exclude_computed_fields",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "False"
+          },
+          {
             "name": "round_trip",
             "kind": "KEYWORD_ONLY",
             "required": false,
@@ -4374,6 +4398,12 @@
             "kind": "KEYWORD_ONLY",
             "required": false,
             "default": "True"
+          },
+          {
+            "name": "fallback",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
           },
           {
             "name": "serialize_as_any",
@@ -4408,6 +4438,12 @@
             "kind": "POSITIONAL_OR_KEYWORD",
             "required": false,
             "default": "'validation'"
+          },
+          {
+            "name": "union_format",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "'any_of'"
           }
         ]
       },
@@ -4424,8 +4460,8 @@
       "model_post_init": {
         "parameters": [
           {
-            "name": "_BaseModel__context",
-            "kind": "POSITIONAL_OR_KEYWORD",
+            "name": "context",
+            "kind": "POSITIONAL_ONLY",
             "required": true,
             "default": null
           }
@@ -4474,6 +4510,12 @@
             "default": "None"
           },
           {
+            "name": "extra",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
             "name": "from_attributes",
             "kind": "KEYWORD_ONLY",
             "required": false,
@@ -4481,6 +4523,18 @@
           },
           {
             "name": "context",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "by_alias",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "by_name",
             "kind": "KEYWORD_ONLY",
             "required": false,
             "default": "None"
@@ -4502,7 +4556,25 @@
             "default": "None"
           },
           {
+            "name": "extra",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
             "name": "context",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "by_alias",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "by_name",
             "kind": "KEYWORD_ONLY",
             "required": false,
             "default": "None"
@@ -4524,7 +4596,25 @@
             "default": "None"
           },
           {
+            "name": "extra",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
             "name": "context",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "by_alias",
+            "kind": "KEYWORD_ONLY",
+            "required": false,
+            "default": "None"
+          },
+          {
+            "name": "by_name",
             "kind": "KEYWORD_ONLY",
             "required": false,
             "default": "None"

@@ -42,6 +42,26 @@ def test_pyproject_requires_python_311_or_newer() -> None:
     assert pyproject["project"]["requires-python"] == ">=3.11"  # type: ignore[index]
 
 
+def test_pyproject_declares_every_supported_python_version_as_a_classifier() -> None:
+    """Sprint 3.0.3: ganar 3.14 no puede costar 3.11-3.13.
+
+    ``requires-python`` es lo que pip aplica; los clasificadores son lo que se
+    publica y lo que lee un humano en PyPI. Aquí se fija la lista completa para
+    que añadir o quitar una versión sea siempre un cambio explícito. La
+    coherencia interna entre ambos campos la comprueba
+    ``test_python_version_support.py``.
+    """
+    pyproject = _load_pyproject()
+    classifiers: list[str] = pyproject["project"]["classifiers"]  # type: ignore[index,assignment]
+    assert [c for c in classifiers if c.startswith("Programming Language :: Python ::")] == [
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+    ]
+
+
 def test_pyproject_has_a_build_system() -> None:
     pyproject = _load_pyproject()
     assert pyproject["build-system"]["build-backend"] == "setuptools.build_meta"  # type: ignore[index]
