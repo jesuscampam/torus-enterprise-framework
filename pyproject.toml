@@ -142,3 +142,34 @@ testpaths = ["tests"]
 # recolección basada en clases para que Settings como "TestingSettings" no
 # se confundan con clases de test por el prefijo "Test".
 python_classes = []
+# `RuntimeWarning` es error (3.0 Final Hardening). El caso que motiva la
+# política es `RuntimeWarning: coroutine '...' was never awaited`: TEAF es un
+# framework asíncrono, y olvidar un `await` no rompe nada de forma visible —el
+# test pasa, la corrutina simplemente no se ejecuta— así que sin esto una
+# regresión de ese tipo entra en verde.
+#
+# **Hacen falta los dos filtros, y esto se comprobó con una regresión simulada,
+# no razonando.** Un `await` olvidado NO llega como un `RuntimeWarning` normal:
+# el aviso lo emite el recolector de basura al destruir la corrutina, así que
+# viaja por el gancho de excepciones "unraisable" y pytest lo envuelve en
+# `PytestUnraisableExceptionWarning`. Con solo `error::RuntimeWarning`, el test
+# que olvida el `await` **seguía pasando en verde**; añadido el segundo filtro,
+# falla como debe. La cadena completa es:
+#
+#     await olvidado -> GC destruye la corrutina -> RuntimeWarning
+#       -> gancho unraisable -> PytestUnraisableExceptionWarning -> error -> FAIL
+#
+# El segundo filtro cubre además cualquier otra excepción tragada en un
+# `__del__`, que es la misma clase de fallo invisible.
+#
+# Va en `pyproject.toml`, no en la invocación de pytest, para que forme parte
+# del contrato reproducible: `python -m pytest` a secas ya lo aplica, sin que
+# nadie tenga que recordar `-W error::RuntimeWarning`.
+#
+# Es la lista *completa* de filtros a propósito: no se silencia ningún
+# `RuntimeWarning`, ni aquí ni por archivo. Al activarla, la suite entera
+# seguía en verde — no hubo que exceptuar nada.
+filterwarnings = [
+    "error::RuntimeWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+]

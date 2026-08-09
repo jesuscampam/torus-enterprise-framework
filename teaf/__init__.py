@@ -260,6 +260,26 @@ from teaf.security import (
 )
 from teaf.services import Lifetime, ServiceContainer
 from teaf.version import CURRENT_VERSION as Version
+from teaf.version import FRAMEWORK_VERSION as _FRAMEWORK_VERSION
+
+#: Versión del framework en el atributo que espera el ecosistema Python.
+#:
+#: Es un **alias**, no una fuente: el valor sigue naciendo en
+#: ``teaf/_internal/core/application.py`` y llega aquí vía ``teaf.version``,
+#: que es el único punto de verdad (ver docs/public-api/VERSIONING.md). No se
+#: repite el literal en ningún sitio — ``tests/unit/test_teaf_version.py`` falla
+#: si alguien lo desincroniza de la fuente canónica o de la metadata instalada.
+#:
+#: Coexiste con ``teaf.Version``, que no sustituye: ``Version`` expone las
+#: **cinco** versiones independientes de TEAF (framework, SDK, runtime, spec de
+#: módulo y API pública), mientras que ``__version__`` responde a la única
+#: pregunta que hace una herramienta genérica —"¿qué versión de este paquete
+#: hay instalada?"— y por convención responde con la del framework.
+#:
+#: Deliberadamente **fuera de ``__all__``**: los dunder no se reexportan con
+#: ``from teaf import *``, y ``__all__`` describe la superficie de símbolos
+#: importables, no los atributos de metadatos del módulo.
+__version__ = _FRAMEWORK_VERSION
 
 __all__ = [
     # -- Los catorce símbolos pedidos explícitamente (Sprint 2.5.1, sección 2).

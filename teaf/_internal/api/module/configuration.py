@@ -73,7 +73,7 @@ def _coerce_tuple(value: object, default: tuple[str, ...] = ()) -> tuple[str, ..
         return default
     if isinstance(value, str):
         return tuple(part.strip() for part in value.split(",") if part.strip())
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, list | tuple):
         return tuple(str(part).strip() for part in value if str(part).strip())
     return default
 

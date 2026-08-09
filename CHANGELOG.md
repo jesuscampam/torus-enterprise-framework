@@ -7,7 +7,70 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-Sin cambios todavía sobre [0.10.3-alpha](#0103-alpha---2026-08-08).
+### TEAF 3.0 Final Hardening
+
+Cierra las dos inconsistencias que el propio *release gate* de la línea 3.0 destapaba. **No es un
+Sprint 3.0.4** —no existe tal cosa documentada— sino el cierre de la línea 3.0 antes de abrir 3.1.
+Sin funcionalidad nueva, sin dependencias nuevas, sin tocar Runtime, Database, Redis, Security,
+API Gateway ni observabilidad.
+
+#### Added
+
+- **`teaf.__version__`.** `import teaf; teaf.__version__` devuelve `"0.10.3-alpha"`. Hasta ahora la
+  versión solo se alcanzaba por `teaf.Version.framework` o `teaf.version.FRAMEWORK_VERSION` —ambas
+  correctas, ninguna convencional—, así que cualquier herramienta genérica (un `--version` de una
+  app consumidora, un script de release) tenía que conocer la estructura interna de TEAF para algo
+  trivial.
+  - Es un **alias, no una fuente**: deriva de `FRAMEWORK_VERSION`, que nace en
+    `teaf/_internal/core/application.py`. El literal no se repite en ningún sitio.
+  - **No entra en `__all__`**: `__all__` enumera símbolos importables, no metadatos del módulo, y
+    Python ya excluye los dunder de `from teaf import *`. La superficie pública sigue siendo de 199
+    símbolos y `PUBLIC_API_VERSION` **no cambia** (sigue `2.0.0`): es una adición, no una ruptura.
+  - 4 pruebas nuevas en `tests/unit/test_teaf_version.py`: existencia, identidad con la fuente
+    canónica, coherencia con la metadata instalada (normalizando PEP 440) y ausencia de `__all__`.
+- **`RuntimeWarning` es error en pytest**, declarado en `pyproject.toml` para que forme parte del
+  contrato reproducible y no dependa de recordar `-W error::RuntimeWarning`.
+
+#### Fixed
+
+- **La política anterior no habría detectado el fallo que la motiva.** La primera versión de este
+  cambio declaraba solo `error::RuntimeWarning`. Al comprobarlo con una **regresión simulada** —un
+  test que llama a una corrutina sin `await`— resultó que **seguía pasando en verde**: ese aviso no
+  llega como un `RuntimeWarning` corriente, lo emite el recolector de basura al destruir la
+  corrutina, viaja por el gancho *unraisable* y pytest lo envuelve en
+  `PytestUnraisableExceptionWarning`. Añadido `error::pytest.PytestUnraisableExceptionWarning`, la
+  misma regresión **falla como debe**. La cadena completa, ya verificada extremo a extremo:
+
+    ```
+    await olvidado → GC destruye la corrutina → RuntimeWarning
+      → gancho unraisable → PytestUnraisableExceptionWarning → error → FAIL
+    ```
+
+  - **No se silencia ningún `RuntimeWarning`**, ni globalmente ni por archivo: activar la política
+    no obligó a exceptuar nada, la suite entera siguió en verde.
+  - 4 pruebas nuevas en `tests/unit/test_runtime_warning_policy.py`, incluida una específica para el
+    filtro *unraisable* —el contraintuitivo— para que nadie lo retire por parecer redundante. La
+    comprobación con una corrutina real **no** entra en la suite: depende de cuándo actúe el
+    recolector, y sería justo el comportamiento frágil que hay que evitar.
+
+- **Un error de lint latente en código ya commiteado**, encontrado de paso: `UP038` sobre
+  `isinstance(value, (list, tuple))` en `teaf/_internal/api/module/configuration.py`. No lo
+  introduce este cambio —se confirmó con `git stash`: la puerta falla igual sin él— y llevaba
+  enmascarado por la caché de ruff, que se invalidó al pasar `black`. Corregido a
+  `isinstance(value, list | tuple)`: comportamiento idéntico, una línea.
+
+#### Verificado
+
+**1289 pruebas en verde, 0 fallos, 11 skips** (los mismos de siempre: Redis no accesible,
+infraestructura externa). 25/25 ejemplos, boundary de API pública en verde, Reference App sin
+modificar y **11 de 12 puertas de calidad**.
+
+La puerta número 12, `benchmarks`, **queda en rojo por la oscilación del anfitrión ya documentada**
+en [BENCHMARKS.md](docs/BENCHMARKS.md), no por este cambio: son las mismas siete mediciones a
++62 %/+77 %, y GZip mide 2033 µs frente a los 2048 µs medidos en sesiones anteriores con dos juegos
+de dependencias distintos. Este trabajo añade un alias de módulo y dos filtros de pytest — nada que
+pueda tocar la resolución del contenedor de DI, el EventBus ni zlib. **La baseline no se ha
+regenerado**, por el mismo motivo que las veces anteriores.
 
 ## [0.10.3-alpha] - 2026-08-08
 

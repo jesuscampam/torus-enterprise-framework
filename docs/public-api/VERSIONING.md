@@ -25,6 +25,29 @@ Version.as_dict()              # los cinco, como dict serializable
 
 `teaf.Version` es la instancia ya construida (`CURRENT_VERSION` en `teaf/version.py`), no la clase — se consume directamente, nunca se vuelve a instanciar.
 
+## 1.b. `teaf.__version__` — la pregunta corta
+
+Desde el **3.0 Final Hardening**, TEAF expone además el atributo convencional del ecosistema:
+
+```python
+import teaf
+
+teaf.__version__      # "0.10.3-alpha" — equivale a Version.framework
+```
+
+Existe porque es lo primero que consultan las herramientas genéricas (un `--version` de una aplicación consumidora, un script de release, un informe de entorno) y porque no tenerlo obligaba a conocer la estructura interna de TEAF para algo trivial.
+
+**No sustituye a `Version`, y la elección entre ambos no es de estilo:**
+
+| Uso | Qué usar | Por qué |
+|---|---|---|
+| "¿Qué versión de TEAF hay instalada?" | `teaf.__version__` | Convención universal; una sola cadena |
+| Compatibilidad de un módulo, un plugin o una integración | `teaf.Version` | Las otras cuatro versiones son las que deciden compatibilidad, y `framework` **no** es la relevante ahí — ver §2 |
+
+`__version__` es un **alias**, no una fuente: deriva de `FRAMEWORK_VERSION`, que nace en `teaf/_internal/core/application.py`. El literal no se repite en ningún sitio, y `tests/unit/test_teaf_version.py` falla si alguien lo desincroniza de la fuente canónica o de la metadata instalada.
+
+Deliberadamente **no está en `teaf.__all__`**: `__all__` enumera símbolos importables, no metadatos del módulo, y Python ya excluye los dunder de `from teaf import *`.
+
 ## 2. Por qué cinco, y no solo `FRAMEWORK_VERSION`
 
 Cada número evoluciona a un ritmo distinto y protege a un consumidor distinto:

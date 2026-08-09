@@ -183,9 +183,17 @@ Diagnóstico: **el anfitrión, momentáneamente más lento**, exactamente el lí
 sección anterior.
 
 **La baseline no se regeneró.** Horas después, sin tocar ni un número de `baseline.json`, la puerta
-volvió sola a verde. Si se hubiera reescrito para "arreglar" el rojo, hoy la baseline estaría
-inflada un 70 % de forma permanente y habría dejado de detectar regresiones reales. Es el argumento
-práctico de la sección siguiente, no una hipótesis.
+volvió sola a verde — y en el **3.0 Final Hardening**, poco después, volvió a rojo con las mismas
+siete mediciones y el mismo orden de magnitud (GZip: 1242 µs de baseline frente a 2048 µs, 2048 µs y
+2033 µs en tres sesiones distintas, con dos juegos de dependencias distintos). No se recuperó:
+**oscila**.
+
+Eso es exactamente lo que hace útil no haberla reescrito. Si se hubiera regenerado durante
+cualquiera de los picos, la baseline habría quedado inflada un 70 % de forma permanente y habría
+dejado de detectar regresiones reales para siempre. El criterio operativo mientras la suite viva en
+un contenedor compartido: **un rojo uniforme (+60 % o más) repartido por operaciones que no
+comparten código —resolución de DI, EventBus y compresión GZip a la vez— es el anfitrión, no una
+regresión.** Una regresión real aparece concentrada donde se tocó el código.
 
 ## Regenerar la baseline
 
