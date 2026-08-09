@@ -65,6 +65,10 @@ Los módulos pasados así arrancan automáticamente cuando arranca el ciclo de v
 | `Configuration` | Configuración tipada por entorno. | `configuration.py` | `teaf._internal.config.settings.Settings` |
 | `Version` | Fotografía inmutable de los cinco números de versión de TEAF. | `version.py` | agrega varios (ver [VERSIONING.md](VERSIONING.md)) |
 
+### Atributo de módulo: `teaf.__version__`
+
+Además de los símbolos de la tabla, el paquete expone `teaf.__version__` (desde el 3.0 Final Hardening): la versión del framework en el atributo convencional del ecosistema Python, equivalente a `Version.framework` y derivado de la misma fuente. **No aparece en `__all__`** —`__all__` enumera símbolos importables, no metadatos del módulo— y por eso no figura en esta tabla ni en el recuento de la superficie pública. Cuándo usar uno u otro: [VERSIONING.md §1.b](VERSIONING.md).
+
 ## 5. Símbolos compañeros
 
 Sin estos, algunos de los catorce anteriores no se pueden usar sin recurrir a `teaf._internal.*` — se exportan por necesidad práctica, no por descuido (ver [PACKAGE-STRUCTURE.md](PACKAGE-STRUCTURE.md)):

@@ -100,3 +100,64 @@ def test_is_compatible_treats_non_numeric_version_as_zero() -> None:
     """Una versión sin parte numérica reconocible se trata como ``0`` — nunca lanza."""
     assert is_compatible("unreleased", ">=1.0") is False
     assert is_compatible("unreleased", "*") is True
+
+
+def test_teaf_exposes_dunder_version() -> None:
+    """``import teaf; teaf.__version__`` es lo primero que prueba cualquier
+    herramienta del ecosistema (pip, poetry, un script de release, un `--version`
+    de una app consumidora).
+
+    Hasta el 3.0 Final Hardening no existía: la versión solo se alcanzaba por
+    ``teaf.Version.framework`` o ``teaf.version.FRAMEWORK_VERSION``, ambas
+    correctas pero ninguna convencional.
+    """
+    import teaf
+
+    assert hasattr(teaf, "__version__")
+    assert isinstance(teaf.__version__, str)
+    assert teaf.__version__
+
+
+def test_dunder_version_is_an_alias_of_the_canonical_source_not_a_copy() -> None:
+    """El literal de versión vive en un único sitio.
+
+    ``teaf.__version__`` debe *derivar* de ``FRAMEWORK_VERSION`` —que a su vez
+    nace en ``teaf/_internal/core/application.py``—, no repetirlo. Si alguien
+    escribe el número a mano en ``teaf/__init__.py``, esto lo detecta en cuanto
+    las dos fuentes divergen.
+    """
+    import teaf
+
+    assert teaf.__version__ == FRAMEWORK_VERSION
+    assert teaf.__version__ == CURRENT_VERSION.framework
+    assert teaf.__version__ == teaf.Version.framework
+
+
+def test_dunder_version_matches_the_installed_package_metadata() -> None:
+    """Coherencia con lo que ve el gestor de paquetes.
+
+    ``importlib.metadata`` devuelve la forma normalizada de PEP 440 (``0.10.3a0``
+    para ``0.10.3-alpha``), así que se compara normalizando, no literalmente.
+    """
+    import re
+    from importlib.metadata import version as installed_version
+
+    import teaf
+
+    def normalize(raw: str) -> str:
+        match = re.match(r"^(\d+(?:\.\d+)*)-alpha$", raw)
+        return f"{match.group(1)}a0" if match else raw
+
+    assert installed_version("teaf") == normalize(teaf.__version__)
+
+
+def test_dunder_version_is_deliberately_absent_from_all() -> None:
+    """``__all__`` enumera símbolos importables, no metadatos del módulo.
+
+    ``from teaf import *`` no debe arrastrar ``__version__`` —Python ya excluye
+    los dunder de la importación con asterisco—, y meterlo en ``__all__`` haría
+    fallar ``test_teaf_package.py``, que fija la superficie pública exacta.
+    """
+    import teaf
+
+    assert "__version__" not in teaf.__all__

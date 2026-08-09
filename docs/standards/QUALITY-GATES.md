@@ -45,6 +45,32 @@ Lo que **no** cubre el script y sigue siendo responsabilidad humana: los puntos 
 - `services/` y `repository/` mantienen cobertura ≥ 80% (umbral de [CODING-STANDARD.md](CODING-STANDARD.md), sección 7).
 - Ninguna prueba se marca como `skip`/`xfail` sin una justificación documentada y un issue de seguimiento.
 
+### 1.b. `RuntimeWarning` es error — la política de `await` olvidado
+
+Desde el **3.0 Final Hardening**, `pyproject.toml` declara:
+
+```toml
+filterwarnings = [
+    "error::RuntimeWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+]
+```
+
+Existe por un fallo que ninguna aserción detecta: TEAF es asíncrono, y **olvidar un `await` no rompe nada visible**. La corrutina no se ejecuta, la prueba pasa igual, y lo único que queda es un aviso en la salida que nadie lee.
+
+**Los dos filtros son necesarios, y esto se comprobó ejecutando una regresión simulada, no razonando.** Un `await` olvidado no llega como un `RuntimeWarning` normal: lo emite el recolector de basura al destruir la corrutina, viaja por el gancho *unraisable* y pytest lo envuelve en `PytestUnraisableExceptionWarning`. Con solo la primera línea, el test que olvidaba el `await` **seguía pasando en verde**. La cadena real es:
+
+```
+await olvidado → GC destruye la corrutina → RuntimeWarning
+  → gancho unraisable → PytestUnraisableExceptionWarning → error → FAIL
+```
+
+Reglas que acompañan a la política:
+
+- **No se silencia ningún `RuntimeWarning`**, ni globalmente ni por archivo. Si uno aparece, se corrige la causa; no se añade un `ignore`.
+- La política vive en `pyproject.toml`, no en la línea de comandos, para que `python -m pytest` a secas ya la aplique.
+- `tests/unit/test_runtime_warning_policy.py` comprueba que sigue activa y que nadie ha añadido después un filtro que la anule.
+
 ## 2. Lint y type-checking
 
 - Backend: `ruff` y `mypy` en verde, formateo `black` aplicado.
