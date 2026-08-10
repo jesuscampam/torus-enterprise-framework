@@ -31,6 +31,8 @@ from teaf._internal.runtime.dependency_graph import DependencyGraph
 from teaf._internal.runtime.diagnostics import RuntimeDiagnostics
 from teaf._internal.runtime.discovery import ModuleDiscovery
 from teaf._internal.runtime.event_bus import Event, EventBus
+from teaf._internal.runtime.features.enums import FeatureStatus
+from teaf._internal.runtime.features.flag import FeatureFlag
 from teaf._internal.runtime.features.manager import FeatureManager
 from teaf._internal.runtime.lifecycle import LifecycleManager, LifecycleStage
 from teaf._internal.runtime.pipeline import ShutdownPipeline, StartupPipeline
@@ -87,6 +89,7 @@ class Runtime:
         # memoria (ver "NO IMPLEMENTAR": sin persistencia).
         self.capability_registry = CapabilityRegistry()
         self.feature_manager = FeatureManager()
+        self._register_default_features()
         self.capability_provider_registry = CapabilityProviderRegistry()
         self.service_discovery = ServiceDiscovery(self.container)
 
@@ -96,6 +99,21 @@ class Runtime:
         self._framework_version = framework_version
         self._runtime_id = str(uuid.uuid4())
         self._started_at: datetime | None = None
+
+    def _register_default_features(self) -> None:
+        """Registra feature flags del framework durante inicialización del Runtime.
+
+        Sprint 3.3-disabled: EventBus se registra como disabled para inventariarlo
+        en /runtime/features, pero su implementación real está pendiente para Sprint 3.3.
+        """
+        eventbus_flag = FeatureFlag(
+            id="eventbus-distributed",
+            name="Distributed Event Bus",
+            description="EventBus distribuido sobre Redis Streams",
+            status=FeatureStatus.DISABLED,
+            tags=("platform", "async", "distributed"),
+        )
+        self.feature_manager.register(eventbus_flag)
 
     @property
     def state(self) -> RuntimeState:

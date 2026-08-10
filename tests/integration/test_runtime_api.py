@@ -43,7 +43,11 @@ def test_runtime_capabilities_returns_list(client: TestClient) -> None:
 def test_runtime_features_returns_list(client: TestClient) -> None:
     response = client.get("/runtime/features")
     assert response.status_code == 200
-    assert response.json() == []
+    features = response.json()
+    assert len(features) >= 1
+    # EventBus feature is registered with DISABLED status (Sprint 3.3-disabled)
+    feature_ids = {f["id"] for f in features}
+    assert "eventbus-distributed" in feature_ids
 
 
 def test_runtime_events_includes_startup_events(client: TestClient) -> None:

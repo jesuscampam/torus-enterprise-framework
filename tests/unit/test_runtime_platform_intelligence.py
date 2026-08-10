@@ -191,7 +191,8 @@ def test_diagnostics_after_startup_reflects_counts_and_configuration() -> None:
     assert diagnostics.registered_services == 1
     assert diagnostics.registered_capabilities == 1
     assert diagnostics.registered_plugins == 1
-    assert diagnostics.registered_features == 1
+    # EventBus feature is registered by default (Sprint 3.3-disabled) + demo flag = 2
+    assert diagnostics.registered_features == 2
     assert diagnostics.configuration_summary == {"env": "test"}
     assert diagnostics.dependency_graph_summary == {"nodes": 1, "edges": 0}
     assert diagnostics.container_statistics == {"registeredContracts": 1}

@@ -69,7 +69,10 @@ def test_features_lists_registered_feature_flags() -> None:
 
     features = api.features()
 
-    assert features[0]["id"] == "demo.flag"
+    feature_ids = {f["id"] for f in features}
+    assert "demo.flag" in feature_ids
+    # EventBus feature is registered by default (Sprint 3.3-disabled)
+    assert "eventbus-distributed" in feature_ids
 
 
 def test_plugins_lists_no_plugins_by_default() -> None:

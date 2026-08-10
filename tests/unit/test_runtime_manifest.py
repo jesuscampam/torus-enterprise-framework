@@ -39,7 +39,10 @@ def test_generate_manifest_contains_all_required_sections() -> None:
     assert manifest["services"] == []
     assert manifest["plugins"] == []
     assert manifest["configuration"] == {"env": "test"}
-    assert manifest["featureFlags"] == []
+    # EventBus feature is registered by default (Sprint 3.3-disabled)
+    assert len(manifest["featureFlags"]) >= 1
+    feature_ids = {f["id"] for f in manifest["featureFlags"]}
+    assert "eventbus-distributed" in feature_ids
     assert manifest["contracts"] == list(KNOWN_CONTRACTS)
     assert manifest["providers"] == list(KNOWN_PROVIDERS)
     assert manifest["factories"] == list(KNOWN_FACTORIES)
