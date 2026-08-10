@@ -46,6 +46,16 @@ Nivel de reutilización: 🟢 Alto (toda aplicación TORUS lo usará) · 🟡 Me
 
 ---
 
+## Frontend
+
+Este catálogo inventaría los módulos de `teaf/_internal/`. La base de frontend no es un módulo del
+Module SDK y por tanto no se lista aquí: su inventario de capas vive en
+[frontend/README.md](../../frontend/README.md) y su arquitectura en
+[docs/frontend/FRONTEND-ARCHITECTURE.md](../frontend/FRONTEND-ARCHITECTURE.md).
+
+Estado a Sprint 3.5a: `config/`, `types/`, `services/`, `store/`, `hooks/`, `components/`, `pages/`
+y `theme/` con código ejecutable y pruebas; `utils/` sigue solo documentada.
+
 ## Nota sobre las dependencias declaradas
 
 La columna "Dependencias" refleja el **grafo estático oficial de dependencias entre módulos**, formalizado en [`docs/architecture/FRAMEWORK-BLUEPRINT.md`](FRAMEWORK-BLUEPRINT.md) (sección 5) y en [`docs/diagrams/dependency-map.mmd`](../diagrams/dependency-map.mmd). No siempre coincide con qué módulos se consultan en tiempo de ejecución:

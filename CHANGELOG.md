@@ -7,6 +7,67 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Sprint 3.5a — Frontend Foundation (*core*)
+
+Primer código ejecutable en `frontend/`, que hasta ahora contenía diez `README.md` y cero líneas.
+Entrega el shell arrancable, el cliente API tipado y la autenticación. **No toca ni una línea del
+backend**: `teaf/` queda intacto y su suite (1.289 pruebas) no se ve afectada.
+
+#### Added
+
+- **[ADR-013](docs/architecture/adr/ADR-013-enterprise-frontend-stack.md) — stack de arranque del
+  frontend.** STACK.md aprobaba React + TypeScript + Material UI y nada más; React no trae
+  empaquetador, enrutador, gestión de estado ni ejecutor de pruebas, y el propio STACK.md reconocía
+  esa deuda («se mitiga fijando convenciones propias»). Se deciden **Vite**, **React Router**,
+  **Zustand**, **TanStack Query** y **Vitest**, con alternativas y trade-offs escritos.
+- **Cliente API tipado** (`services/http/`) alineado a los contratos que el backend ya emite:
+  cabecera `X-Correlation-Id` por petición (misma constante que `HEADER_CORRELATION_ID`),
+  traducción de errores RFC 7807 a `ApiError` conservando el `correlationId`, `Authorization:
+  Bearer`, timeout y sobre de colecciones. Ningún contrato nuevo: API First (ADR-004).
+  - **Renovación de sesión con *single-flight***: ante varios 401 simultáneos se renueva **una sola
+    vez**. Sin eso, una pantalla con cuatro peticiones en paralelo dispararía cuatro refrescos y,
+    como el backend rota los refresh tokens al usarlos, tres fallarían.
+- **Autenticación** (`services/auth/`, `store/authStore.ts`): login, refresh, logout, rehidratación
+  de sesión y `hasRole`/`hasPermission` sobre el `Principal`.
+  - Las **rutas son configurables**, no cableadas: TEAF no expone endpoints de login —entrega
+    primitivas de seguridad (ADR-007)— así que cada aplicación declara las suyas. El mismo módulo
+    sirve a TicketGateway, Portal NOC y Portal SRE.
+  - Una sesión **nunca queda a medias**: si hay tokens pero no se pudo obtener el `Principal`, el
+    estado vuelve a `anonymous`.
+- **`TokenStorage`** con dos implementaciones, mismo patrón provider que `CacheProvider` (ADR-012):
+  `MemoryTokenStorage` **por defecto** (nada que robar ante un XSS) y `LocalStorageTokenStorage`
+  como opt-in explícito vía `VITE_PERSIST_SESSION`. El arranque seguro es el defecto; relajarlo es
+  un acto deliberado de la aplicación (SECURITY-STANDARD.md §2).
+- **Shell de aplicación**: `AppLayout`, `ProtectedRoute` (con `requiredRole`/`requiredPermission`),
+  `LoginPage`, `HomePage`, `ForbiddenPage` y tema base de Material UI.
+  - `ProtectedRoute` **no decide mientras la sesión se restaura**: redirigir en ese instante
+    expulsaría a un usuario con sesión válida solo por llegar antes que la respuesta del backend.
+- **Configuración por entorno** (`config/`) con valores por defecto seguros y `.env.example`.
+- **44 pruebas** (Vitest + Testing Library) sobre cliente HTTP, ambos almacenamientos, el store de
+  sesión y `ProtectedRoute`.
+- **Documentación**: [docs/frontend/FRONTEND-ARCHITECTURE.md](docs/frontend/FRONTEND-ARCHITECTURE.md)
+  nueva; `frontend/README.md` y `frontend/src/store/README.md` reescritos con la distinción entre
+  estado de servidor y estado de cliente.
+
+#### Changed
+
+- `docs/architecture/STACK.md` — nueva sección con el stack de arranque del frontend.
+- `docs/architecture/adr/README.md` — índice con ADR-013.
+- `docs/roadmap/BACKLOG.md` — Épica 3: shell, autenticación, cliente API y estado global pasan a
+  entregados; theming y componentes base quedan asignados a 3.5c y 3.5b; se añaden pruebas E2E y
+  generación de tipos desde OpenAPI.
+- `docs/architecture/MODULE-CATALOG.md` — referencia cruzada al inventario de frontend.
+
+#### Notes
+
+- **TypeScript se fija en 5.9.3, no en 7.x.** La 7 (port nativo) es `latest` en npm, pero
+  `typescript-eslint` aún no declara soporte. Revisable cuando lo haga.
+- **Pendiente de 3.5b/3.5c**: librería de componentes (tablas, formularios, navegación) y paleta
+  corporativa TORUS con modo oscuro.
+- **Sin pruebas E2E todavía**: la cobertura llega hasta la integración con dobles; el flujo completo
+  contra un backend real queda anotado en BACKLOG.
+
+
 ### TEAF 3.0 Final Hardening
 
 Cierra las dos inconsistencias que el propio *release gate* de la línea 3.0 destapaba. **No es un

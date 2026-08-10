@@ -29,6 +29,7 @@ No crees un ADR para decisiones de implementación local que no afecten al frame
 | [ADR-010](ADR-010-security-headers-and-forwarded-trust.md) | Reparto de responsabilidad de seguridad de borde entre TEAF y el proxy | Aceptado |
 | [ADR-011](ADR-011-trusted-proxy-architecture.md) | Arquitectura de proxies de confianza para la resolución de la IP del cliente | Aceptado |
 | [ADR-012](ADR-012-redis-optional-infrastructure.md) | Redis como infraestructura opcional para estado compartido entre réplicas | Aceptado |
+| [ADR-013](ADR-013-enterprise-frontend-stack.md) | Stack de arranque del frontend empresarial (Vite, React Router, Zustand, TanStack Query, Vitest) | Aceptado |
 
 ## Plantilla
 

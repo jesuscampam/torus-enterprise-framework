@@ -49,12 +49,15 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 
 | Feature | Historia | Prioridad | Dependencias |
 |---|---|---|---|
-| Shell de aplicación | Aplicación React + TypeScript + MUI base | 🔴 | Épica 1 |
-| Theming | Configuración de tema corporativo en `theme/` | 🔴 | Shell de aplicación |
-| Autenticación frontend | Flujo de login/renovación de sesión con JWT | 🔴 | Épica 2 (seguridad backend) |
-| Cliente API | Cliente tipado en `services/` alineado a los contratos OpenAPI | 🔴 | Épica 1 |
-| Componentes base | Librería base: tablas de datos, formularios, navegación | 🟡 | Shell de aplicación |
-| Estado global | Convenciones de `store/` y `hooks/` reutilizables | 🟡 | Shell de aplicación |
+| Stack de frontend | Decidir empaquetador, enrutador, estado y pruebas | ✅ | — (ADR-013, Sprint 3.5a) |
+| Shell de aplicación | Aplicación React + TypeScript + MUI base | ✅ | Épica 1 (Sprint 3.5a) |
+| Autenticación frontend | Flujo de login/renovación de sesión con JWT | ✅ | Épica 2 (Sprint 3.5a) |
+| Cliente API | Cliente tipado en `services/` alineado a los contratos OpenAPI | ✅ | Épica 1 (Sprint 3.5a) |
+| Estado global | Convenciones de `store/` y `hooks/` reutilizables | ✅ | Shell de aplicación (Sprint 3.5a) |
+| Theming | Paleta corporativa TORUS, variantes por producto y modo oscuro | 🔴 | Shell de aplicación (Sprint 3.5c) |
+| Componentes base | Librería base: tablas de datos, formularios, navegación | 🟡 | Shell de aplicación (Sprint 3.5b) |
+| Pruebas E2E de frontend | Flujo de login completo contra un backend real | 🟡 | Sprint 3.5a |
+| Cliente API generado desde OpenAPI | Generar `types/` desde el esquema en vez de mantenerlos a mano | 🟢 | Cliente API |
 
 ## Épica 4 — Integration & AI Ready
 
