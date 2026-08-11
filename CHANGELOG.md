@@ -7,6 +7,61 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Sprint 3.5b — Frontend UI (navegación, layouts, componentes y tablas)
+
+Convierte el shell de 3.5a en una interfaz navegable. **No toca `teaf/`**: el backend queda intacto
+y su suite (1.289 pruebas) sigue en verde. Las pruebas de frontend pasan de 44 a **114**.
+
+#### Added
+
+- **Navegación real** (`src/routes.tsx`, `components/layout/`): cabecera, cajón lateral responsive
+  (permanente en escritorio, temporal en móvil) y cuatro pantallas privadas — panel, módulos,
+  eventos e inventario del Runtime.
+  - **Público y privado se separan en dos layouts.** Hasta ahora el login se pintaba dentro del
+    mismo marco que la aplicación, con su barra y su botón «Cerrar sesión» encima: un estado que no
+    existe.
+  - La guarda se aplica **una sola vez**, sobre el layout privado entero, en lugar de repetirse en
+    cada ruta. Con `ProtectedRoute` por ruta basta olvidarlo una vez para dejar una pantalla
+    abierta; así una ruta nueva nace protegida.
+- **`QueryBoundary`** (`components/common/`): resuelve en un único sitio los cuatro estados de una
+  consulta —cargando, error, vacío y contenido—. Comprueba el error **antes** que el vacío: tras un
+  fallo `data` sigue indefinida, y sin ese orden el usuario leería «no hay datos» cuando lo cierto
+  es que la consulta falló.
+- **Estados de pantalla** `LoadingState`, `EmptyState`, `ErrorState` y `PageHeader`. `ErrorState`
+  traduce el error a lenguaje del usuario **sin filtrar el detalle interno**: un 403 no enumera el
+  rol o permiso que falta y un 5xx no vuelca el `detail`, que puede traer rutas de fichero o trazas.
+  Sí muestra el `correlationId`, que es lo que permite a soporte encontrar la traza exacta.
+- **`DataTable`** (`components/data/`): tabla tipada por columnas, con celdas que devuelven nodos
+  —no solo texto— y descripción accesible. Recibe los datos ya resueltos: no consulta nada.
+- **Capa de consultas** (`hooks/queries/`): hooks tipados sobre el `httpClient` existente y una
+  fábrica de claves de caché. Ninguna pantalla llama a `fetch` ni construye una URL.
+- **`types/runtime.ts`**: tipos de las respuestas de introspección, verificados contra la salida
+  real de la aplicación en ejecución, no contra lo que sería razonable que devolviera.
+- **Ruta inexistente** (`NotFoundPage`): antes `*` redirigía en silencio a la portada, lo que
+  convierte un enlace roto en «la aplicación me ha llevado a otro sitio sin explicación».
+
+#### Changed
+
+- **Las pantallas se cargan por rutas** (`React.lazy`). Al añadir las vistas nuevas el bundle único
+  cruzó el umbral de 500 kB y el build empezó a avisar. Dividirlo deja el arranque en **270 kB
+  (86 kB gzip)** frente a los 495 kB (157 kB) de 3.5a — un 45 % menos de primera carga. Subir el
+  límite del aviso habría ocultado el problema en lugar de resolverlo.
+- `ForbiddenPage` ofrece vuelta al panel; `AppLayout` y `HomePage` se sustituyen por
+  `components/layout/AppLayout` y `pages/DashboardPage`.
+
+#### Notes
+
+- **No hay formularios de alta o edición, y es correcto.** Los 15 endpoints de TEAF son `GET`: el
+  framework no expone ninguna escritura. El único formulario con respaldo real es el login —cuyas
+  rutas aporta la aplicación anfitriona— más el filtro `?limit=` de eventos, que viaja al servidor
+  de verdad en lugar de recortar en el cliente. El CRUD de ejemplo vive en la Reference App, otro
+  repositorio; traerlo aquí sería lógica de negocio dentro del framework (CLAUDE.md §10).
+- **Tampoco hay paginación.** Los endpoints `/runtime/*` devuelven arrays desnudos, sin el sobre
+  `CollectionEnvelope` de API-STANDARD.md §4. Simular controles de página daría un número de páginas
+  que el servidor nunca calculó.
+- El panel muestra salud y contadores reales del Runtime, no KPIs: un framework no tiene negocio que
+  medir.
+
 ### Sprint 3.5a — Frontend Foundation (*core*)
 
 Primer código ejecutable en `frontend/`, que hasta ahora contenía diez `README.md` y cero líneas.

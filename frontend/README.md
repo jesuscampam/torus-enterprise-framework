@@ -5,9 +5,9 @@ Base reutilizable de frontend del framework, construida sobre **React + TypeScri
 en [ADR-013](../docs/architecture/adr/ADR-013-enterprise-frontend-stack.md): **Vite**, **React
 Router**, **Zustand**, **TanStack Query** y **Vitest**.
 
-Estado: Sprint 3.5a (*core*) entregado — shell arrancable, cliente API tipado y autenticación.
-La librería de componentes (3.5b) y el theming TORUS completo (3.5c) están pendientes; ver
-[ROADMAP](../docs/roadmap/ROADMAP.md).
+Estado: Sprint 3.5a (*core*) y 3.5b (*UI*) entregados — shell navegable, cliente API tipado,
+autenticación, layouts, componentes reutilizables, tablas y estados de carga/vacío/error.
+El theming TORUS completo (3.5c) está pendiente; ver [ROADMAP](../docs/roadmap/ROADMAP.md).
 
 Arquitectura detallada: [docs/frontend/FRONTEND-ARCHITECTURE.md](../docs/frontend/FRONTEND-ARCHITECTURE.md).
 
@@ -61,3 +61,23 @@ pantallas que el backend denegaría, pero la comprobación que manda es siempre 
 
 **Ningún secreto en el bundle.** Solo las variables `VITE_` llegan al navegador y todas son públicas.
 Ver [SECURITY-STANDARD.md](../docs/standards/SECURITY-STANDARD.md).
+
+**Solo se muestra lo que el backend expone.** TEAF es un framework: todos sus endpoints son de
+lectura y no tiene negocio que medir. El panel enseña salud y contadores reales del Runtime en vez
+de KPIs inventados, y no hay formularios de alta o edición porque no hay endpoints que los
+respalden. Las pantallas de negocio pertenecen a las aplicaciones, no al framework (CLAUDE.md §10).
+
+## Rutas
+
+| Ruta | Acceso | Contenido |
+|---|---|---|
+| `/login` | pública | Inicio de sesión. |
+| `/forbidden` | pública | Destino de un 403 de interfaz. |
+| `*` | pública | Ruta inexistente — se muestra, no se redirige en silencio. |
+| `/` | protegida | Panel: salud de la instancia y contadores del Runtime. |
+| `/modules` | protegida | Módulos registrados (`GET /runtime/modules`). |
+| `/events` | protegida | Historial del EventBus, con filtro `?limit=` real. |
+| `/runtime` | protegida | Servicios, capacidades, feature flags y plugins. |
+
+Las rutas privadas cuelgan de una única `ProtectedRoute` sobre el layout, de modo que una ruta nueva
+nace protegida sin que haya que acordarse de envolverla.
