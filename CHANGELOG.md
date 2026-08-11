@@ -7,6 +7,63 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Sprint 3.5c — Cierre del MVP frontend y validación de extremo a extremo
+
+Cierra el MVP: valida el flujo completo, fija el contrato entre las dos mitades y corrige el defecto
+que esa validación destapó. **No toca `teaf/`.** Pruebas: frontend 114 → **134**, backend 1.289 →
+**1.302**.
+
+#### Added
+
+- **Contrato HTTP verificado** (`tests/e2e/test_frontend_api_contract.py`, 13 pruebas): arranca un
+  TEAF real con `from teaf import Application` —la superficie pública, la misma que usaría cualquier
+  consumidor— y comprueba que cada endpoint emite la forma que declara `frontend/src/types/runtime.ts`.
+  - Es la costura que faltaba: ese fichero de tipos se mantiene a mano, y un fichero así se
+    desincroniza **en silencio** —el backend renombra un campo, TypeScript sigue compilando porque no
+    sabe nada del servidor, y el fallo aparece en el navegador—. Ahora rompe la suite del backend.
+  - Fija además dos hechos que hoy limitan al frontend: las colecciones llegan como arrays desnudos
+    (sin el sobre `CollectionEnvelope` de API-STANDARD.md §4, de ahí que no haya paginación) y el
+    `X-Correlation-Id` del cliente viaja intacto hasta la respuesta de error.
+- **Recorrido completo del MVP** (`frontend/src/e2e.test.tsx`, 20 pruebas): entrar, recorrer las
+  cuatro pantallas, cerrar sesión y volver a entrar, más acceso sin sesión a cada ruta privada,
+  vuelta al destino pedido tras el login, ruta inexistente, restauración de sesión válida y
+  caducada, credenciales incorrectas, backend caído, colecciones vacías y el filtro de eventos.
+  - Se dobla **`fetch`, no el `HttpClient`**: el recorrido atraviesa la cadena de producción
+    (pantalla → hook → cliente → red) en vez de saltársela. Doblar el cliente probaría que las
+    pantallas llaman a un doble, que es justo lo que no interesa saber.
+  - Las cargas útiles del doble (`test/fakeTeafServer.ts`) son las que el contrato de arriba
+    garantiza reales, y el doble exige `Authorization: Bearer` — sin eso, «entrar y ver el panel»
+    pasaría igual sin haber iniciado sesión.
+
+#### Fixed
+
+- **El cliente HTTP se bloqueaba cuando la propia renovación recibía un 401.** Con el refresh token
+  caducado: `GET /me` → 401 → renovación → `POST /refresh` → 401 → pedía otra renovación →
+  `refreshOnce` le devolvía la promesa en curso, que era precisamente la que esperaba a esa
+  petición. Las dos se esperaban entre sí.
+  - Efecto real: al volver con la sesión caducada, la aplicación se quedaba fija en «Verificando
+    sesión» y **nunca** mandaba al usuario al login.
+  - Arreglado con `RequestOptions.retryOnUnauthorized` (activo por defecto), que `AuthService`
+    desactiva en `login`, `refresh` y `logout` — renovar una sesión que no existe, que se está
+    renovando o que se está cerrando no arregla nada en ninguno de los tres casos. Con prueba de
+    regresión en `client.test.ts`.
+  - Lo destapó el recorrido nuevo. Es la clase de fallo que no aparece en pruebas por componente:
+    hacen falta el cliente real, el store real y un backend que responda 401 dos veces seguidas.
+
+#### Changed
+
+- Los comentarios de `types/auth.ts` y `config/index.ts` apuntaban a `teaf/_internal/…`. Ahora
+  apuntan a la superficie pública (`teaf.security`, `teaf.configuration`): el frontend es un
+  consumidor externo y no debe seguirle la pista a internos que pueden cambiar sin aviso.
+
+#### Notes
+
+- **`TEAF Framework modified: NO`.** Ni una línea de `teaf/`. El defecto corregido está en
+  `frontend/src/services/http/`, donde se introdujo en 3.5a.
+- Sigue sin haber E2E de navegador, y por una razón concreta: TEAF no expone endpoints de login, así
+  que esa mitad del recorrido habría que simularla igual. Se aborda cuando la Reference App —que sí
+  publica sus rutas de sesión— se valide como consumidor externo.
+
 ### Sprint 3.5b — Frontend UI (navegación, layouts, componentes y tablas)
 
 Convierte el shell de 3.5a en una interfaz navegable. **No toca `teaf/`**: el backend queda intacto

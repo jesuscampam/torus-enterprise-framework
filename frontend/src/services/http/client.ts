@@ -29,6 +29,16 @@ export interface RequestOptions {
   query?: Record<string, string | number | boolean | undefined>;
   signal?: AbortSignal;
   headers?: Record<string, string>;
+  /**
+   * Si un 401 debe intentar renovar la sesión y reintentar. `true` por defecto.
+   *
+   * **La propia petición de renovación tiene que desactivarlo.** Si no, su 401
+   * vuelve a pedir una renovación, `refreshOnce` le devuelve la promesa que
+   * todavía está en curso —la que espera precisamente a esa petición— y las dos
+   * se quedan esperándose: la sesión nunca se cierra y la pantalla se queda
+   * colgada en «Verificando sesión».
+   */
+  retryOnUnauthorized?: boolean;
 }
 
 interface SendOptions extends RequestOptions {
@@ -101,7 +111,16 @@ export class HttpClient {
   }
 
   private async send<T>(options: SendOptions): Promise<T> {
-    const { method, path, body, query, signal, headers = {}, isRetry = false } = options;
+    const {
+      method,
+      path,
+      body,
+      query,
+      signal,
+      headers = {},
+      isRetry = false,
+      retryOnUnauthorized = true,
+    } = options;
     const correlationId = newCorrelationId();
 
     const requestHeaders: Record<string, string> = {
@@ -141,7 +160,12 @@ export class HttpClient {
       throw new NetworkError(`No se pudo contactar con la API (${method} ${path})`, cause);
     }
 
-    if (response.status === 401 && !isRetry && this.options.refreshAccessToken) {
+    if (
+      response.status === 401 &&
+      !isRetry &&
+      retryOnUnauthorized &&
+      this.options.refreshAccessToken
+    ) {
       const refreshed = await this.refreshOnce();
       if (refreshed) return this.send<T>({ ...options, isRetry: true });
     }

@@ -211,5 +211,42 @@ describe('HttpClient', () => {
       expect(error).toBeInstanceOf(ApiError);
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
+
+    it('no intenta renovar cuando el llamante lo desactiva', async () => {
+      fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
+      const refreshAccessToken = vi.fn().mockResolvedValue('token-nuevo');
+
+      const error = await client({ refreshAccessToken })
+        .post('/auth/refresh', {}, { retryOnUnauthorized: false })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect(refreshAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('no se queda colgado cuando la propia renovación recibe un 401', async () => {
+      // Regresión (Sprint 3.5c): con el refresh token caducado, la petición de
+      // renovación devolvía 401, pedía otra renovación y `refreshOnce` le
+      // entregaba la promesa en curso —la que esperaba a esa misma petición—.
+      // Las dos se esperaban entre sí y la sesión no se cerraba nunca: la
+      // aplicación se quedaba fija en «Verificando sesión».
+      fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
+      const api = client({
+        // Reproduce al manejador real del store: renueva usando el mismo cliente.
+        refreshAccessToken: async () => {
+          try {
+            await api.post('/auth/refresh', {}, { retryOnUnauthorized: false });
+            return 'token-nuevo';
+          } catch {
+            return null;
+          }
+        },
+      });
+
+      const error = await api.get('/me').catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ApiError);
+      expect((error as ApiError).status).toBe(401);
+    });
   });
 });

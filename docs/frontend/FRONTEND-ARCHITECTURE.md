@@ -57,6 +57,25 @@ Si varias peticiones reciben 401 a la vez, **comparten una única renovación**.
 con cuatro peticiones en paralelo dispararía cuatro refrescos simultáneos y, como el backend rota
 los refresh tokens al usarlos (`JWTTokenProvider.refresh`), tres de ellos fallarían.
 
+#### La renovación no puede renovarse a sí misma
+
+`RequestOptions.retryOnUnauthorized` (activo por defecto) permite desactivar ese reintento, y las
+llamadas de `AuthService` lo desactivan. **No es una preferencia: sin ello el cliente se bloquea.**
+
+El recorrido de Sprint 3.5c lo destapó con un refresh token caducado:
+
+```
+GET /me → 401 → refreshOnce() ─┐
+                                │ (guarda la promesa en curso)
+   POST /refresh → 401 → refreshOnce() → devuelve esa misma promesa
+                                │
+                                └── que espera a la petición que la está esperando
+```
+
+Las dos se esperaban entre sí. El efecto para el usuario era una sesión que no se cerraba nunca:
+al volver con el refresh token caducado, la aplicación se quedaba fija en «Verificando sesión» en
+lugar de mandarlo al login. Está cubierto por una prueba de regresión en `client.test.ts`.
+
 ## 3. Autenticación
 
 ### Por qué las rutas son configurables
@@ -213,11 +232,37 @@ Se prueba **comportamiento observable**, no detalles de implementación — mism
 [CODING-STANDARD.md](../standards/CODING-STANDARD.md) impone en backend. Las consultas se doblan a
 la altura del `httpClient`, así que la ruta pantalla → hook → cliente se ejercita entera.
 
-## 10. Pendiente
+## 10. Validación de extremo a extremo
 
-| Sprint | Alcance |
+Dos piezas que se sostienen mutuamente, añadidas en Sprint 3.5c:
+
+| Pieza | Dónde | Qué garantiza |
+|---|---|---|
+| Contrato | `tests/e2e/test_frontend_api_contract.py` | Que el TEAF **real** emite la forma que declara `types/runtime.ts`. |
+| Recorrido | `frontend/src/e2e.test.tsx` | Que la aplicación entera recorre el flujo del usuario sobre esa forma. |
+
+El recorrido dobla únicamente `fetch`, de modo que atraviesa la cadena de producción —pantalla →
+hook → `HttpClient` → red— en vez de saltársela. Cubre: entrar, recorrer las cuatro pantallas,
+cerrar sesión y volver a entrar; acceso sin sesión a cada ruta privada; vuelta al destino pedido
+tras el login; ruta inexistente con y sin sesión; restauración de sesión válida y caducada;
+credenciales incorrectas; degradación ante un backend caído; colecciones vacías; y el filtro de
+eventos recortando **en el servidor**.
+
+La costura entre ambas es lo que las hace valer: sin el contrato, el recorrido probaría la
+aplicación contra un backend inventado; sin el recorrido, el contrato no diría si las pantallas lo
+usan bien.
+
+> **Lo que no cubren.** No hay navegador ni servidor reales. Un E2E de navegador queda fuera por una
+> razón concreta: **TEAF no expone endpoints de login**, así que la mitad de autenticación habría
+> que simularla igual. El momento de montarlo es cuando la Reference App —que sí publica sus rutas
+> de sesión— se valide como consumidor externo.
+
+## 11. Pendiente
+
+| Alcance | Por qué sigue fuera |
 |---|---|
-| 3.5c | Paleta corporativa TORUS, variantes por producto, modo oscuro. |
-| — | Pruebas E2E del flujo completo contra un backend real; hoy la cobertura llega hasta la integración con dobles. |
-| — | Paginación de servidor: requiere que los endpoints de colección adopten el sobre `CollectionEnvelope` de API-STANDARD.md §4. |
-| — | Generación de tipos desde el OpenAPI del backend, en lugar de mantener `types/runtime.ts` a mano. |
+| Paleta corporativa TORUS, variantes por producto, modo oscuro. | Trabajo de theming, planificado aparte. |
+| E2E de navegador contra la pila desplegada. | TEAF no expone login; se aborda con la Reference App como consumidor. |
+| Formularios de escritura. | Todos los endpoints de TEAF son de lectura; el CRUD pertenece a las aplicaciones (CLAUDE.md §10). |
+| Paginación de servidor. | Requiere que los endpoints de colección adopten el sobre `CollectionEnvelope` de API-STANDARD.md §4. |
+| Generación de tipos desde el OpenAPI del backend. | `types/runtime.ts` se mantiene a mano; el contrato de `tests/e2e/` es la red que lo sostiene mientras tanto. |

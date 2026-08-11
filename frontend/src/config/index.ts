@@ -1,8 +1,9 @@
 /**
  * Configuración por entorno del frontend.
  *
- * Equivalente cliente de `teaf/_internal/config/` en backend y aplicación del
- * principio *Configuration by Environment* ([ADR-005](../../../docs/architecture/adr/ADR-005-cloud-ready.md)):
+ * Equivalente cliente de la configuración que TEAF expone en `teaf.configuration`
+ * y aplicación del principio *Configuration by Environment*
+ * ([ADR-005](../../../docs/architecture/adr/ADR-005-cloud-ready.md)):
  * nada de lo que cambia entre desarrollo, staging y producción se escribe en el
  * código; se lee de variables de entorno con un valor por defecto seguro.
  *

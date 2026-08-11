@@ -1,9 +1,14 @@
 /**
- * Tipos de autenticación, espejo del modelo de dominio de seguridad del backend
- * (`teaf/_internal/security/models.py`, ADR-007).
+ * Tipos de autenticación, espejo del modelo de dominio de seguridad que TEAF
+ * publica en `teaf.security` (`TokenPair`, `Principal`, `Identity`, `Claims`),
+ * decidido en [ADR-007](../../../docs/architecture/adr/ADR-007-enterprise-security-stack.md).
  *
- * La correspondencia es deliberada y literal: `TokenPair` aquí tiene los mismos
- * cuatro campos que emite `TokenPair.as_dict()` allí, en el mismo camelCase.
+ * La referencia es a la **superficie pública** a propósito: el frontend es un
+ * consumidor externo y no debe seguirle la pista a `teaf._internal`, cuya forma
+ * puede cambiar sin previo aviso ([PUBLIC-API.md](../../../docs/public-api/PUBLIC-API.md)).
+ *
+ * La correspondencia es literal: `TokenPair` aquí tiene los mismos cuatro
+ * campos que emite `TokenPair.as_dict()` allí, en el mismo camelCase.
  */
 
 /**

@@ -5,9 +5,10 @@ Base reutilizable de frontend del framework, construida sobre **React + TypeScri
 en [ADR-013](../docs/architecture/adr/ADR-013-enterprise-frontend-stack.md): **Vite**, **React
 Router**, **Zustand**, **TanStack Query** y **Vitest**.
 
-Estado: Sprint 3.5a (*core*) y 3.5b (*UI*) entregados — shell navegable, cliente API tipado,
-autenticación, layouts, componentes reutilizables, tablas y estados de carga/vacío/error.
-El theming TORUS completo (3.5c) está pendiente; ver [ROADMAP](../docs/roadmap/ROADMAP.md).
+Estado: **MVP cerrado** (Sprints 3.5a *core*, 3.5b *UI* y 3.5c *validación*) — shell navegable,
+cliente API tipado, autenticación, layouts, componentes reutilizables, tablas, estados de
+carga/vacío/error y el recorrido completo probado de extremo a extremo. El theming TORUS completo
+sigue pendiente; ver [ROADMAP](../docs/roadmap/ROADMAP.md).
 
 Arquitectura detallada: [docs/frontend/FRONTEND-ARCHITECTURE.md](../docs/frontend/FRONTEND-ARCHITECTURE.md).
 
@@ -81,3 +82,21 @@ respalden. Las pantallas de negocio pertenecen a las aplicaciones, no al framewo
 
 Las rutas privadas cuelgan de una única `ProtectedRoute` sobre el layout, de modo que una ruta nueva
 nace protegida sin que haya que acordarse de envolverla.
+
+## Qué demuestra este MVP
+
+Que una aplicación puede consumir TEAF **por su API pública** y funcionar como aplicación real:
+iniciar sesión, navegar, leer datos del Runtime, manejar carga, vacío y error, y cerrar sesión.
+
+Dos pruebas lo sostienen, y hacen falta las dos:
+
+| Prueba | Garantiza |
+|---|---|
+| [`tests/e2e/test_frontend_api_contract.py`](../tests/e2e/) | Que el TEAF real emite la forma que declara `src/types/runtime.ts` — arrancado con `from teaf import Application`, sin tocar internos. |
+| [`src/e2e.test.tsx`](src/e2e.test.tsx) | Que la aplicación entera recorre el flujo del usuario sobre esa forma, doblando solo `fetch`. |
+
+Sin la primera, la segunda probaría la aplicación contra un backend inventado. Sin la segunda, la
+primera no diría si las pantallas usan bien el contrato.
+
+**Lo que no demuestra**: no hay navegador ni servidor reales en el recorrido. Ver
+[FRONTEND-ARCHITECTURE §10](../docs/frontend/FRONTEND-ARCHITECTURE.md).

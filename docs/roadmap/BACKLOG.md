@@ -60,8 +60,9 @@ explica por qué).
 | Theming | Paleta corporativa TORUS, variantes por producto y modo oscuro | 🔴 | Shell de aplicación (Sprint 3.5c) |
 | Formularios de escritura | Formularios de alta/edición sobre endpoints de mutación | ⛔ | **Bloqueado**: TEAF no expone endpoints de escritura; corresponde a las aplicaciones, no al framework (CLAUDE.md §10) |
 | Paginación de servidor en tablas | Controles de página en `DataTable` | ⛔ | **Bloqueado**: requiere que los endpoints de colección adopten el sobre `CollectionEnvelope` de API-STANDARD.md §4; hoy `/runtime/*` devuelve arrays desnudos |
-| Pruebas E2E de frontend | Flujo de login completo contra un backend real | 🟡 | Sprint 3.5a |
-| Cliente API generado desde OpenAPI | Generar `types/` desde el esquema en vez de mantenerlos a mano (hoy `types/runtime.ts` se mantiene a mano) | 🟢 | Cliente API |
+| Validación de extremo a extremo | Recorrido completo del MVP + contrato HTTP verificado contra el TEAF real | ✅ | Componentes base (Sprint 3.5c) |
+| E2E de navegador | Flujo completo contra la pila desplegada (navegador + servidor reales) | 🟡 | **Requiere una aplicación que publique rutas de login**; TEAF no las expone. Se aborda con la Reference App como consumidor externo |
+| Cliente API generado desde OpenAPI | Generar `types/` desde el esquema en vez de mantenerlos a mano | 🟢 | Cliente API. Mitigado mientras tanto por `tests/e2e/test_frontend_api_contract.py`, que detecta la deriva |
 
 ## Épica 4 — Integration & AI Ready
 

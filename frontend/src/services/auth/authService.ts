@@ -20,9 +20,16 @@ export class AuthService {
     this.endpoints = endpoints;
   }
 
-  /** Canjea credenciales por un `TokenPair`. */
+  /**
+   * Canjea credenciales por un `TokenPair`.
+   *
+   * `retryOnUnauthorized: false` porque un 401 aquí significa «credenciales
+   * incorrectas», y renovar una sesión que todavía no existe no lo arregla.
+   */
   login(credentials: Credentials): Promise<TokenPair> {
-    return this.http.post<TokenPair>(this.endpoints.login, credentials);
+    return this.http.post<TokenPair>(this.endpoints.login, credentials, {
+      retryOnUnauthorized: false,
+    });
   }
 
   /**
@@ -31,9 +38,18 @@ export class AuthService {
    * El backend revoca el refresh token usado al emitir el nuevo (rotación, ver
    * `JWTTokenProvider.refresh`), así que el par devuelto reemplaza al anterior
    * por completo: conservar el viejo lo dejaría inservible.
+   *
+   * `retryOnUnauthorized: false` es **imprescindible**, no una optimización: sin
+   * él, un refresh token caducado devuelve 401, el cliente pide otra renovación
+   * y se queda esperando la que ya está en curso —esta misma— - dejando la
+   * sesión colgada para siempre en vez de cerrarla.
    */
   refresh(refreshToken: string): Promise<TokenPair> {
-    return this.http.post<TokenPair>(this.endpoints.refresh, { refreshToken });
+    return this.http.post<TokenPair>(
+      this.endpoints.refresh,
+      { refreshToken },
+      { retryOnUnauthorized: false }
+    );
   }
 
   /**
@@ -45,7 +61,11 @@ export class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      await this.http.post<void>(this.endpoints.logout);
+      // Tampoco renueva ante un 401: recuperar una sesión que se está cerrando
+      // es trabajo perdido, y el `TokenPair` nuevo moriría acto seguido.
+      await this.http.post<void>(this.endpoints.logout, undefined, {
+        retryOnUnauthorized: false,
+      });
     } catch {
       // Intencionadamente silencioso — ver docstring.
     }
