@@ -2,7 +2,8 @@
 
 Backlog inicial del framework, organizado en **Épicas → Features → Historias**, alineado con las 5 versiones de [ROADMAP.md](ROADMAP.md). Este backlog planifica el propio framework, no aplicaciones de negocio construidas sobre él.
 
-Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
+Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja · ✅ Entregada · ⛔ Bloqueada (la columna de dependencias
+explica por qué).
 
 ---
 
@@ -49,12 +50,19 @@ Prioridad: 🔴 Alta · 🟡 Media · 🟢 Baja.
 
 | Feature | Historia | Prioridad | Dependencias |
 |---|---|---|---|
-| Shell de aplicación | Aplicación React + TypeScript + MUI base | 🔴 | Épica 1 |
-| Theming | Configuración de tema corporativo en `theme/` | 🔴 | Shell de aplicación |
-| Autenticación frontend | Flujo de login/renovación de sesión con JWT | 🔴 | Épica 2 (seguridad backend) |
-| Cliente API | Cliente tipado en `services/` alineado a los contratos OpenAPI | 🔴 | Épica 1 |
-| Componentes base | Librería base: tablas de datos, formularios, navegación | 🟡 | Shell de aplicación |
-| Estado global | Convenciones de `store/` y `hooks/` reutilizables | 🟡 | Shell de aplicación |
+| Stack de frontend | Decidir empaquetador, enrutador, estado y pruebas | ✅ | — (ADR-013, Sprint 3.5a) |
+| Shell de aplicación | Aplicación React + TypeScript + MUI base | ✅ | Épica 1 (Sprint 3.5a) |
+| Autenticación frontend | Flujo de login/renovación de sesión con JWT | ✅ | Épica 2 (Sprint 3.5a) |
+| Cliente API | Cliente tipado en `services/` alineado a los contratos OpenAPI | ✅ | Épica 1 (Sprint 3.5a) |
+| Estado global | Convenciones de `store/` y `hooks/` reutilizables | ✅ | Shell de aplicación (Sprint 3.5a) |
+| Componentes base | Librería base: navegación, layouts, tablas de datos y estados de pantalla | ✅ | Shell de aplicación (Sprint 3.5b) |
+| Navegación y rutas | Rutas públicas/privadas, guarda única sobre el layout y ruta inexistente | ✅ | Shell de aplicación (Sprint 3.5b) |
+| Theming | Paleta corporativa TORUS, variantes por producto y modo oscuro | 🔴 | Shell de aplicación (Sprint 3.5c) |
+| Formularios de escritura | Formularios de alta/edición sobre endpoints de mutación | ⛔ | **Bloqueado**: TEAF no expone endpoints de escritura; corresponde a las aplicaciones, no al framework (CLAUDE.md §10) |
+| Paginación de servidor en tablas | Controles de página en `DataTable` | ⛔ | **Bloqueado**: requiere que los endpoints de colección adopten el sobre `CollectionEnvelope` de API-STANDARD.md §4; hoy `/runtime/*` devuelve arrays desnudos |
+| Validación de extremo a extremo | Recorrido completo del MVP + contrato HTTP verificado contra el TEAF real | ✅ | Componentes base (Sprint 3.5c) |
+| E2E de navegador | Flujo completo contra la pila desplegada (navegador + servidor reales) | 🟡 | **Requiere una aplicación que publique rutas de login**; TEAF no las expone. Se aborda con la Reference App como consumidor externo |
+| Cliente API generado desde OpenAPI | Generar `types/` desde el esquema en vez de mantenerlos a mano | 🟢 | Cliente API. Mitigado mientras tanto por `tests/e2e/test_frontend_api_contract.py`, que detecta la deriva |
 
 ## Épica 4 — Integration & AI Ready
 

@@ -147,3 +147,19 @@ Este documento justifica cada elección tecnológica oficial del framework: por 
 **Alternativas consideradas**: Ant Design (estética menos alineada con el branding deseado), Chakra UI (ecosistema y comunidad menores para componentes empresariales complejos como grids de datos).
 
 **Trade-offs aceptados**: cierto peso adicional en el bundle; mitigado con carga diferida (code-splitting) a nivel de `pages/`.
+
+## Frontend — stack de arranque (Vite · React Router · Zustand · TanStack Query · Vitest)
+
+**Por qué**: React no trae empaquetador, enrutador, gestión de estado ni ejecutor de pruebas, y el propio apartado *Frontend — React + TypeScript* de este documento reconocía esa deuda («se mitiga fijando convenciones propias»). Estas cinco piezas la saldan, una sola vez, para todas las aplicaciones TORUS.
+
+- **Vite** — build con Rollup, HMR sobre módulos ES y salida estática pura, desplegable detrás del backend en Azure App Service sin runtime Node.
+- **React Router** — estándar de facto para React sin framework.
+- **Zustand** — estado **de cliente** (sesión, preferencias): ~1 KB y una función.
+- **TanStack Query** — estado **de servidor**: caché, revalidación, deduplicación y reintentos. La separación entre ambos es la parte que más deuda evita.
+- **Vitest** + Testing Library — comparte configuración con Vite (un solo `vite.config.ts` para build y tests) y prueba comportamiento observable, no implementación.
+
+**Alternativas consideradas**: Next.js (SSR y rutas por fichero, pero exige un proceso Node en producción que ninguna aplicación interna de TORUS ha pedido); Create React App (sin mantenimiento activo); Redux Toolkit + RTK Query (cubre ambos estados con una pieza, a cambio de un boilerplate que contradice el KISS de CLAUDE.md §3 para portales de formularios y tablas).
+
+**Trade-offs aceptados**: cinco dependencias de un ecosistema que se mueve más rápido que el de Python (mitigado con versiones exactas y Dependabot); dos piezas de estado en vez de una, que exige entender la distinción servidor/cliente; y renuncia a SSR. Detalle completo en [ADR-013](adr/ADR-013-enterprise-frontend-stack.md).
+
+**TypeScript 5.9**: se fija la línea 5.x y no la 7.x recién publicada (port nativo) porque el resto del toolchain —en particular `typescript-eslint`— aún no declara soporte. Revisable cuando lo haga.

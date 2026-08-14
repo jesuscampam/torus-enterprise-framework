@@ -7,6 +7,179 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Sprint 3.5c — Cierre del MVP frontend y validación de extremo a extremo
+
+Cierra el MVP: valida el flujo completo, fija el contrato entre las dos mitades y corrige el defecto
+que esa validación destapó. **No toca `teaf/`.** Pruebas: frontend 114 → **134**, backend 1.289 →
+**1.302**.
+
+#### Added
+
+- **Contrato HTTP verificado** (`tests/e2e/test_frontend_api_contract.py`, 13 pruebas): arranca un
+  TEAF real con `from teaf import Application` —la superficie pública, la misma que usaría cualquier
+  consumidor— y comprueba que cada endpoint emite la forma que declara `frontend/src/types/runtime.ts`.
+  - Es la costura que faltaba: ese fichero de tipos se mantiene a mano, y un fichero así se
+    desincroniza **en silencio** —el backend renombra un campo, TypeScript sigue compilando porque no
+    sabe nada del servidor, y el fallo aparece en el navegador—. Ahora rompe la suite del backend.
+  - Fija además dos hechos que hoy limitan al frontend: las colecciones llegan como arrays desnudos
+    (sin el sobre `CollectionEnvelope` de API-STANDARD.md §4, de ahí que no haya paginación) y el
+    `X-Correlation-Id` del cliente viaja intacto hasta la respuesta de error.
+- **Recorrido completo del MVP** (`frontend/src/e2e.test.tsx`, 20 pruebas): entrar, recorrer las
+  cuatro pantallas, cerrar sesión y volver a entrar, más acceso sin sesión a cada ruta privada,
+  vuelta al destino pedido tras el login, ruta inexistente, restauración de sesión válida y
+  caducada, credenciales incorrectas, backend caído, colecciones vacías y el filtro de eventos.
+  - Se dobla **`fetch`, no el `HttpClient`**: el recorrido atraviesa la cadena de producción
+    (pantalla → hook → cliente → red) en vez de saltársela. Doblar el cliente probaría que las
+    pantallas llaman a un doble, que es justo lo que no interesa saber.
+  - Las cargas útiles del doble (`test/fakeTeafServer.ts`) son las que el contrato de arriba
+    garantiza reales, y el doble exige `Authorization: Bearer` — sin eso, «entrar y ver el panel»
+    pasaría igual sin haber iniciado sesión.
+
+#### Fixed
+
+- **El cliente HTTP se bloqueaba cuando la propia renovación recibía un 401.** Con el refresh token
+  caducado: `GET /me` → 401 → renovación → `POST /refresh` → 401 → pedía otra renovación →
+  `refreshOnce` le devolvía la promesa en curso, que era precisamente la que esperaba a esa
+  petición. Las dos se esperaban entre sí.
+  - Efecto real: al volver con la sesión caducada, la aplicación se quedaba fija en «Verificando
+    sesión» y **nunca** mandaba al usuario al login.
+  - Arreglado con `RequestOptions.retryOnUnauthorized` (activo por defecto), que `AuthService`
+    desactiva en `login`, `refresh` y `logout` — renovar una sesión que no existe, que se está
+    renovando o que se está cerrando no arregla nada en ninguno de los tres casos. Con prueba de
+    regresión en `client.test.ts`.
+  - Lo destapó el recorrido nuevo. Es la clase de fallo que no aparece en pruebas por componente:
+    hacen falta el cliente real, el store real y un backend que responda 401 dos veces seguidas.
+
+#### Changed
+
+- Los comentarios de `types/auth.ts` y `config/index.ts` apuntaban a `teaf/_internal/…`. Ahora
+  apuntan a la superficie pública (`teaf.security`, `teaf.configuration`): el frontend es un
+  consumidor externo y no debe seguirle la pista a internos que pueden cambiar sin aviso.
+
+#### Notes
+
+- **`TEAF Framework modified: NO`.** Ni una línea de `teaf/`. El defecto corregido está en
+  `frontend/src/services/http/`, donde se introdujo en 3.5a.
+- Sigue sin haber E2E de navegador, y por una razón concreta: TEAF no expone endpoints de login, así
+  que esa mitad del recorrido habría que simularla igual. Se aborda cuando la Reference App —que sí
+  publica sus rutas de sesión— se valide como consumidor externo.
+
+### Sprint 3.5b — Frontend UI (navegación, layouts, componentes y tablas)
+
+Convierte el shell de 3.5a en una interfaz navegable. **No toca `teaf/`**: el backend queda intacto
+y su suite (1.289 pruebas) sigue en verde. Las pruebas de frontend pasan de 44 a **114**.
+
+#### Added
+
+- **Navegación real** (`src/routes.tsx`, `components/layout/`): cabecera, cajón lateral responsive
+  (permanente en escritorio, temporal en móvil) y cuatro pantallas privadas — panel, módulos,
+  eventos e inventario del Runtime.
+  - **Público y privado se separan en dos layouts.** Hasta ahora el login se pintaba dentro del
+    mismo marco que la aplicación, con su barra y su botón «Cerrar sesión» encima: un estado que no
+    existe.
+  - La guarda se aplica **una sola vez**, sobre el layout privado entero, en lugar de repetirse en
+    cada ruta. Con `ProtectedRoute` por ruta basta olvidarlo una vez para dejar una pantalla
+    abierta; así una ruta nueva nace protegida.
+- **`QueryBoundary`** (`components/common/`): resuelve en un único sitio los cuatro estados de una
+  consulta —cargando, error, vacío y contenido—. Comprueba el error **antes** que el vacío: tras un
+  fallo `data` sigue indefinida, y sin ese orden el usuario leería «no hay datos» cuando lo cierto
+  es que la consulta falló.
+- **Estados de pantalla** `LoadingState`, `EmptyState`, `ErrorState` y `PageHeader`. `ErrorState`
+  traduce el error a lenguaje del usuario **sin filtrar el detalle interno**: un 403 no enumera el
+  rol o permiso que falta y un 5xx no vuelca el `detail`, que puede traer rutas de fichero o trazas.
+  Sí muestra el `correlationId`, que es lo que permite a soporte encontrar la traza exacta.
+- **`DataTable`** (`components/data/`): tabla tipada por columnas, con celdas que devuelven nodos
+  —no solo texto— y descripción accesible. Recibe los datos ya resueltos: no consulta nada.
+- **Capa de consultas** (`hooks/queries/`): hooks tipados sobre el `httpClient` existente y una
+  fábrica de claves de caché. Ninguna pantalla llama a `fetch` ni construye una URL.
+- **`types/runtime.ts`**: tipos de las respuestas de introspección, verificados contra la salida
+  real de la aplicación en ejecución, no contra lo que sería razonable que devolviera.
+- **Ruta inexistente** (`NotFoundPage`): antes `*` redirigía en silencio a la portada, lo que
+  convierte un enlace roto en «la aplicación me ha llevado a otro sitio sin explicación».
+
+#### Changed
+
+- **Las pantallas se cargan por rutas** (`React.lazy`). Al añadir las vistas nuevas el bundle único
+  cruzó el umbral de 500 kB y el build empezó a avisar. Dividirlo deja el arranque en **270 kB
+  (86 kB gzip)** frente a los 495 kB (157 kB) de 3.5a — un 45 % menos de primera carga. Subir el
+  límite del aviso habría ocultado el problema en lugar de resolverlo.
+- `ForbiddenPage` ofrece vuelta al panel; `AppLayout` y `HomePage` se sustituyen por
+  `components/layout/AppLayout` y `pages/DashboardPage`.
+
+#### Notes
+
+- **No hay formularios de alta o edición, y es correcto.** Los 15 endpoints de TEAF son `GET`: el
+  framework no expone ninguna escritura. El único formulario con respaldo real es el login —cuyas
+  rutas aporta la aplicación anfitriona— más el filtro `?limit=` de eventos, que viaja al servidor
+  de verdad en lugar de recortar en el cliente. El CRUD de ejemplo vive en la Reference App, otro
+  repositorio; traerlo aquí sería lógica de negocio dentro del framework (CLAUDE.md §10).
+- **Tampoco hay paginación.** Los endpoints `/runtime/*` devuelven arrays desnudos, sin el sobre
+  `CollectionEnvelope` de API-STANDARD.md §4. Simular controles de página daría un número de páginas
+  que el servidor nunca calculó.
+- El panel muestra salud y contadores reales del Runtime, no KPIs: un framework no tiene negocio que
+  medir.
+
+### Sprint 3.5a — Frontend Foundation (*core*)
+
+Primer código ejecutable en `frontend/`, que hasta ahora contenía diez `README.md` y cero líneas.
+Entrega el shell arrancable, el cliente API tipado y la autenticación. **No toca ni una línea del
+backend**: `teaf/` queda intacto y su suite (1.289 pruebas) no se ve afectada.
+
+#### Added
+
+- **[ADR-013](docs/architecture/adr/ADR-013-enterprise-frontend-stack.md) — stack de arranque del
+  frontend.** STACK.md aprobaba React + TypeScript + Material UI y nada más; React no trae
+  empaquetador, enrutador, gestión de estado ni ejecutor de pruebas, y el propio STACK.md reconocía
+  esa deuda («se mitiga fijando convenciones propias»). Se deciden **Vite**, **React Router**,
+  **Zustand**, **TanStack Query** y **Vitest**, con alternativas y trade-offs escritos.
+- **Cliente API tipado** (`services/http/`) alineado a los contratos que el backend ya emite:
+  cabecera `X-Correlation-Id` por petición (misma constante que `HEADER_CORRELATION_ID`),
+  traducción de errores RFC 7807 a `ApiError` conservando el `correlationId`, `Authorization:
+  Bearer`, timeout y sobre de colecciones. Ningún contrato nuevo: API First (ADR-004).
+  - **Renovación de sesión con *single-flight***: ante varios 401 simultáneos se renueva **una sola
+    vez**. Sin eso, una pantalla con cuatro peticiones en paralelo dispararía cuatro refrescos y,
+    como el backend rota los refresh tokens al usarlos, tres fallarían.
+- **Autenticación** (`services/auth/`, `store/authStore.ts`): login, refresh, logout, rehidratación
+  de sesión y `hasRole`/`hasPermission` sobre el `Principal`.
+  - Las **rutas son configurables**, no cableadas: TEAF no expone endpoints de login —entrega
+    primitivas de seguridad (ADR-007)— así que cada aplicación declara las suyas. El mismo módulo
+    sirve a TicketGateway, Portal NOC y Portal SRE.
+  - Una sesión **nunca queda a medias**: si hay tokens pero no se pudo obtener el `Principal`, el
+    estado vuelve a `anonymous`.
+- **`TokenStorage`** con dos implementaciones, mismo patrón provider que `CacheProvider` (ADR-012):
+  `MemoryTokenStorage` **por defecto** (nada que robar ante un XSS) y `LocalStorageTokenStorage`
+  como opt-in explícito vía `VITE_PERSIST_SESSION`. El arranque seguro es el defecto; relajarlo es
+  un acto deliberado de la aplicación (SECURITY-STANDARD.md §2).
+- **Shell de aplicación**: `AppLayout`, `ProtectedRoute` (con `requiredRole`/`requiredPermission`),
+  `LoginPage`, `HomePage`, `ForbiddenPage` y tema base de Material UI.
+  - `ProtectedRoute` **no decide mientras la sesión se restaura**: redirigir en ese instante
+    expulsaría a un usuario con sesión válida solo por llegar antes que la respuesta del backend.
+- **Configuración por entorno** (`config/`) con valores por defecto seguros y `.env.example`.
+- **44 pruebas** (Vitest + Testing Library) sobre cliente HTTP, ambos almacenamientos, el store de
+  sesión y `ProtectedRoute`.
+- **Documentación**: [docs/frontend/FRONTEND-ARCHITECTURE.md](docs/frontend/FRONTEND-ARCHITECTURE.md)
+  nueva; `frontend/README.md` y `frontend/src/store/README.md` reescritos con la distinción entre
+  estado de servidor y estado de cliente.
+
+#### Changed
+
+- `docs/architecture/STACK.md` — nueva sección con el stack de arranque del frontend.
+- `docs/architecture/adr/README.md` — índice con ADR-013.
+- `docs/roadmap/BACKLOG.md` — Épica 3: shell, autenticación, cliente API y estado global pasan a
+  entregados; theming y componentes base quedan asignados a 3.5c y 3.5b; se añaden pruebas E2E y
+  generación de tipos desde OpenAPI.
+- `docs/architecture/MODULE-CATALOG.md` — referencia cruzada al inventario de frontend.
+
+#### Notes
+
+- **TypeScript se fija en 5.9.3, no en 7.x.** La 7 (port nativo) es `latest` en npm, pero
+  `typescript-eslint` aún no declara soporte. Revisable cuando lo haga.
+- **Pendiente de 3.5b/3.5c**: librería de componentes (tablas, formularios, navegación) y paleta
+  corporativa TORUS con modo oscuro.
+- **Sin pruebas E2E todavía**: la cobertura llega hasta la integración con dobles; el flujo completo
+  contra un backend real queda anotado en BACKLOG.
+
+
 ### TEAF 3.0 Final Hardening
 
 Cierra las dos inconsistencias que el propio *release gate* de la línea 3.0 destapaba. **No es un
