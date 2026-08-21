@@ -7,6 +7,34 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Corrección posterior al merge — el módulo de secretos nunca se probó
+
+Al integrar el frontend en `main` se ejecutaron las puertas de calidad sobre la rama combinada y
+**dos fallaban** (`lint` y `mypy`). Ninguna venía del frontend: las tres cosas que siguen salen de
+Sprint 3.2-light (SecretProvider), mergeado sin pasar las puertas.
+
+#### Fixed
+
+- **`EnvVarsProvider.set()` y `.delete()` reventaban con el logging en DEBUG.** Los campos viajaban
+  como kwargs sueltos (`logger.debug(msg, key=..., provider=...)`). `Logger.debug` los admite en su
+  `**kwargs`, pero solo se los pasa a `Logger._log` **si el nivel está habilitado** — así que el
+  `TypeError: Logger._log() got an unexpected keyword argument 'key'` aparecía únicamente con DEBUG
+  encendido, que es el nivel **por defecto en desarrollo**, y quedaba invisible con el logging
+  apagado. Ahora usan `extra={"context": {...}}`, la convención de LOGGING-STANDARD.md.
+- **Las pruebas del módulo nunca se ejecutaron.** Estaban escritas dentro de clases `Test*`, y
+  `pyproject.toml` fija `python_classes = []` a propósito (para que `TestingSettings` no se confunda
+  con una clase de prueba), así que pytest las ignoraba **en silencio**: 0 recolectadas de 9. Esa es
+  la razón de fondo de que el fallo anterior llegara a `main`. Convertidas a funciones sueltas, la
+  convención del resto de la suite: **12 pruebas que ahora sí corren**, incluida una de regresión que
+  falla con el código anterior y pasa con el arreglo (verificado revirtiendo el fix).
+- `import pytest` sin usar y orden de imports en el mismo fichero (`lint`).
+
+#### Notes
+
+- Barrido del resto de la suite: no hay más ficheros con tests dentro de clases, así que este era el
+  único módulo afectado.
+- Estado de `main` tras la corrección: **8/8 puertas rápidas**, backend en verde y frontend 134/134.
+
 ### Sprint 3.5c — Cierre del MVP frontend y validación de extremo a extremo
 
 Cierra el MVP: valida el flujo completo, fija el contrato entre las dos mitades y corrige el defecto
