@@ -63,6 +63,8 @@ explica por qué).
 | Validación de extremo a extremo | Recorrido completo del MVP + contrato HTTP verificado contra el TEAF real | ✅ | Componentes base (Sprint 3.5c) |
 | E2E de navegador | Flujo completo contra la pila desplegada (navegador + servidor reales) | 🟡 | **Requiere una aplicación que publique rutas de login**; TEAF no las expone. Se aborda con la Reference App como consumidor externo |
 | Cliente API generado desde OpenAPI | Generar `types/` desde el esquema en vez de mantenerlos a mano | 🟢 | Cliente API. Mitigado mientras tanto por `tests/e2e/test_frontend_api_contract.py`, que detecta la deriva |
+| Actualizar a TypeScript 7 | Subir de la línea 5.x fijada en STACK.md | ⛔ | **Bloqueado**: `typescript-eslint` no puede soportar TS 7 hasta su API programática estable (7.1, ~oct. 2026). Ver [ADR-014](../architecture/adr/ADR-014-typescript-7-vitest-5-deferred.md) |
+| Actualizar a Vitest 5 | Subir de la línea 4.x fijada en STACK.md | ⛔ | **Bloqueado**: exige Node ≥22.12, por encima del suelo declarado en `frontend/package.json` (`>=20.19.0`). Auditoría de las demás roturas ya hecha y sin impacto — ver [ADR-014](../architecture/adr/ADR-014-typescript-7-vitest-5-deferred.md) |
 
 ## Épica 4 — Integration & AI Ready
 

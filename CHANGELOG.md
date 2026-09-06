@@ -7,6 +7,18 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Dependencias del frontend actualizadas — con dos excepciones documentadas
+
+Se fusionaron las 9 Pull Requests de Dependabot pendientes en `frontend/` que eran bumps genuinos de
+parche o menor (eslint, globals, `@tanstack/react-query`, `@testing-library/user-event`, vite,
+`@vitejs/plugin-react`, zustand), verificando tests, typecheck, lint y build tras cada una. Sin
+regresiones: 134/134 en frontend, 1.314 pasan / 11 omitidas en backend.
+
+Dos Pull Requests más resultaron ser saltos de versión **mayor** —TypeScript 7.0.2 y Vitest
+5.0.0— disfrazados de parche por el nombre de rama y el *trailer* de Dependabot. Se rechazan por
+ahora, con las razones y las condiciones exactas de reapertura registradas en
+[ADR-014](docs/architecture/adr/ADR-014-typescript-7-vitest-5-deferred.md).
+
 ### Corrección posterior al merge — el módulo de secretos nunca se probó
 
 Al integrar el frontend en `main` se ejecutaron las puertas de calidad sobre la rama combinada y
