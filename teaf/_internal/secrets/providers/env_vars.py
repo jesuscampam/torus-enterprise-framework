@@ -58,7 +58,14 @@ class EnvVarsProvider(SecretProvider):
             value: Valor
         """
         os.environ[key] = value
-        logger.debug("secret_set_in_memory", key=key, provider="env_vars")
+        # `extra={"context": {...}}` es la convención de logging estructurado del
+        # framework (ver LOGGING-STANDARD.md). Pasar los campos como kwargs
+        # sueltos hacía estallar `Logger._log` con TypeError en cuanto el nivel
+        # DEBUG estaba activo — que es el de por defecto en desarrollo.
+        logger.debug(
+            "secret_set_in_memory",
+            extra={"context": {"key": key, "provider": self.provider_name_value}},
+        )
 
     def delete(self, key: str) -> None:
         """Borrar de `os.environ`.
@@ -69,7 +76,10 @@ class EnvVarsProvider(SecretProvider):
             key: Variable de entorno
         """
         os.environ.pop(key, None)
-        logger.debug("secret_deleted_from_memory", key=key, provider="env_vars")
+        logger.debug(
+            "secret_deleted_from_memory",
+            extra={"context": {"key": key, "provider": self.provider_name_value}},
+        )
 
     @property
     def provider_name(self) -> str:

@@ -30,6 +30,7 @@ No crees un ADR para decisiones de implementación local que no afecten al frame
 | [ADR-011](ADR-011-trusted-proxy-architecture.md) | Arquitectura de proxies de confianza para la resolución de la IP del cliente | Aceptado |
 | [ADR-012](ADR-012-redis-optional-infrastructure.md) | Redis como infraestructura opcional para estado compartido entre réplicas | Aceptado |
 | [ADR-013](ADR-013-enterprise-frontend-stack.md) | Stack de arranque del frontend empresarial (Vite, React Router, Zustand, TanStack Query, Vitest) | Aceptado |
+| [ADR-014](ADR-014-typescript-7-vitest-5-deferred.md) | TypeScript 7 y Vitest 5 en el frontend: no todavía | Rechazado por ahora |
 
 ## Plantilla
 

@@ -1,109 +1,143 @@
-"""Tests: ``SecretProvider`` y ``EnvVarsProvider``."""
+"""Tests: ``SecretProvider`` y ``EnvVarsProvider``.
+
+**Funciones sueltas, no clases.** ``pyproject.toml`` fija ``python_classes = []``
+para que ``TestingSettings`` no se confunda con una clase de prueba, así que
+pytest **ignora en silencio** cualquier test escrito dentro de una clase. Estas
+pruebas nacieron así en Sprint 3.2-light y por eso nunca llegaron a ejecutarse;
+convertirlas fue lo que destapó el fallo de logging que cubre la última.
+"""
 
 from __future__ import annotations
 
+import logging
 import os
+from collections.abc import Iterator
 
 import pytest
-
 from teaf._internal.secrets import EnvVarsProvider, SecretProvider
 
 
-class TestSecretProvider:
-    """Tests de contrato ``SecretProvider``."""
-
-    def test_provider_has_required_methods(self) -> None:
-        """Interfaz expone `get`, `set`, `delete`, `provider_name`."""
-        provider = EnvVarsProvider()
-        assert hasattr(provider, "get")
-        assert hasattr(provider, "set")
-        assert hasattr(provider, "delete")
-        assert hasattr(provider, "provider_name")
-
-    def test_provider_name_returns_identifier(self) -> None:
-        """``provider_name`` devuelve string identificador."""
-        provider = EnvVarsProvider()
-        assert isinstance(provider.provider_name, str)
-        assert provider.provider_name == "env_vars"
+@pytest.fixture
+def provider() -> EnvVarsProvider:
+    """Proveedor recién construido."""
+    return EnvVarsProvider()
 
 
-class TestEnvVarsProvider:
-    """Tests: ``EnvVarsProvider`` (MVP)."""
+@pytest.fixture
+def temp_env_key() -> Iterator[str]:
+    """Nombre de variable de entorno que se limpia al terminar la prueba.
 
-    def test_env_vars_provider_get_existing_secret(self) -> None:
-        """Obtener secreto existente en ``os.environ``."""
-        os.environ["TEST_SECRET"] = "secret_value_123"
-        provider = EnvVarsProvider()
+    La limpieza va en la fixture y no al final del test: si una aserción falla
+    antes, el ``del`` nunca se ejecutaría y la variable se filtraría a las
+    pruebas siguientes.
+    """
+    key = "TEAF_TEMP_TEST_SECRET"
+    yield key
+    os.environ.pop(key, None)
 
-        result = provider.get("TEST_SECRET")
 
-        assert result == "secret_value_123"
-        del os.environ["TEST_SECRET"]
+# --- Contrato de SecretProvider -------------------------------------------
 
-    def test_env_vars_provider_get_missing_secret_returns_none(self) -> None:
-        """Obtener secreto inexistente devuelve `None`."""
-        provider = EnvVarsProvider()
 
-        result = provider.get("NONEXISTENT_SECRET_XYZ")
+def test_provider_exposes_the_contract_methods(provider: EnvVarsProvider) -> None:
+    """La interfaz expone ``get``, ``set``, ``delete`` y ``provider_name``."""
+    assert hasattr(provider, "get")
+    assert hasattr(provider, "set")
+    assert hasattr(provider, "delete")
+    assert hasattr(provider, "provider_name")
 
-        assert result is None
 
-    def test_env_vars_provider_get_missing_secret_with_default(self) -> None:
-        """Obtener secreto inexistente devuelve `default`."""
-        provider = EnvVarsProvider()
+def test_provider_name_returns_identifier(provider: EnvVarsProvider) -> None:
+    """``provider_name`` devuelve el identificador del proveedor."""
+    assert provider.provider_name == "env_vars"
 
-        result = provider.get("NONEXISTENT_SECRET_XYZ", default="fallback_value")
 
-        assert result == "fallback_value"
+def test_provider_abstraction_allows_multiple_implementations(
+    provider: EnvVarsProvider,
+) -> None:
+    """``SecretProvider`` es la interfaz que permitirá cambiar a Vault sin tocar
+    el código que consume ``provider.get()``."""
+    as_contract: SecretProvider = provider
 
-    def test_env_vars_provider_set_creates_in_memory_entry(self) -> None:
-        """``set()`` crea entrada en ``os.environ`` (solo sesión actual)."""
-        provider = EnvVarsProvider()
-        key = "TEMP_TEST_SECRET"
+    assert isinstance(as_contract, SecretProvider)
 
-        provider.set(key, "temp_value_456")
 
-        # Verificar que está en os.environ
-        assert os.environ.get(key) == "temp_value_456"
+# --- Lectura ---------------------------------------------------------------
 
-        # Cleanup
-        del os.environ[key]
 
-    def test_env_vars_provider_delete_removes_from_memory(self) -> None:
-        """``delete()`` remueve de ``os.environ``."""
-        os.environ["TEMP_DELETE_SECRET"] = "will_be_deleted"
-        provider = EnvVarsProvider()
+def test_get_returns_existing_secret(provider: EnvVarsProvider, temp_env_key: str) -> None:
+    """Un secreto presente en ``os.environ`` se devuelve tal cual."""
+    os.environ[temp_env_key] = "secret_value_123"
 
-        provider.delete("TEMP_DELETE_SECRET")
+    assert provider.get(temp_env_key) == "secret_value_123"
 
-        assert os.environ.get("TEMP_DELETE_SECRET") is None
 
-    def test_env_vars_provider_set_then_get(self) -> None:
-        """Ciclo set → get funciona correctamente."""
-        provider = EnvVarsProvider()
-        key = "CYCLE_TEST_SECRET"
-        value = "cycle_test_value_789"
+def test_get_returns_none_for_missing_secret(provider: EnvVarsProvider) -> None:
+    """Un secreto inexistente devuelve ``None``."""
+    assert provider.get("TEAF_NONEXISTENT_SECRET_XYZ") is None
 
-        provider.set(key, value)
-        result = provider.get(key)
 
-        assert result == value
+def test_get_returns_default_for_missing_secret(provider: EnvVarsProvider) -> None:
+    """Un secreto inexistente devuelve el ``default`` recibido."""
+    assert provider.get("TEAF_NONEXISTENT_SECRET_XYZ", default="fallback") == "fallback"
 
-        # Cleanup
-        del os.environ[key]
 
-    def test_env_vars_provider_loads_env_file_gracefully(self) -> None:
-        """Provider se inicializa sin error incluso si no hay `.env`."""
-        provider = EnvVarsProvider()
-        assert provider.provider_name == "env_vars"
+# --- Escritura y borrado ---------------------------------------------------
 
-    def test_provider_abstraction_allows_multiple_implementations(self) -> None:
-        """``SecretProvider`` es interfaz que permite múltiples implementaciones."""
-        provider: SecretProvider = EnvVarsProvider()
 
-        # En v1.0.1 se podrá hacer:
-        # provider = VaultProvider(url="...", token="...")
-        # Sin cambiar el código que use `provider.get()`
+def test_set_creates_in_memory_entry(provider: EnvVarsProvider, temp_env_key: str) -> None:
+    """``set()`` escribe en ``os.environ`` (solo para la sesión en curso)."""
+    provider.set(temp_env_key, "temp_value_456")
 
-        assert isinstance(provider, SecretProvider)
-        assert provider.provider_name == "env_vars"
+    assert os.environ.get(temp_env_key) == "temp_value_456"
+
+
+def test_delete_removes_from_memory(provider: EnvVarsProvider, temp_env_key: str) -> None:
+    """``delete()`` retira la variable de ``os.environ``."""
+    os.environ[temp_env_key] = "will_be_deleted"
+
+    provider.delete(temp_env_key)
+
+    assert os.environ.get(temp_env_key) is None
+
+
+def test_delete_is_tolerant_with_a_missing_key(provider: EnvVarsProvider) -> None:
+    """Borrar algo que no existe no lanza."""
+    provider.delete("TEAF_NONEXISTENT_SECRET_XYZ")
+
+
+def test_set_then_get_round_trip(provider: EnvVarsProvider, temp_env_key: str) -> None:
+    """El ciclo ``set`` → ``get`` devuelve el valor escrito."""
+    provider.set(temp_env_key, "cycle_test_value_789")
+
+    assert provider.get(temp_env_key) == "cycle_test_value_789"
+
+
+def test_provider_initialises_without_an_env_file(provider: EnvVarsProvider) -> None:
+    """El proveedor arranca aunque no haya ``.env`` en el directorio."""
+    assert provider.provider_name == "env_vars"
+
+
+# --- Regresión -------------------------------------------------------------
+
+
+def test_set_and_delete_work_with_debug_logging_enabled(
+    provider: EnvVarsProvider, temp_env_key: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """``set``/``delete`` no revientan con el nivel DEBUG activo.
+
+    Los campos del log viajaban como kwargs sueltos
+    (``logger.debug(msg, key=..., provider=...)``). ``Logger.debug`` los admite
+    en su ``**kwargs``, pero solo se los pasa a ``Logger._log`` **si el nivel
+    está habilitado**: por eso el ``TypeError`` aparecía únicamente con DEBUG
+    encendido —el nivel por defecto en desarrollo— y quedaba invisible en
+    cualquier prueba con el logging apagado.
+    """
+    with caplog.at_level(logging.DEBUG):
+        provider.set(temp_env_key, "valor-secreto")
+        provider.delete(temp_env_key)
+
+    assert provider.get(temp_env_key) is None
+    assert any(record.message == "secret_set_in_memory" for record in caplog.records)
+    # Se registra el nombre de la clave, nunca el valor (SECURITY-STANDARD.md).
+    assert not any("valor-secreto" in record.getMessage() for record in caplog.records)
