@@ -72,7 +72,7 @@ export function DataTable<T>({ columns, rows, rowKey, caption }: DataTableProps<
         <Box component="caption" sx={visuallyHidden}>
           {caption}
         </Box>
-        <TableHead>
+        <TableHead sx={{ bgcolor: 'torus.gray' }}>
           <TableRow>
             {columns.map((column) => (
               <TableCell key={column.id} align={column.align ?? 'left'} component="th" scope="col">

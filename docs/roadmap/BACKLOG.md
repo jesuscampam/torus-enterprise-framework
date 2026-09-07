@@ -57,7 +57,8 @@ explica por qué).
 | Estado global | Convenciones de `store/` y `hooks/` reutilizables | ✅ | Shell de aplicación (Sprint 3.5a) |
 | Componentes base | Librería base: navegación, layouts, tablas de datos y estados de pantalla | ✅ | Shell de aplicación (Sprint 3.5b) |
 | Navegación y rutas | Rutas públicas/privadas, guarda única sobre el layout y ruta inexistente | ✅ | Shell de aplicación (Sprint 3.5b) |
-| Theming | Paleta corporativa TORUS, variantes por producto y modo oscuro | 🔴 | Shell de aplicación (Sprint 3.5c) |
+| Theming | Paleta corporativa TORUS (logo, colores, gris de superficie) | ✅ | Shell de aplicación (Sprint 3.5c) |
+| Theming — variantes por producto y modo oscuro | Temas alternativos por aplicación TORUS y modo oscuro | 🔴 | Ningún producto lo ha pedido todavía; fuera de alcance hasta entonces (CLAUDE.md §3) |
 | Formularios de escritura | Formularios de alta/edición sobre endpoints de mutación | ⛔ | **Bloqueado**: TEAF no expone endpoints de escritura; corresponde a las aplicaciones, no al framework (CLAUDE.md §10) |
 | Paginación de servidor en tablas | Controles de página en `DataTable` | ⛔ | **Bloqueado**: requiere que los endpoints de colección adopten el sobre `CollectionEnvelope` de API-STANDARD.md §4; hoy `/runtime/*` devuelve arrays desnudos |
 | Validación de extremo a extremo | Recorrido completo del MVP + contrato HTTP verificado contra el TEAF real | ✅ | Componentes base (Sprint 3.5c) |

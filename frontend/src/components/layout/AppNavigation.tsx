@@ -58,7 +58,11 @@ export function AppNavigation({ open, onClose }: AppNavigationProps): ReactEleme
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { width: NAVIGATION_WIDTH, boxSizing: 'border-box' },
+          '& .MuiDrawer-paper': {
+            width: NAVIGATION_WIDTH,
+            boxSizing: 'border-box',
+            bgcolor: 'torus.gray',
+          },
         }}
       >
         <NavigationList onNavigate={onClose} />
@@ -69,7 +73,11 @@ export function AppNavigation({ open, onClose }: AppNavigationProps): ReactEleme
         open
         sx={{
           display: { xs: 'none', md: 'block' },
-          '& .MuiDrawer-paper': { width: NAVIGATION_WIDTH, boxSizing: 'border-box' },
+          '& .MuiDrawer-paper': {
+            width: NAVIGATION_WIDTH,
+            boxSizing: 'border-box',
+            bgcolor: 'torus.gray',
+          },
         }}
       >
         {/* Empuja la lista por debajo de la AppBar fija. */}

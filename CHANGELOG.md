@@ -7,6 +7,47 @@ y este proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Theming corporativo TORUS
+
+Cierra el pendiente "Theming" del backlog (Sprint 3.5c). La paleta, el logo y el gris de marca
+salen de la plantilla oficial (`Plantilla de colores.pptx`, raíz del repositorio), extraídos y
+verificados por contraste WCAG a partir de los `srgbClr` y los píxeles reales del logo — no de una
+estimación visual.
+
+#### Added
+
+- `frontend/src/assets/torus-logo.png` — logo TORUS oficial, recortado a un tamaño razonable para
+  cabecera (320×176, ~65 KB) a partir del original de la plantilla de marca.
+- `theme.palette.torus.gray` (`#D9D9D9`) — token de superficie nuevo, con su propia extensión de
+  tipos de MUI (`declare module '@mui/material/styles'`) porque no es un color de acción ni de
+  estado: es un fondo de superficie (navegación, cabeceras de tabla), y forzarlo dentro de `grey`
+  habría alterado también los estados deshabilitados que MUI deriva de esa escala.
+- Subtítulo de capítulo en `AppHeader`: junto al logo de marca (TORUS, compartido por todas las
+  aplicaciones futuras del ecosistema) se añade "TEAF · Consola de administración", que identifica
+  qué aplicación concreta es esta. El resto de páginas conserva su diseño sin cambios.
+
+#### Changed
+
+- `theme/index.ts`: `primary.main` pasa a `#A02426` (rojo TORUS, 7.57:1), `secondary.main` a
+  `#4A7007` (verde de marca oscurecido, 5.81:1 — el verde original, `#5E8D09`, no alcanza 4.5:1
+  usado como texto, así que queda como `secondary.light` para acentos no textuales) y
+  `text.primary` a `#1F1F1F`. `error`/`success`/`warning`/`info` se dejan en los valores por
+  defecto de MUI a propósito: el rojo de marca es identidad, no estado, y reutilizarlo como `error`
+  mezclaría ambos significados.
+  `AppHeader`: la `AppBar` pasa de coloreada a `color="default"` sobre `background.paper` con un
+  borde inferior, porque el logo a color solo se lee con nitidez sobre un fondo claro.
+  `AppNavigation` y `DataTable`: el cajón de navegación y la cabecera de las tablas usan
+  `theme.palette.torus.gray` en vez del blanco/gris por defecto de MUI.
+- Verificado con una sesión de navegador real contra un backend simulado (mismo doble de
+  `e2e.test.tsx`), en escritorio y móvil: logo, colores y contraste se comprueban visualmente, no
+  solo por tipos.
+
+#### Sin cambios de alcance
+
+Modo oscuro y variantes de tema por producto quedan fuera, como ya fijaba `theme/index.ts` — nadie
+las ha pedido todavía (CLAUDE.md §3). El segundo logo sin identificar de la plantilla
+(`image25.png`) no se incorpora: no se sabe qué representa.
+
 ### Dependencias del frontend actualizadas — con dos excepciones documentadas
 
 Se fusionaron las 9 Pull Requests de Dependabot pendientes en `frontend/` que eran bumps genuinos de

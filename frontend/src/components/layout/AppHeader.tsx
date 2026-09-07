@@ -1,6 +1,7 @@
 import { AppBar, Box, Button, IconButton, Toolbar, Typography } from '@mui/material';
 import type { ReactElement } from 'react';
 
+import torusLogo from '@/assets/torus-logo.png';
 import { useAuth } from '@/hooks/useAuth';
 
 interface AppHeaderProps {
@@ -36,7 +37,17 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProps): ReactElement {
   const displayName = principal?.identity.claims.name ?? principal?.identity.id;
 
   return (
-    <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar
+      position="fixed"
+      color="default"
+      elevation={0}
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        bgcolor: 'background.paper',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
       <Toolbar>
         <IconButton
           color="inherit"
@@ -48,9 +59,26 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProps): ReactElement {
           <MenuIcon />
         </IconButton>
 
-        <Typography variant="h6" component="span" sx={{ flexGrow: 1 }}>
-          TEAF
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+          <Box
+            component="img"
+            src={torusLogo}
+            alt="TORUS"
+            sx={{ height: 32, width: 'auto', display: 'block' }}
+          />
+          {/* Capítulo TORUS que representa esta aplicación: el logo identifica la
+              marca, este texto identifica qué pieza del ecosistema es. */}
+          <Typography
+            variant="caption"
+            component="span"
+            color="text.secondary"
+            sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 1.5, lineHeight: 1.2 }}
+          >
+            TEAF
+            <br />
+            Consola de administración
+          </Typography>
+        </Box>
 
         {isAuthenticated && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
